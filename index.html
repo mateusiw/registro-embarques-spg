@@ -707,18 +707,22 @@
     <script>
         // ===== PWA: BRAND ASSETS =====
 
-        const BRAND_LOGO_SVG = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-            <rect width="512" height="512" rx="112" fill="#0f172a"/>
-            <image href="https://i.imgur.com/o1ahyC0.png" x="56" y="56" width="400" height="400" preserveAspectRatio="xMidYMid meet"/>
-        </svg>`.trim();
+        async function applyBrandAssets() {
+            // Busca a imagem e converte para base64 para embutir no SVG (data URIs não carregam URLs externas)
+            let imgDataUri = 'https://i.imgur.com/o1ahyC0.png';
+            try {
+                const resp = await fetch('https://i.imgur.com/o1ahyC0.png');
+                const blob = await resp.blob();
+                imgDataUri = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch(e) { /* usa URL de fallback */ }
 
-        function getBrandLogoDataUri() {
-            return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(BRAND_LOGO_SVG)}`;
-        }
-
-        function applyBrandAssets() {
-            const logoUri = getBrandLogoDataUri();
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0f172a"/><image href="${imgDataUri}" x="56" y="56" width="400" height="400" preserveAspectRatio="xMidYMid meet"/></svg>`;
+            const logoUri = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 
             const favicon        = document.getElementById('siteFavicon');
             const appleTouchIcon = document.getElementById('siteAppleTouchIcon');
