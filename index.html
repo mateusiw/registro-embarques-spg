@@ -750,9 +750,9 @@
 
         async function applyBrandAssets() {
             // Busca a imagem e converte para base64 para embutir no SVG (data URIs não carregam URLs externas)
-            let imgDataUri = 'https://i.imgur.com/o1ahyC0.png';
+            let imgDataUri = 'https://i.imgur.com/FSUbdya.png';
             try {
-                const resp = await fetch('https://i.imgur.com/o1ahyC0.png');
+                const resp = await fetch('https://i.imgur.com/FSUbdya.png');
                 const blob = await resp.blob();
                 imgDataUri = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -2248,8 +2248,8 @@
 
             <!-- RODAPÉ -->
             <div style="background:#f0fdf4;border-top:2px solid #059669;padding:6px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:0;">
-              <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Documento gerado eletronicamente pelo Sistema de Planejamento e Gestão (SPG) Sede.</span>
-              <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Uso interno.</span>
+              <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Documento Gerado Eletronicamente.</span>
+              <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Uso Interno.</span>
             </div>
             </div>`;
 
