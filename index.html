@@ -124,6 +124,10 @@
 
         <!-- Botões desktop -->
         <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-2">
+            <button type="button" onclick="clearForm()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Limpar dados do formulário">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Limpar</span>
+            </button>
             <button type="button" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
@@ -404,6 +408,21 @@
         </div>
     </div>
 
+    <!-- MODAL LIMPAR FORMULÁRIO -->
+    <div id="clearFormModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center border border-slate-200">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-xl bg-rose-100 mb-4 border border-rose-200">
+                <i data-lucide="trash-2" class="w-6 h-6 text-rose-600"></i>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight mb-2">Limpar Formulário?</h3>
+            <p class="text-sm text-slate-600 mb-5">Todos os dados preenchidos serão apagados.<br><span class="font-bold text-slate-800">Esta ação não pode ser desfeita.</span></p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="document.getElementById('clearFormModal').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Cancelar</button>
+                <button onclick="executeClearForm()" class="px-4 py-2.5 bg-gradient-to-r from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Limpar Tudo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAIS -->
     <div id="confirmModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all scale-100 border border-slate-200">
@@ -450,21 +469,41 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIGURAÇÕES (API KEY) -->
+    <!-- MODAL CONFIGURAÇÕES -->
     <div id="settingsModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-md border border-slate-200">
             <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-200">
-                <div class="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center"><i data-lucide="key" class="w-5 h-5"></i></div>
-                <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Configurar IA</h3>
+                <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center"><i data-lucide="settings" class="w-5 h-5"></i></div>
+                <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Configurações</h3>
             </div>
-            <p class="text-xs text-slate-500 mb-3 leading-relaxed">Insira sua chave da API Groq (gratuita) para habilitar a análise por IA. A chave fica salva apenas no seu dispositivo.</p>
-            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Chave de API (Groq — gratuito)</label>
-            <input type="password" id="apiKeyInput" placeholder="gsk_..." class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-400 outline-none mb-4">
+
+            <!-- Apps Script URL -->
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="link" class="w-3 h-3"></i></div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">URL do Apps Script</label>
+                </div>
+                <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/..." class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+                <p class="text-[10px] text-slate-400 mt-1">URL da Web App publicada no Google Apps Script. Necessária para salvar e consultar histórico.</p>
+            </div>
+
+            <div class="border-t border-slate-100 my-4"></div>
+
+            <!-- API Key Groq -->
+            <div class="mb-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-5 h-5 rounded bg-violet-100 text-violet-600 flex items-center justify-center shrink-0"><i data-lucide="key" class="w-3 h-3"></i></div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chave de API (Groq — gratuito)</label>
+                </div>
+                <input type="password" id="apiKeyInput" placeholder="gsk_..." class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-violet-400 outline-none">
+                <p class="text-[10px] text-slate-400 mt-1">Necessária para usar a análise por IA. Fica salva apenas no seu dispositivo.</p>
+            </div>
             <div id="apiTestResult" class="hidden mb-3 p-3 rounded-xl text-xs font-bold"></div>
-            <div class="grid grid-cols-3 gap-2">
+
+            <div class="grid grid-cols-3 gap-2 mt-4">
                 <button onclick="closeSettings()" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
-                <button onclick="testApiKey()" class="px-3 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Testar</button>
-                <button onclick="saveApiKey()" class="px-3 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
+                <button onclick="testApiKey()" class="px-3 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Testar IA</button>
+                <button onclick="saveSettings()" class="px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
             </div>
         </div>
     </div>
@@ -724,7 +763,7 @@
             </button>
 
         </div>
-        <div style="display:grid; grid-template-columns:repeat(3,1fr);">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr);">
 
             <button type="button" onclick="confirmBeforeSend('interno')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
@@ -736,9 +775,14 @@
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Email</span>
             </button>
 
-            <button type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="settings" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
+            </button>
+
+            <button type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="trash-2" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#fca5a5;">Limpar</span>
             </button>
 
         </div>
@@ -779,8 +823,7 @@
 
         // ===== FIM PWA =====
 
-        // ⚠️ Cole aqui a URL do seu Apps Script Web App após publicar
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
+        let APPS_SCRIPT_URL = localStorage.getItem('spg_apps_script_url') || '';
 
         let currentReportId = "------";
         let currentPdfMode = 'interno';
@@ -1082,7 +1125,7 @@
 
         async function _doSaveToCloud() {
             if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no index.html.', 'error');
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
                 return;
             }
 
@@ -1169,7 +1212,7 @@
 
         async function openHistory() {
             if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no index.html.', 'error');
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
                 return;
             }
             document.getElementById('historyModal').classList.remove('hidden');
@@ -1357,6 +1400,46 @@
             document.getElementById('editModeBanner').classList.add('hidden');
         }
 
+        function clearForm() {
+            document.getElementById('clearFormModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function executeClearForm() {
+            document.getElementById('clearFormModal').classList.add('hidden');
+
+            // Campos simples
+            ['reportDate','embarqueCodigo','varietyInput','customProductName',
+             'driverName','vehiclePlate','departureTime','boxType',
+             'sensorNumber','lacreNumber','palletQty','thermostatValue',
+             'customInspectorName','tempObservation'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+
+            // Selects
+            const productSelect = document.getElementById('productSelect');
+            if (productSelect) productSelect.value = '';
+            document.getElementById('customProductContainer')?.classList.add('hidden');
+
+            const inspectorSelect = document.getElementById('inspectorSelect');
+            if (inspectorSelect) inspectorSelect.value = '';
+            document.getElementById('customInspectorContainer')?.classList.add('hidden');
+
+            // Containers dinâmicos
+            ['nfeContainer','palletsContainer','customTempsContainer',
+             'partnersContainer','discardsContainer','additionalInfoContainer',
+             'photosContainer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+
+            const photosHint = document.getElementById('photosHint');
+            if (photosHint) photosHint.style.display = '';
+
+            updatePreview();
+        }
+
         // ===== SENHA DE PROTEÇÃO =====
         let _pendingPasswordAction = null; // { type: 'edit'|'delete', idx: number }
 
@@ -1405,7 +1488,7 @@
             if (!password) return;
 
             if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no código.', 'error');
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
                 return;
             }
 
@@ -1662,7 +1745,7 @@
         // ---------- Parceiros ----------
         const UNIT_PRESETS = ['Brócolis Filetado', 'Brócolis Inteiro'];
         const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá'];
-        function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '' }); renderPartners(); }
+        function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) { partnersData[idx][field] = value; updatePreview(); }
         function updatePartnerUnit(idx, value) {
@@ -1715,6 +1798,11 @@
                     </div>
                     ${nameSel === 'Outro' ? `<input type="text" value="${nameCustom.replace(/"/g,'&quot;')}" placeholder="Digite o nome do parceiro..." oninput="updatePartner(${idx}, 'nameCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none animate-fade-in-down">` : ''}
                     ${unitSel === 'Outro' ? `<input type="text" value="${unitCustom.replace(/"/g,'&quot;')}" placeholder="Digite a unidade..." oninput="updatePartner(${idx}, 'unitCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none animate-fade-in-down">` : ''}
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita</label>
+                        <input type="date" value="${p.harvestDate||''}" oninput="updatePartner(${idx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+                    </div>
                 </div>
             `}).join('');
             lucide.createIcons();
@@ -1726,7 +1814,7 @@
             const valid = getValidPartners();
             const map = new Map();
             valid.forEach(p => {
-                const key = getPartnerName(p).trim() + '|' + getPartnerUnit(p);
+                const key = getPartnerName(p).trim() + '|' + getPartnerUnit(p) + '|' + (p.harvestDate || '');
                 if (map.has(key)) {
                     const existing = map.get(key);
                     existing.qty = (parseFloat(existing.qty) + parseFloat(p.qty)).toString();
@@ -1743,9 +1831,12 @@
         }
 
         // ---------- Pallets ----------
-        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', photos: [] }); renderPallets(); updatePreview(); }
+        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', items: [], photos: [] }); renderPallets(); updatePreview(); }
         function removePallet(idx) { palletsData.splice(idx, 1); renderPallets(); updatePreview(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
+        function addPalletItem(idx) { if (!palletsData[idx].items) palletsData[idx].items = []; palletsData[idx].items.push({ product: '', boxes: '' }); renderPallets(); }
+        function removePalletItem(idx, iidx) { palletsData[idx].items.splice(iidx, 1); renderPallets(); updatePreview(); }
+        function updatePalletItem(idx, iidx, field, value) { palletsData[idx].items[iidx][field] = value; updatePreview(); }
         function handlePalletPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             event.target.value = '';
@@ -1767,10 +1858,26 @@
                         <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" class="flex-1 p-2 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
                         <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2">
                             <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-                            <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-20 p-1.5 text-sm outline-none bg-transparent">
+                            <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-16 p-1.5 text-sm outline-none bg-transparent">
                         </div>
                         <button type="button" onclick="removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
+                    ${(pl.items||[]).length === 0 ? `
+                    <button type="button" onclick="addPalletItem(${idx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold transition-colors">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
+                    </button>` : `
+                    <div class="space-y-1.5">
+                        ${(pl.items||[]).map((item, iidx) => `
+                        <div class="flex gap-1.5 items-center">
+                            <input type="text" value="${(item.product||'').replace(/"/g,'&quot;')}" placeholder="Produto" oninput="updatePalletItem(${idx}, ${iidx}, 'product', this.value)" class="flex-1 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                            <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-16 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
+                            <span class="text-[11px] text-amber-600 font-bold shrink-0">cx</span>
+                            <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                        </div>`).join('')}
+                        <button type="button" onclick="addPalletItem(${idx})" class="flex items-center gap-1 text-amber-500 hover:text-amber-700 text-[10px] font-bold">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
+                        </button>
+                    </div>`}
                     <div class="flex flex-wrap gap-2 items-center pl-1">
                         ${photos.map((src, pidx) => `
                             <div class="relative group">
@@ -2117,12 +2224,15 @@
 
             <!-- 3. PALLETS -->
             ${rpSH(rn(),'Pallets')}
-            ${rpTable(`<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Fotos',70)}</tr>
+            ${rpTable(`<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}</tr>
             ${validPallets.length ? validPallets.map((pl,i)=>{
                 const bg = i%2===0?'':'background:#fffbeb;';
                 const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
-                const fotoCount = (pl.photos||[]).length;
-                return `<tr style="${bg}">${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(fotoCount?fotoCount+' foto(s)':'—','text-align:center;')}</tr>`;
+                const validItems = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
+                const boxesHtml = validItems.length
+                    ? validItems.map(it => `<span style="display:block;">${it.boxes} cx${it.product ? ' <span style="color:#92400e;font-weight:600;">('+it.product+')</span>' : ''}</span>`).join('')
+                    : (pl.boxes ? pl.boxes+' cx' : '—');
+                return `<tr style="${bg}">${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}</tr>`;
             }).join('') : `<tr><td colspan="3" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum pallet registrado.</td></tr>`}
             ${validPallets.length?`<tr style="background:#fef3c7;">${rpTH('TOTAL')}${rpTD(palletQty+' pallet(s)','font-weight:900;text-align:center;')}${rpTD('')}</tr>`:''}`)}
 
@@ -2137,14 +2247,15 @@
             ${showInternalSections ? `
             <!-- 6. PARCEIROS / QUANTIDADES -->
             ${rpSH(rn(),'Parceiros / Quantidades')}
-            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Quantidade',90)}${rpTH('Unidade',80)}${rpTH('% do Total',80)}</tr>
+            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Quantidade',80)}${rpTH('Unidade',75)}${rpTH('Data Colheita',85)}${rpTH('% do Total',75)}</tr>
             ${validPartners.length ? validPartners.map((p,i)=>{
                 const pct = totalQty>0 ? (parseFloat(p.qty)/totalQty*100).toFixed(1)+'%' : '—';
-                const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p) === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner);
+                const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p)+'|'+(p.harvestDate||'') === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner)+'|'+(maxPartner.harvestDate||'');
                 const bg = i%2===0?'':'background:#f0f6ff;';
-                return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(pct,'text-align:right;')}</tr>`;
-            }).join('') : `<tr><td colspan="4" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#d1fae5;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+                const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
+                return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
+            }).join('') : `<tr><td colspan="5" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
+            ${validPartners.length?`<tr style="background:#d1fae5;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
@@ -2176,58 +2287,22 @@
             }).join('')}`)}` : ''}
 
             ${(() => {
-                const discardsWithPhotos = validDiscards.filter(d => (d.photos || []).length);
-                const tempsWithPhotos = validCustomTemps.filter(t => (t.photos || []).length);
-                const palletsWithPhotos = validPallets.filter(pl => (pl.photos || []).length);
-                const hasAnyPhoto = discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length || photosData.length;
-                if (!hasAnyPhoto) return '';
+                const preview = photosData.slice(0, 5);
+                if (!preview.length) return '';
                 const secNum = rn();
                 return `
-                <!-- REGISTRO FOTOGRÁFICO -->
-                ${rpSH(secNum,'Registro Fotográfico')}
+                ${rpSH(secNum,'Fotos do Embarque')}
                 <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 12px;background:#fbfdfd;">
-                    ${discardsWithPhotos.length ? `
-                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#b91c1c;margin-bottom:8px;">Comprovantes dos Descartes</div>
-                    ${discardsWithPhotos.map(d => `
-                        <div style="margin-bottom:10px;page-break-inside:avoid;">
-                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner} — ${d.weight} kg${d.reason ? ' · ' + d.reason : ''}</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                ${(d.photos || []).map(src => `<img src="${src}" style="width:170px;height:170px;object-fit:cover;border:1px solid #e3b8b8;border-radius:4px;">`).join('')}
-                            </div>
-                        </div>
-                    `).join('')}` : ''}
-                    ${tempsWithPhotos.length ? `
-                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#9a3412;margin:${discardsWithPhotos.length ? '12px' : '0'} 0 8px;border-top:${discardsWithPhotos.length ? '1px dashed #d0d8e4' : 'none'};padding-top:${discardsWithPhotos.length ? '10px' : '0'};">Comprovantes das Temperaturas</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:14px;">
-                        ${tempsWithPhotos.map(t => `
-                            <div style="page-break-inside:avoid;">
-                                <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:4px;">${t.label}${t.value !== '' && t.value != null ? ' — ' + t.value + ' °C' : ''}</div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                    ${(t.photos || []).map(src => `<img src="${src}" style="width:170px;height:170px;object-fit:cover;border:1px solid #e8c9a8;border-radius:4px;">`).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>` : ''}
-                    ${palletsWithPhotos.length ? `
-                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '12px' : '0'} 0 8px;border-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '1px dashed #d0d8e4' : 'none'};padding-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '10px' : '0'};">Fotos dos Pallets</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:14px;">
-                        ${palletsWithPhotos.map(pl => `
-                            <div style="page-break-inside:avoid;">
-                                <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — ' + pl.temp + '°C' : ''}</div>
-                                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                                    ${pl.photos.map(src => `<img src="${src}" style="width:170px;height:170px;object-fit:cover;border:1px solid #fbbf24;border-radius:4px;">`).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>` : ''}
-                    ${photosData.length ? `
-                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#064e3b;margin:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '12px' : '0'} 0 8px;border-top:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '1px dashed #d0d8e4' : 'none'};padding-top:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '10px' : '0'};">Fotos Gerais do Embarque</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                        ${photosData.map((p,i)=>`<div style="page-break-inside:avoid;text-align:center;">
-                            <img src="${p.dataUrl}" style="width:180px;height:180px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
-                            <div style="font-size:9px;color:#445;margin-top:3px;max-width:180px;">${p.caption ? p.caption : 'Foto '+(i+1)}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
+                        ${preview.map((p,i)=>`<div style="page-break-inside:avoid;text-align:center;">
+                            <img src="${p.dataUrl}" style="width:160px;height:160px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
+                            <div style="font-size:9px;color:#445;margin-top:3px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
                         </div>`).join('')}
-                    </div>` : ''}
+                        ${photosData.length > 5 ? `<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:4px;">
+                            <span style="font-size:22px;font-weight:900;color:#64748b;">+${photosData.length - 5}</span>
+                            <span style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">em anexo</span>
+                        </div>` : ''}
+                    </div>
                 </div>`;
             })()}
 
@@ -2236,7 +2311,63 @@
               <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Documento Gerado Eletronicamente.</span>
               <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Uso Interno.</span>
             </div>
-            </div>`;
+            </div>
+
+            ${(() => {
+                const discardsWithPhotos = showInternalSections ? validDiscards.filter(d => (d.photos || []).length) : [];
+                const tempsWithPhotos    = validCustomTemps.filter(t => (t.photos || []).length);
+                const palletsWithPhotos  = validPallets.filter(pl => (pl.photos || []).length);
+                const hasAnnex = discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length || photosData.length;
+                if (!hasAnnex) return '';
+
+                const annexSection = (title, color, items) => `
+                    <div style="margin-bottom:20px;page-break-inside:avoid;">
+                        <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:${color};border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:10px;">${title}</div>
+                        ${items}
+                    </div>`;
+
+                return `
+                <div style="page-break-before:always;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;padding:16px 20px;">
+                    <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #059669;padding-bottom:8px;margin-bottom:20px;">Anexo Fotográfico</div>
+
+                    ${photosData.length ? annexSection('Fotos Gerais do Embarque','#064e3b',`
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                            ${photosData.map((p,i)=>`<div style="text-align:center;page-break-inside:avoid;">
+                                <img src="${p.dataUrl}" style="width:200px;height:200px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
+                                <div style="font-size:9px;color:#445;margin-top:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
+                            </div>`).join('')}
+                        </div>`) : ''}
+
+                    ${discardsWithPhotos.length ? annexSection('Comprovantes dos Descartes','#b91c1c',
+                        discardsWithPhotos.map(d=>`
+                        <div style="margin-bottom:12px;page-break-inside:avoid;">
+                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:6px;">${d.partner} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                ${(d.photos||[]).map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #e3b8b8;border-radius:4px;">`).join('')}
+                            </div>
+                        </div>`).join('')) : ''}
+
+                    ${tempsWithPhotos.length ? annexSection('Comprovantes das Temperaturas','#9a3412',`
+                        <div style="display:flex;flex-wrap:wrap;gap:14px;">
+                            ${tempsWithPhotos.map(t=>`<div style="page-break-inside:avoid;">
+                                <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:6px;">${t.label}${t.value !== '' && t.value != null ? ' — '+t.value+' °C' : ''}</div>
+                                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                    ${(t.photos||[]).map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #e8c9a8;border-radius:4px;">`).join('')}
+                                </div>
+                            </div>`).join('')}
+                        </div>`) : ''}
+
+                    ${palletsWithPhotos.length ? annexSection('Fotos dos Pallets','#92400e',`
+                        <div style="display:flex;flex-wrap:wrap;gap:14px;">
+                            ${palletsWithPhotos.map(pl=>`<div style="page-break-inside:avoid;">
+                                <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:6px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
+                                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                                    ${pl.photos.map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #fbbf24;border-radius:4px;">`).join('')}
+                                </div>
+                            </div>`).join('')}
+                        </div>`) : ''}
+                </div>`;
+            })()}`;
 
             previewContent.innerHTML = html;
             saveToLocalStorage();
@@ -2305,8 +2436,8 @@
 
         // ---------- Configurações / API Key ----------
         function openSettings() {
-            const saved = localStorage.getItem('spg_groq_key') || '';
-            document.getElementById('apiKeyInput').value = saved;
+            document.getElementById('appsScriptUrlInput').value = localStorage.getItem('spg_apps_script_url') || '';
+            document.getElementById('apiKeyInput').value = localStorage.getItem('spg_groq_key') || '';
             document.getElementById('settingsModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -2340,12 +2471,24 @@
                 resultEl.innerText = `❌ Falha de rede: ${e.message}`;
             }
         }
-        function saveApiKey() {
+        function saveApiKey() { saveSettings(); }
+        function saveSettings() {
+            const url = document.getElementById('appsScriptUrlInput').value.trim();
             const key = document.getElementById('apiKeyInput').value.trim();
-            if (!key) { showMessageModal('Campo obrigatório', 'Informe a chave de API antes de salvar.', 'error'); return; }
-            localStorage.setItem('spg_groq_key', key);
+            if (url) {
+                localStorage.setItem('spg_apps_script_url', url);
+                APPS_SCRIPT_URL = url;
+            } else {
+                localStorage.removeItem('spg_apps_script_url');
+                APPS_SCRIPT_URL = '';
+            }
+            if (key) {
+                localStorage.setItem('spg_groq_key', key);
+            } else {
+                localStorage.removeItem('spg_groq_key');
+            }
             closeSettings();
-            showMessageModal('CHAVE SALVA', 'Chave de API salva com sucesso. Agora você pode usar a análise por IA.', 'info');
+            showMessageModal('CONFIGURAÇÕES SALVAS', 'As configurações foram salvas no seu dispositivo.', 'info');
         }
         function closeAnalysis() { document.getElementById('analysisModal').classList.add('hidden'); }
 
