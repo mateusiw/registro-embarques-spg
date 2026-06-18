@@ -1,18 +1,20 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Registro de Embarque - SPG</title>
 
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiMwZjE3MmEiLz48cmVjdCB4PSIxNDQiIHk9IjE0NCIgd2lkdGg9IjIyNCIgaGVpZ2h0PSIyODgiIHJ4PSIyNCIgZmlsbD0iI2ZmZmZmZiIvPjxyZWN0IHg9IjE5MiIgeT0iOTYiIHdpZHRoPSIxMjgiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzNiODJmNiIvPjxwYXRoIGQ9Ik0yMDggMjcybDMyIDMyIDgwLTgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmM1NWUiIHN0cm9rZS13aWR0aD0iMzIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxsaW5lIHgxPSIxOTIiIHkxPSIzNjgiIHgyPSIzMjAiIHkyPSIzNjgiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiMwZjE3MmEiLz48cmVjdCB4PSIxNDQiIHk9IjE0NCIgd2lkdGg9IjIyNCIgaGVpZ2h0PSIyODgiIHJ4PSIyNCIgZmlsbD0iI2ZmZmZmZiIvPjxyZWN0IHg9IjE5MiIgeT0iOTYiIHdpZHRoPSIxMjgiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzNiODJmNiIvPjxwYXRoIGQ9Ik0yMDggMjcybDMyIDMyIDgwLTgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmM1NWUiIHN0cm9rZS13aWR0aD0iMzIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxsaW5lIHgxPSIxOTIiIHkxPSIzNjgiIHgyPSIzMjAiIHkyPSIzNjgiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Cruzamento de Embarque SPG","short_name":"Embarque","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiMwZjE3MmEiLz48cmVjdCB4PSIxNDQiIHk9IjE0NCIgd2lkdGg9IjIyNCIgaGVpZ2h0PSIyODgiIHJ4PSIyNCIgZmlsbD0iI2ZmZmZmZiIvPjxyZWN0IHg9IjE5MiIgeT0iOTYiIHdpZHRoPSIxMjgiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzNiODJmNiIvPjxwYXRoIGQ9Ik0yMDggMjcybDMyIDMyIDgwLTgwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmM1NWUiIHN0cm9rZS13aWR0aD0iMzIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxsaW5lIHgxPSIxOTIiIHkxPSIzNjgiIHgyPSIzMjAiIHkyPSIzNjgiIHN0cm9rZT0iI2NiZDVlMSIgc3Ryb2tlLXdpZHRoPSIyNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+","sizes":"512x512","type":"image/svg+xml"}]}'>
+    <link id="siteManifest" rel="manifest">
+    <link id="siteFavicon" rel="icon" type="image/svg+xml">
+    <link id="siteAppleTouchIcon" rel="apple-touch-icon">
 
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" id="themeColorMeta" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Embarque SPG">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Embarque SPG">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -29,6 +31,19 @@
         .field-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
         .field-card input, .field-card select { border-radius: 0.6rem; }
 
+        /* Mobile bottom nav */
+        #bottom-nav { display: none; }
+        @media (max-width: 1279px) {
+            #bottom-nav { display: flex; }
+            #desktop-nav-buttons { display: none; }
+            .mobile-tab-content { display: none; }
+            .mobile-tab-content.active { display: block; }
+            #main-layout { flex-direction: column; padding: 8px; gap: 0; margin-top: 0; }
+        }
+        @media (min-width: 1280px) {
+            .mobile-tab-content { display: block !important; }
+        }
+
         @media print {
             @page {
                 size: A4 portrait;
@@ -38,6 +53,7 @@
 
             /* Esconde tudo que não é o relatório */
             body > *:not(#main-layout) { display: none !important; }
+            #bottom-nav { display: none !important; }
             #form-column { display: none !important; }
             #main-layout {
                 display: block !important;
@@ -55,31 +71,47 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-20 select-none">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-[140px] xl:pb-20 select-none">
 
     <!-- Navbar -->
-    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 px-4 py-4 flex justify-between items-center shadow-lg sticky top-0 z-40">
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-3 flex justify-between items-center shadow-lg sticky top-0 z-40">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/20 shadow-inner overflow-hidden">
-                <img src="https://i.imgur.com/wEozr34.png" alt="Logo SPG" class="w-7 h-7 rounded bg-white p-0.5">
-            </div>
             <div>
                 <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG SEDE</h1>
-                <p class="text-[10px] text-indigo-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
+                <p class="text-[10px] text-emerald-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <!-- Tabs mobile (formulário / prévia) -->
+        <div class="flex xl:hidden items-center gap-1 bg-white/10 rounded-xl p-1">
+            <button type="button" id="tab-form-btn" onclick="switchMobileTab('form')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-white/20 transition-all">Formulário</button>
+            <button type="button" id="tab-preview-btn" onclick="switchMobileTab('preview')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white/60 transition-all">Prévia</button>
+        </div>
+
+        <!-- Botões desktop -->
+        <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-2">
             <button type="button" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
+            <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 transition-all active:scale-95" title="Salvar na nuvem">
+                <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                <span>Salvar</span>
+            </button>
+            <button type="button" onclick="openHistory()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Ver histórico de embarques">
+                <i data-lucide="history" class="w-4 h-4"></i>
+                <span>Histórico</span>
+            </button>
             <button type="button" onclick="runAIAnalysis()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/30 transition-all active:scale-95">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Analisar</span>
+                <span>Analisar</span>
             </button>
-            <button type="button" onclick="confirmBeforeSend()" class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-900/30 transition-all active:scale-95">
-                <i data-lucide="share-2" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Gerar Relatório</span>
-                <span class="sm:hidden">Gerar</span>
+            <button type="button" onclick="confirmBeforeSend('interno')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF Interno (completo)">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                <span>PDF Interno</span>
+            </button>
+            <button type="button" onclick="confirmBeforeSend('email')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF para Email (sem parceiros e descartes)">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+                <span>PDF Email</span>
             </button>
         </div>
     </div>
@@ -87,14 +119,26 @@
     <div id="main-layout" class="w-full max-w-[1700px] mx-auto p-4 flex flex-col xl:flex-row gap-6 mt-4 items-start">
 
         <!-- COLUNA DA ESQUERDA: FORMULÁRIO -->
-        <div id="form-column" class="w-full xl:w-[34%] space-y-5 shrink-0">
+        <div id="form-column" class="mobile-tab-content active w-full xl:w-[34%] space-y-5 shrink-0">
+
+            <!-- BANNER MODO EDIÇÃO -->
+            <div id="editModeBanner" class="hidden bg-amber-50 border border-amber-300 rounded-2xl p-4 flex items-start gap-3">
+                <i data-lucide="pencil" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-black text-amber-700 uppercase tracking-wide">Modo Edição</p>
+                    <p id="editModeBannerText" class="text-xs text-amber-600 mt-0.5">Você está editando um registro já salvo. Ao salvar, o registro original será substituído.</p>
+                </div>
+                <button type="button" onclick="clearEditMode()" class="shrink-0 text-amber-400 hover:text-amber-700 transition-colors" title="Cancelar edição">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
 
             <form id="checklistForm" class="space-y-5">
 
                 <!-- DADOS DO EMBARQUE -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                             <i data-lucide="truck" class="w-5 h-5"></i>
                         </div>
                         <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Dados do Embarque</h2>
@@ -103,18 +147,18 @@
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Data</label>
-                            <input type="date" id="reportDate" required oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                            <input type="date" id="reportDate" required oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Código do Embarque</label>
-                            <input type="text" id="embarqueCodigo" placeholder="Ex: 910" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                            <input type="text" id="embarqueCodigo" placeholder="Ex: 910" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-between">
                             <span>Número(s) de NFe</span>
-                            <button type="button" onclick="addNfe()" class="text-indigo-600 hover:text-indigo-800 flex items-center gap-1 normal-case font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                            <button type="button" onclick="addNfe()" class="text-emerald-600 hover:text-emerald-800 flex items-center gap-1 normal-case font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
                         </label>
                         <div id="nfeContainer" class="space-y-2"></div>
                     </div>
@@ -122,7 +166,7 @@
                     <div class="grid grid-cols-1 gap-3 mb-3">
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Produto</label>
-                            <select id="productSelect" onchange="handleProductChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-indigo-400 outline-none text-sm bg-slate-50 focus:bg-white border">
+                            <select id="productSelect" onchange="handleProductChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
                                 <option value="">Selecione</option>
                                 <option value="Brócolis">Brócolis</option>
                                 <option value="Couve-Flor">Couve-Flor</option>
@@ -131,18 +175,18 @@
                                 <option value="Outro">Outro (Digitar)</option>
                             </select>
                             <div id="customProductContainer" class="hidden mt-2 animate-fade-in-down">
-                                <input type="text" id="customProductName" placeholder="Nome do produto..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-indigo-400 outline-none border">
+                                <input type="text" id="customProductName" placeholder="Nome do produto..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
                             </div>
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Cliente</label>
-                            <input type="text" id="varietyInput" placeholder="Ex: Nome do cliente" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                            <input type="text" id="varietyInput" placeholder="Ex: Nome do cliente" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
                         </div>
                     </div>
 
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Cruzamento</label>
-                        <select id="inspectorSelect" required onchange="handleInspectorChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-indigo-400 outline-none text-sm bg-slate-50 focus:bg-white border">
+                        <select id="inspectorSelect" required onchange="handleInspectorChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
                             <option value="">Selecione</option>
                             <option value="Dionisio Pereira de Albuquerque">Dionisio Pereira de Albuquerque</option>
                             <option value="João Victor Gonçalves">João Victor Gonçalves</option>
@@ -152,9 +196,70 @@
                             <option value="Outro">Outro (Digitar)</option>
                         </select>
                         <div id="customInspectorContainer" class="hidden mt-2 animate-fade-in-down">
-                            <input type="text" id="customInspectorName" placeholder="Nome do responsável..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-indigo-400 outline-none uppercase border">
+                            <input type="text" id="customInspectorName" placeholder="Nome do responsável..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none uppercase border">
                         </div>
                     </div>
+                </div>
+
+                <!-- VEÍCULO / LOGÍSTICA -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
+                            <i data-lucide="car" class="w-5 h-5"></i>
+                        </div>
+                        <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Veículo / Logística</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nome do Motorista</label>
+                            <input type="text" id="driverName" placeholder="Ex: João Silva" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Placa do Veículo</label>
+                            <input type="text" id="vehiclePlate" placeholder="Ex: ABC-1234" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Horário da Saída</label>
+                            <input type="time" id="departureTime" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Caixa</label>
+                            <input type="text" id="boxType" placeholder="Ex: Papelão / Plástico" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nº do Sensor</label>
+                            <input type="text" id="sensorNumber" placeholder="Ex: S-042" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nº do Lacre</label>
+                            <input type="text" id="lacreNumber" placeholder="Ex: L-9981" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PALLETS -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                                <i data-lucide="layers" class="w-5 h-5"></i>
+                            </div>
+                            <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Pallets</h2>
+                        </div>
+                        <button type="button" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Quantidade Total de Pallets</label>
+                        <input type="number" id="palletQty" placeholder="0" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none border">
+                    </div>
+                    <div id="palletsContainer" class="space-y-2"></div>
                 </div>
 
                 <!-- TEMPERATURAS -->
@@ -213,16 +318,17 @@
 
                 <!-- INFORMAÇÕES ADICIONAIS -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                            <i data-lucide="info" class="w-5 h-5"></i>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                                <i data-lucide="info" class="w-5 h-5"></i>
+                            </div>
+                            <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Informações Adicionais</h2>
                         </div>
-                        <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Informações Adicionais</h2>
+                        <button type="button" onclick="addAdditionalInfo()" class="text-slate-600 hover:text-slate-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Observação sobre Temperatura</label>
-                        <input type="text" id="tempObservation" value="CONFORME O INDICADO" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-400 outline-none border">
-                    </div>
+                    <input type="hidden" id="tempObservation" value="">
+                    <div id="additionalInfoContainer" class="space-y-2"></div>
                 </div>
 
                 <!-- FOTOS DO EMBARQUE -->
@@ -234,10 +340,9 @@
                             </div>
                             <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Fotos do Embarque</h2>
                         </div>
-                        <label class="text-teal-600 hover:text-teal-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
+                        <button type="button" onclick="openPhotoSourceModal(handlePhotoUpload)" class="text-teal-600 hover:text-teal-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
                             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar
-                            <input type="file" accept="image/*" multiple onchange="handlePhotoUpload(event)" class="hidden">
-                        </label>
+                        </button>
                     </div>
                     <div id="photosContainer" class="space-y-2"></div>
                     <p id="photosHint" class="text-[10px] text-slate-400 text-center mt-2">Nenhuma foto adicionada. Clique em "Adicionar" para incluir fotos no relatório.</p>
@@ -247,7 +352,7 @@
         </div>
 
         <!-- COLUNA DA DIREITA: PREVIEW DO RELATÓRIO -->
-        <div class="w-full xl:w-[66%]">
+        <div id="preview-column" class="mobile-tab-content w-full xl:w-[66%]">
             <div id="report-card" class="w-full bg-white shadow-lg border border-gray-300 mx-auto" style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a;">
                 <div id="previewContent">
                     <div style="text-align:center; padding:60px 20px; color:#94a3b8; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; border:2px dashed #e2e8f0; margin:16px;">
@@ -261,14 +366,14 @@
     <!-- MODAIS -->
     <div id="confirmModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-md transform transition-all scale-100 border border-slate-200">
-            <h3 class="text-xl font-black text-slate-800 text-center border-b border-slate-200 pb-3 mb-3 uppercase tracking-tight">Confirmar Emissão?</h3>
-            <p class="text-sm text-slate-600 text-center leading-relaxed font-medium">
+            <h3 id="confirmModalTitle" class="text-xl font-black text-slate-800 text-center border-b border-slate-200 pb-3 mb-3 uppercase tracking-tight">Confirmar Emissão?</h3>
+            <p id="confirmModalText" class="text-sm text-slate-600 text-center leading-relaxed font-medium">
                 Verifique se todos os dados do embarque estão corretos.<br><br>
                 <span class="text-slate-800 font-bold">O relatório será exportado e arquivado na planilha.</span>
             </p>
             <div class="grid grid-cols-2 gap-3 mt-6">
                 <button onclick="hideConfirmModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Revisar</button>
-                <button onclick="executeSend()" class="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Emitir Relatório</button>
+                <button onclick="executeSend()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Emitir Relatório</button>
             </div>
         </div>
     </div>
@@ -280,6 +385,27 @@
             <h3 id="msgTitle" class="text-lg font-black text-slate-800 uppercase tracking-tight mb-2"></h3>
             <p id="msgText" class="text-sm text-slate-600 mb-5"></p>
             <button onclick="hideMessageModal()" class="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">CIENTE</button>
+        </div>
+    </div>
+
+    <!-- MODAL HISTÓRICO -->
+    <div id="historyModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-lg border border-slate-200 flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between gap-3 p-5 border-b border-slate-200 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center"><i data-lucide="history" class="w-5 h-5"></i></div>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Histórico de Embarques</h3>
+                </div>
+                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-3 border-b border-slate-100 shrink-0">
+                <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
+            </div>
+            <div id="historyList" class="overflow-y-auto flex-1 p-4 space-y-2">
+                <div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>
+            </div>
         </div>
     </div>
 
@@ -302,6 +428,224 @@
         </div>
     </div>
 
+    <!-- MODAL CHECKLIST DE SALVAMENTO -->
+    <div id="saveChecklistModal" class="fixed inset-0 bg-black/80 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-md border border-slate-200 flex flex-col max-h-[90vh]">
+
+            <div class="flex items-center gap-3 p-5 border-b border-slate-200 shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="clipboard-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Verificação antes de salvar</h3>
+                    <p class="text-[10px] text-slate-400 font-medium mt-0.5">Confirme cada item para liberar o envio</p>
+                </div>
+            </div>
+
+            <!-- Alerta de duplicata -->
+            <div id="duplicateWarning" class="hidden mx-5 mt-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"></i>
+                <div>
+                    <p class="text-xs font-black text-amber-700 uppercase tracking-wide">Possível duplicata detectada</p>
+                    <p id="duplicateWarningText" class="text-xs text-amber-600 mt-0.5 leading-snug"></p>
+                </div>
+            </div>
+
+            <!-- Itens do checklist -->
+            <div class="p-5 space-y-3 overflow-y-auto flex-1">
+                <label id="chk-label-1" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-1" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Código e data do embarque</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="chk-1-detail">Verifique se o código e a data estão corretos.</p>
+                    </div>
+                </label>
+
+                <label id="chk-label-2" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-2" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">NFe(s) conferida(s)</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="chk-2-detail">Os números de NFe foram verificados.</p>
+                    </div>
+                </label>
+
+                <label id="chk-label-3" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-3" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Produto e cliente corretos</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="chk-3-detail">Produto e cliente estão preenchidos corretamente.</p>
+                    </div>
+                </label>
+
+                <label id="chk-label-4" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-4" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Motorista, placa e pallets</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="chk-4-detail">Veículos e quantidades de pallets conferidos.</p>
+                    </div>
+                </label>
+
+                <label id="chk-label-5" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-5" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Temperaturas registradas</p>
+                        <p class="text-xs text-slate-400 mt-0.5" id="chk-5-detail">Termostato e temperaturas anotadas corretamente.</p>
+                    </div>
+                </label>
+
+                <label id="chk-label-6" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
+                    <input type="checkbox" id="chk-6" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">Este embarque ainda NÃO foi salvo</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Confirmo que não estou reenviando um registro já gravado.</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Progresso -->
+            <div class="px-5 pb-2 shrink-0">
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
+                    <span>Progresso</span>
+                    <span id="chk-count">0 / 6</span>
+                </div>
+                <div class="bar-track">
+                    <div id="chk-progress-bar" class="bar-fill bg-sky-500" style="width:0%"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 p-5 pt-3 shrink-0">
+                <button onclick="closeSaveChecklist()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
+                <button id="confirmSaveBtn" onclick="executeSaveToCloud()" disabled class="px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all opacity-40 cursor-not-allowed">
+                    Salvar na Nuvem
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELEÇÃO DE FOTO -->
+    <div id="photoSourceModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-end justify-center backdrop-blur-sm" onclick="if(event.target===this) closePhotoSourceModal()">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl pb-safe overflow-hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Adicionar foto</p>
+                <button onclick="closePhotoSourceModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 grid grid-cols-2 gap-3">
+                <!-- Câmera -->
+                <button type="button" onclick="triggerPhotoCapture('camera')"
+                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-sky-400 hover:bg-sky-50 transition-all active:scale-95">
+                    <div class="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center">
+                        <i data-lucide="camera" class="w-7 h-7"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-black text-slate-700">Tirar Foto</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Abrir câmera</p>
+                    </div>
+                </button>
+                <!-- Galeria -->
+                <button type="button" onclick="triggerPhotoCapture('gallery')"
+                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all active:scale-95">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="image" class="w-7 h-7"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-black text-slate-700">Galeria</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Escolher arquivo</p>
+                    </div>
+                </button>
+            </div>
+            <!-- inputs ocultos -->
+            <input type="file" id="photoInput_camera"  accept="image/*" capture="environment" multiple class="hidden">
+            <input type="file" id="photoInput_gallery" accept="image/*"                       multiple class="hidden">
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAÇÃO GENÉRICO -->
+    <div id="genericConfirmModal" class="fixed inset-0 bg-black/80 z-[95] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-6 flex flex-col gap-5">
+            <div class="flex flex-col items-center text-center gap-3">
+                <div id="genericConfirmIcon" class="w-12 h-12 rounded-2xl flex items-center justify-center"></div>
+                <div>
+                    <h3 id="genericConfirmTitle" class="text-base font-black text-slate-800 uppercase tracking-tight"></h3>
+                    <p id="genericConfirmText" class="text-sm text-slate-500 mt-1 leading-relaxed"></p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" id="genericConfirmCancel" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
+                <button type="button" id="genericConfirmOk" class="py-3 font-bold rounded-xl text-xs uppercase tracking-wider text-white transition-all"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SENHA -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/80 z-[90] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-6 flex flex-col gap-5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 id="passwordModalTitle" class="text-sm font-black text-slate-800 uppercase tracking-tight">Ação protegida</h3>
+                    <p id="passwordModalSubtitle" class="text-xs text-slate-400 mt-0.5">Informe a senha para continuar.</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Senha</label>
+                <div class="relative">
+                    <input type="password" id="passwordInput" placeholder="Digite a senha..."
+                        onkeydown="if(event.key==='Enter') submitPassword()"
+                        class="w-full p-3 pr-10 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                        <i id="passwordEyeIcon" data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <p id="passwordError" class="hidden text-xs text-rose-500 font-bold mt-2 flex items-center gap-1">
+                    <i data-lucide="alert-circle" class="w-3 h-3"></i> Senha incorreta. Tente novamente.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="closePasswordModal()" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
+                <button type="button" id="passwordSubmitBtn" onclick="submitPassword()" class="py-3 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOADING SALVAMENTO -->
+    <div id="saveLoadingModal" class="fixed inset-0 z-[80] hidden items-center justify-center" style="backdrop-filter:blur(6px); background:rgba(15,23,42,0.75);">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-8 flex flex-col items-center gap-6">
+
+            <!-- Ícone animado -->
+            <div class="relative w-20 h-20">
+                <svg class="absolute inset-0 w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" stroke-width="7"/>
+                    <circle id="loadingCircle" cx="40" cy="40" r="34" fill="none" stroke="#0ea5e9" stroke-width="7"
+                        stroke-linecap="round"
+                        stroke-dasharray="213.6"
+                        stroke-dashoffset="213.6"
+                        style="transition: stroke-dashoffset 0.4s ease;"/>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <span id="loadingPct" class="text-xl font-black text-slate-800">0%</span>
+                </div>
+            </div>
+
+            <!-- Texto de status -->
+            <div class="text-center">
+                <p class="text-sm font-black text-slate-800 uppercase tracking-wide" id="loadingTitle">Enviando dados</p>
+                <p class="text-xs text-slate-400 mt-1" id="loadingSubtitle">Aguarde enquanto o registro é processado...</p>
+            </div>
+
+            <!-- Barra linear -->
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div id="loadingBar" class="h-2 rounded-full bg-gradient-to-r from-sky-400 to-blue-600 transition-all duration-300" style="width:0%"></div>
+            </div>
+
+        </div>
+    </div>
+
     <!-- MODAL ANÁLISE IA -->
     <div id="analysisModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-lg border border-slate-200 flex flex-col max-h-[85vh]">
@@ -319,14 +663,108 @@
         </div>
     </div>
 
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#1e293b; border-top:1px solid #334155; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid #334155;">
+
+            <button type="button" id="saveCloudBtnMobile" onclick="saveToCloud()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="cloud-upload" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Salvar</span>
+            </button>
+
+            <button type="button" onclick="openHistory()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="history" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
+            </button>
+
+            <button type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="sparkles" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Analisar</span>
+            </button>
+
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr);">
+
+            <button type="button" onclick="confirmBeforeSend('interno')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Interno</span>
+            </button>
+
+            <button type="button" onclick="confirmBeforeSend('email')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="mail" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Email</span>
+            </button>
+
+            <button type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="settings" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
+            </button>
+
+        </div>
+        <div style="height:env(safe-area-inset-bottom,0px);background:#1e293b;"></div>
+    </nav>
+
     <script>
+        // ===== PWA: BRAND ASSETS =====
+
+        const BRAND_LOGO_SVG = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+            <rect width="512" height="512" rx="112" fill="#0f172a"/>
+            <image href="https://i.imgur.com/o1ahyC0.png" x="56" y="56" width="400" height="400" preserveAspectRatio="xMidYMid meet"/>
+        </svg>`.trim();
+
+        function getBrandLogoDataUri() {
+            return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(BRAND_LOGO_SVG)}`;
+        }
+
+        function applyBrandAssets() {
+            const logoUri = getBrandLogoDataUri();
+
+            const favicon        = document.getElementById('siteFavicon');
+            const appleTouchIcon = document.getElementById('siteAppleTouchIcon');
+            const manifestLink   = document.getElementById('siteManifest');
+
+            if (favicon)        favicon.href        = logoUri;
+            if (appleTouchIcon) appleTouchIcon.href = logoUri;
+
+            if (manifestLink) {
+                const manifest = {
+                    name: 'Registro de Embarque - SPG',
+                    short_name: 'Embarque SPG',
+                    description: 'Controle e emissão de relatórios de embarque da SPG Sede',
+                    start_url: '.',
+                    display: 'standalone',
+                    orientation: 'portrait-primary',
+                    background_color: '#0f172a',
+                    theme_color: '#0f172a',
+                    lang: 'pt-BR',
+                    icons: [
+                        { src: logoUri, sizes: '192x192', type: 'image/svg+xml' },
+                        { src: logoUri, sizes: '512x512', type: 'image/svg+xml' }
+                    ]
+                };
+                manifestLink.href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
+            }
+        }
+
+        // ===== FIM PWA =====
+
+        // ⚠️ Cole aqui a URL do seu Apps Script Web App após publicar
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
+
         let currentReportId = "------";
+        let currentPdfMode = 'interno';
+        let editModeTimestamp = null;
         let nfeList = [""];
         let partnersData = [];
         let discardsData = [];
         let customTempsData = [];
+        let palletsData = [];
+        let additionalInfoData = [];
         let aiSummary = null;
         let photosData = [];
+        let historyRows = [];
+        let historyRowsFiltered = [];
 
         const PARTNER_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#84cc16','#f97316'];
         const DISCARD_COLOR = '#f43f5e';
@@ -337,6 +775,695 @@
             for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
             return result;
         }
+
+        // ===== SELEÇÃO DE FONTE DE FOTO =====
+        let _photoSourceCallback = null;
+
+        function openPhotoSourceModal(callback) {
+            _photoSourceCallback = callback;
+            // Limpar inputs para permitir re-seleção do mesmo arquivo
+            document.getElementById('photoInput_camera').value  = '';
+            document.getElementById('photoInput_gallery').value = '';
+            const modal = document.getElementById('photoSourceModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closePhotoSourceModal() {
+            document.getElementById('photoSourceModal').classList.add('hidden');
+            document.getElementById('photoSourceModal').classList.remove('flex');
+            _photoSourceCallback = null;
+        }
+
+        function triggerPhotoCapture(source) {
+            const cb = _photoSourceCallback; // salva antes do close zerar
+            closePhotoSourceModal();
+            const input = document.getElementById(source === 'camera' ? 'photoInput_camera' : 'photoInput_gallery');
+            input.value = '';
+            input.onchange = (e) => { if (cb) cb(e); };
+            input.click();
+        }
+
+        // ===== MODAL DE CONFIRMAÇÃO GENÉRICO =====
+        function showConfirmModal({ title, text, confirmLabel = 'Confirmar', type = 'danger', onConfirm, onCancel }) {
+            const modal    = document.getElementById('genericConfirmModal');
+            const iconEl   = document.getElementById('genericConfirmIcon');
+            const titleEl  = document.getElementById('genericConfirmTitle');
+            const textEl   = document.getElementById('genericConfirmText');
+            const okBtn    = document.getElementById('genericConfirmOk');
+            const cancelBtn = document.getElementById('genericConfirmCancel');
+
+            const styles = {
+                danger:  { bg: 'bg-rose-100',   text: 'text-rose-600',   icon: 'trash-2',       btn: 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700' },
+                warning: { bg: 'bg-amber-100',   text: 'text-amber-600',  icon: 'alert-triangle', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700' },
+                info:    { bg: 'bg-sky-100',      text: 'text-sky-600',    icon: 'info',           btn: 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700' },
+            };
+            const s = styles[type] || styles.danger;
+
+            iconEl.className   = `w-12 h-12 rounded-2xl flex items-center justify-center ${s.bg} ${s.text}`;
+            iconEl.innerHTML   = `<i data-lucide="${s.icon}" class="w-6 h-6"></i>`;
+            titleEl.textContent = title;
+            textEl.textContent  = text;
+            okBtn.textContent   = confirmLabel;
+            okBtn.className     = `py-3 font-bold rounded-xl text-xs uppercase tracking-wider text-white transition-all ${s.btn}`;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+
+            const close = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                okBtn.onclick     = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick     = () => { close(); if (onConfirm) onConfirm(); };
+            cancelBtn.onclick = () => { close(); if (onCancel)  onCancel();  };
+        }
+
+        // ===== CHECKLIST DE SALVAMENTO =====
+
+        function saveToCloud() {
+            openSaveChecklist();
+        }
+
+        function openSaveChecklist() {
+            // Resetar checkboxes
+            for (let i = 1; i <= 6; i++) {
+                const chk = document.getElementById('chk-' + i);
+                if (chk) chk.checked = false;
+            }
+            updateSaveChecklistBtn();
+
+            // Preencher detalhes dinâmicos
+            const codigo = document.getElementById('embarqueCodigo').value.trim();
+            const data = document.getElementById('reportDate').value;
+            const nfes = nfeList.filter(n => n.trim()).join(', ') || '—';
+            const produto = (document.getElementById('productSelect').value === 'Outro'
+                ? document.getElementById('customProductName').value
+                : document.getElementById('productSelect').value) || '—';
+            const cliente = document.getElementById('varietyInput').value.trim() || '—';
+            const motorista = document.getElementById('driverName').value.trim() || '—';
+            const placa = document.getElementById('vehiclePlate').value.trim() || '—';
+            const qtdPallets = document.getElementById('palletQty').value || '—';
+
+            const dataFmt = data ? new Date(data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+            document.getElementById('chk-1-detail').textContent = `Código: ${codigo || '—'} · Data: ${dataFmt}`;
+            document.getElementById('chk-2-detail').textContent = `NFe(s): ${nfes}`;
+            document.getElementById('chk-3-detail').textContent = `Produto: ${produto} · Cliente: ${cliente}`;
+            document.getElementById('chk-4-detail').textContent = `Motorista: ${motorista} · Placa: ${placa} · Pallets: ${qtdPallets}`;
+            document.getElementById('chk-5-detail').textContent = `Termostato: ${document.getElementById('thermostatMode').value} ${document.getElementById('thermostatValue').value || '—'}°C`;
+
+            // Modo edição: adaptar último item e ocultar alerta de duplicata
+            const chk6Label = document.querySelector('label[id="chk-label-6"] p.text-sm');
+            const chk6Detail = document.querySelector('label[id="chk-label-6"] p.text-xs');
+            const dupWarn = document.getElementById('duplicateWarning');
+            if (editModeTimestamp) {
+                if (chk6Label) chk6Label.textContent = 'Confirmo que as correções estão certas';
+                if (chk6Detail) chk6Detail.textContent = 'Estou atualizando o registro existente — o original será substituído.';
+                dupWarn.classList.add('hidden');
+            } else {
+                if (chk6Label) chk6Label.textContent = 'Este embarque ainda NÃO foi salvo';
+                if (chk6Detail) chk6Detail.textContent = 'Confirmo que não estou reenviando um registro já gravado.';
+                // Verificar duplicata no histórico local
+                const savedKeys = JSON.parse(localStorage.getItem('spg_saved_keys') || '[]');
+                const key = `${codigo}_${data}`;
+                if (codigo && data && savedKeys.includes(key)) {
+                    document.getElementById('duplicateWarningText').textContent =
+                        `O embarque ${codigo} do dia ${dataFmt} já foi salvo anteriormente. Verifique antes de continuar.`;
+                    dupWarn.classList.remove('hidden');
+                } else {
+                    dupWarn.classList.add('hidden');
+                }
+            }
+
+            // Ajustar título e botão conforme modo
+            const modalTitle = document.querySelector('#saveChecklistModal h3');
+            const confirmBtn = document.getElementById('confirmSaveBtn');
+            if (editModeTimestamp) {
+                if (modalTitle) modalTitle.textContent = 'Verificação antes de atualizar';
+                if (confirmBtn) confirmBtn.textContent = 'Atualizar Registro';
+            } else {
+                if (modalTitle) modalTitle.textContent = 'Verificação antes de salvar';
+                if (confirmBtn) confirmBtn.textContent = 'Salvar na Nuvem';
+            }
+
+            document.getElementById('saveChecklistModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeSaveChecklist() {
+            document.getElementById('saveChecklistModal').classList.add('hidden');
+        }
+
+        function updateSaveChecklistBtn() {
+            let checked = 0;
+            for (let i = 1; i <= 6; i++) {
+                if (document.getElementById('chk-' + i)?.checked) checked++;
+            }
+            const btn = document.getElementById('confirmSaveBtn');
+            const bar = document.getElementById('chk-progress-bar');
+            const count = document.getElementById('chk-count');
+            const pct = Math.round((checked / 6) * 100);
+            if (bar) bar.style.width = pct + '%';
+            if (count) count.textContent = checked + ' / 6';
+            if (btn) {
+                if (checked === 6) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        async function executeSaveToCloud() {
+            closeSaveChecklist();
+
+            // Registrar chave no histórico local para detectar duplicatas futuras
+            const codigo = document.getElementById('embarqueCodigo').value.trim();
+            const data = document.getElementById('reportDate').value;
+            if (codigo && data) {
+                const savedKeys = JSON.parse(localStorage.getItem('spg_saved_keys') || '[]');
+                const key = `${codigo}_${data}`;
+                if (!savedKeys.includes(key)) {
+                    savedKeys.push(key);
+                    localStorage.setItem('spg_saved_keys', JSON.stringify(savedKeys));
+                }
+            }
+
+            await _doSaveToCloud();
+        }
+
+        // ===== MOBILE TABS =====
+        function switchMobileTab(tab) {
+            const formCol = document.getElementById('form-column');
+            const previewCol = document.getElementById('preview-column');
+            const btnForm = document.getElementById('tab-form-btn');
+            const btnPreview = document.getElementById('tab-preview-btn');
+
+            if (tab === 'form') {
+                formCol.classList.add('active');
+                previewCol.classList.remove('active');
+                btnForm.classList.add('bg-white/20');
+                btnForm.classList.remove('text-white/60');
+                btnForm.classList.add('text-white');
+                btnPreview.classList.remove('bg-white/20');
+                btnPreview.classList.add('text-white/60');
+                btnPreview.classList.remove('text-white');
+            } else {
+                previewCol.classList.add('active');
+                formCol.classList.remove('active');
+                btnPreview.classList.add('bg-white/20');
+                btnPreview.classList.remove('text-white/60');
+                btnPreview.classList.add('text-white');
+                btnForm.classList.remove('bg-white/20');
+                btnForm.classList.add('text-white/60');
+                btnForm.classList.remove('text-white');
+            }
+        }
+
+        // ===== NUVEM: SALVAR E HISTÓRICO =====
+
+        function collectFormData() {
+            return {
+                reportDate: document.getElementById('reportDate').value,
+                embarqueCodigo: document.getElementById('embarqueCodigo').value,
+                nfeList,
+                productSelect: document.getElementById('productSelect').value,
+                customProductName: document.getElementById('customProductName').value,
+                varietyInput: document.getElementById('varietyInput').value,
+                inspectorSelect: document.getElementById('inspectorSelect').value,
+                customInspectorName: document.getElementById('customInspectorName').value,
+                thermostatMode: document.getElementById('thermostatMode').value,
+                thermostatValue: document.getElementById('thermostatValue').value,
+                customTempsData,
+                partnersData,
+                discardsData,
+                additionalInfoData,
+                aiSummary,
+                photosData,
+                driverName: document.getElementById('driverName').value,
+                vehiclePlate: document.getElementById('vehiclePlate').value,
+                departureTime: document.getElementById('departureTime').value,
+                boxType: document.getElementById('boxType').value,
+                palletQty: document.getElementById('palletQty').value,
+                palletsData,
+                sensorNumber: document.getElementById('sensorNumber').value,
+                lacreNumber: document.getElementById('lacreNumber').value
+            };
+        }
+
+        // ---- helpers do loading modal ----
+        function setSaveProgress(pct, title, subtitle) {
+            const circle = document.getElementById('loadingCircle');
+            const bar    = document.getElementById('loadingBar');
+            const pctEl  = document.getElementById('loadingPct');
+            const titleEl   = document.getElementById('loadingTitle');
+            const subtitleEl = document.getElementById('loadingSubtitle');
+            const circumference = 213.6;
+            if (circle) circle.style.strokeDashoffset = circumference - (pct / 100) * circumference;
+            if (bar)    bar.style.width = pct + '%';
+            if (pctEl)  pctEl.textContent = Math.round(pct) + '%';
+            if (title && titleEl)     titleEl.textContent = title;
+            if (subtitle && subtitleEl) subtitleEl.textContent = subtitle;
+        }
+
+        function showSaveLoadingModal() {
+            setSaveProgress(0, 'Preparando envio', 'Compactando dados e fotos...');
+            const m = document.getElementById('saveLoadingModal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        }
+
+        function hideSaveLoadingModal() {
+            const m = document.getElementById('saveLoadingModal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+        }
+
+        async function _doSaveToCloud() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no index.html.', 'error');
+                return;
+            }
+
+            showSaveLoadingModal();
+
+            const data = collectFormData();
+            const isEdit = !!editModeTimestamp;
+            if (isEdit) {
+                data.action = 'update';
+                data.originalTimestamp = editModeTimestamp;
+                data.password = _editPassword;
+            }
+
+            const body = JSON.stringify(data);
+
+            return new Promise((resolve) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', APPS_SCRIPT_URL, true);
+
+                // Progresso real do upload (0 → 70%)
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const uploadPct = (e.loaded / e.total) * 70;
+                        const mb = (e.loaded / 1048576).toFixed(1);
+                        const total = (e.total / 1048576).toFixed(1);
+                        setSaveProgress(uploadPct,
+                            'Enviando arquivos',
+                            `${mb} MB de ${total} MB enviados...`);
+                    }
+                };
+
+                xhr.upload.onload = () => {
+                    // Upload concluído → simular processamento no servidor (70 → 95%)
+                    setSaveProgress(70, 'Processando no servidor', 'Gravando na planilha e salvando fotos no Drive...');
+                    let serverPct = 70;
+                    const interval = setInterval(() => {
+                        serverPct += (95 - serverPct) * 0.08;
+                        setSaveProgress(serverPct, 'Processando no servidor', 'Aguarde, o servidor está finalizando...');
+                    }, 300);
+                    xhr._serverInterval = interval;
+                };
+
+                xhr.onload = () => {
+                    clearInterval(xhr._serverInterval);
+                    setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
+
+                    setTimeout(() => {
+                        hideSaveLoadingModal();
+                        try {
+                            const result = JSON.parse(xhr.responseText);
+                            if (result.success) {
+                                const d = result.data;
+                                if (d.photosData)     photosData = d.photosData;
+                                if (d.discardsData)   discardsData = d.discardsData;
+                                if (d.customTempsData) customTempsData = d.customTempsData;
+                                if (d.palletsData)    palletsData = d.palletsData;
+                                saveToLocalStorage();
+                                if (isEdit) {
+                                    clearEditMode();
+                                    showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                                } else {
+                                    showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
+                                }
+                            } else {
+                                showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
+                            }
+                        } catch(e) {
+                            showMessageModal('Erro inesperado', 'Resposta inválida do servidor.', 'error');
+                        }
+                        resolve();
+                    }, 600);
+                };
+
+                xhr.onerror = () => {
+                    clearInterval(xhr._serverInterval);
+                    hideSaveLoadingModal();
+                    showMessageModal('Erro de conexão', 'Verifique sua internet e a URL do Apps Script.', 'error');
+                    resolve();
+                };
+
+                xhr.send(body);
+            });
+        }
+
+        async function openHistory() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no index.html.', 'error');
+                return;
+            }
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historySearch').value = '';
+            document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
+            lucide.createIcons();
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'list' })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+                historyRows = result.rows || [];
+                historyRowsFiltered = [...historyRows];
+                renderHistoryList(historyRowsFiltered);
+            } catch (err) {
+                document.getElementById('historyList').innerHTML = `<div class="text-center py-10 text-red-400 text-sm font-bold">Erro ao carregar histórico:<br>${err.message}</div>`;
+            }
+        }
+
+        function filterHistory(query) {
+            const q = query.toLowerCase().trim();
+            historyRowsFiltered = q
+                ? historyRows.filter(r =>
+                    (r.Codigo||'').toLowerCase().includes(q) ||
+                    (r.Produto||'').toLowerCase().includes(q) ||
+                    (r.Responsavel||'').toLowerCase().includes(q) ||
+                    (r.Cliente||'').toLowerCase().includes(q)
+                  )
+                : [...historyRows];
+            renderHistoryList(historyRowsFiltered);
+        }
+
+        function renderHistoryList(rows) {
+            const container = document.getElementById('historyList');
+            if (!rows.length) {
+                container.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Nenhum registro encontrado.</div>';
+                return;
+            }
+            const sorted = [...rows].reverse();
+            container.innerHTML = sorted.map((row, i) => {
+                const originalIdx = rows.length - 1 - i;
+                const rawDate = row.Data || '';
+                const parts = rawDate.split('-');
+                const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
+                const code = row.Codigo || '—';
+                const product = row.Produto || '—';
+                const inspector = row.Responsavel || '—';
+                const client = row.Cliente || '';
+                return `
+                <div class="border border-slate-200 rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-xs font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">${code}</span>
+                                <span class="text-xs text-slate-400">${dateDisplay}</span>
+                            </div>
+                            <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
+                            <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
+                        </div>
+                        <div class="flex flex-col gap-1.5 shrink-0">
+                            <button onclick="loadHistoryReport(${originalIdx})" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all active:scale-95">Carregar</button>
+                            <button onclick="requestPasswordFor('edit', ${originalIdx})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="pencil" class="w-3 h-3"></i> Editar</button>
+                            <button onclick="requestPasswordFor('delete', ${originalIdx})" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Apagar</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function loadHistoryReport(idx) {
+            try {
+                const row = historyRowsFiltered[idx];
+                if (!row) { showMessageModal('Erro', 'Registro não encontrado (idx=' + idx + ').', 'error'); return; }
+
+                const parse = (v) => {
+                    try { return typeof v === 'string' && v ? JSON.parse(v) : (Array.isArray(v) ? v : []); }
+                    catch(_) { return []; }
+                };
+
+                // Data pode vir como ISO string do Sheets — extrair só YYYY-MM-DD
+                const rawDate = row.Data ? String(row.Data) : '';
+                const dateOnly = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                if (dateOnly) document.getElementById('reportDate').value = dateOnly;
+
+                document.getElementById('embarqueCodigo').value = row.Codigo || '';
+
+                const nfesRaw = String(row.NFes || '');
+                nfeList = nfesRaw.trim() ? nfesRaw.split(', ').filter(Boolean) : [''];
+                if (!nfeList.length) nfeList = [''];
+
+                const prodSel = document.getElementById('productSelect');
+                const knownProds = Array.from(prodSel.options).map(o => o.value);
+                const produto = String(row.Produto || '');
+                if (knownProds.includes(produto)) {
+                    prodSel.value = produto;
+                    document.getElementById('customProductContainer').classList.add('hidden');
+                } else if (produto) {
+                    prodSel.value = 'Outro';
+                    document.getElementById('customProductContainer').classList.remove('hidden');
+                    document.getElementById('customProductName').value = produto;
+                }
+
+                document.getElementById('varietyInput').value = String(row.Cliente || '');
+
+                const inspSel = document.getElementById('inspectorSelect');
+                const knownInsps = Array.from(inspSel.options).map(o => o.value);
+                const responsavel = String(row.Responsavel || '');
+                if (knownInsps.includes(responsavel)) {
+                    inspSel.value = responsavel;
+                    document.getElementById('customInspectorContainer').classList.add('hidden');
+                } else if (responsavel) {
+                    inspSel.value = 'Outro';
+                    document.getElementById('customInspectorContainer').classList.remove('hidden');
+                    document.getElementById('customInspectorName').value = responsavel;
+                }
+
+                if (row.ModoTermostato) document.getElementById('thermostatMode').value = row.ModoTermostato;
+                if (row.Termostato !== undefined && row.Termostato !== '') document.getElementById('thermostatValue').value = row.Termostato;
+
+                const fields = {
+                    Motorista: 'driverName', Placa: 'vehiclePlate',
+                    HorarioSaida: 'departureTime', TipoCaixa: 'boxType',
+                    QtdPallets: 'palletQty', Sensor: 'sensorNumber', Lacre: 'lacreNumber'
+                };
+                Object.entries(fields).forEach(([col, id]) => {
+                    const el = document.getElementById(id);
+                    if (el && row[col] !== undefined) el.value = row[col];
+                });
+
+                customTempsData = parse(row.Temperaturas);
+                partnersData    = parse(row.Parceiros);
+                discardsData    = parse(row.Descartes);
+                additionalInfoData = parse(row.InfoAdicionais);
+                photosData      = parse(row.Fotos);
+                palletsData     = parse(row.Pallets);
+                aiSummary       = row.AISummary && String(row.AISummary).trim() ? String(row.AISummary) : null;
+
+                renderNfeInputs();
+                renderPartners();
+                renderDiscards();
+                renderPallets();
+                renderCustomTemps();
+                renderAdditionalInfo();
+                renderPhotos();
+                updatePreview();
+
+                document.getElementById('historyModal').classList.add('hidden');
+                showMessageModal('Carregado!', 'Embarque ' + (row.Codigo || '') + ' restaurado com sucesso.', 'success');
+
+            } catch(err) {
+                showMessageModal('Erro ao carregar', err.message || String(err), 'error');
+            }
+        }
+
+        let _editPassword = null;
+
+        function editHistoryReport(idx, password) {
+            loadHistoryReport(idx);
+            const row = historyRowsFiltered[idx];
+            if (!row) return;
+
+            editModeTimestamp = String(row.Timestamp || '');
+            _editPassword = password || null;
+
+            const codigo = row.Codigo || '—';
+            const rawDate = row.Data ? String(row.Data) : '';
+            const parts = rawDate.split('-');
+            const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
+
+            const banner = document.getElementById('editModeBanner');
+            document.getElementById('editModeBannerText').textContent =
+                `Editando: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será substituído.`;
+            banner.classList.remove('hidden');
+
+            // Vai para aba formulário no mobile
+            switchMobileTab('form');
+            lucide.createIcons();
+        }
+
+        function clearEditMode() {
+            editModeTimestamp = null;
+            _editPassword = null;
+            document.getElementById('editModeBanner').classList.add('hidden');
+        }
+
+        // ===== SENHA DE PROTEÇÃO =====
+        let _pendingPasswordAction = null; // { type: 'edit'|'delete', idx: number }
+
+        function requestPasswordFor(type, idx) {
+            _pendingPasswordAction = { type, idx };
+            const row = historyRowsFiltered[idx];
+            const codigo = row ? (row.Codigo || '—') : '—';
+            const titleEl = document.getElementById('passwordModalTitle');
+            const subEl   = document.getElementById('passwordModalSubtitle');
+            if (type === 'edit') {
+                if (titleEl) titleEl.textContent = 'Editar registro';
+                if (subEl)   subEl.textContent   = `Informe a senha para editar o embarque ${codigo}.`;
+            } else {
+                if (titleEl) titleEl.textContent = 'Apagar registro';
+                if (subEl)   subEl.textContent   = `Informe a senha para apagar permanentemente o embarque ${codigo}.`;
+            }
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').classList.add('hidden');
+            document.getElementById('passwordModal').classList.remove('hidden');
+            document.getElementById('passwordModal').classList.add('flex');
+            setTimeout(() => document.getElementById('passwordInput').focus(), 100);
+            lucide.createIcons();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.add('hidden');
+            document.getElementById('passwordModal').classList.remove('flex');
+            _pendingPasswordAction = null;
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('passwordInput');
+            const icon  = document.getElementById('passwordEyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function submitPassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (!password) return;
+
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Cole a URL do Apps Script na constante APPS_SCRIPT_URL no código.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('passwordSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'verifyPassword', password })
+                });
+
+                let result;
+                const text = await resp.text();
+                try {
+                    result = JSON.parse(text);
+                } catch (_) {
+                    // Apps Script retornou HTML em vez de JSON — provavelmente não foi republicado
+                    showMessageModal(
+                        'Apps Script desatualizado',
+                        'O Apps Script precisa ser republicado para suportar esta função.\n\nNo editor do Apps Script: clique em "Implantar" → "Gerenciar implantações" → edite a versão atual → salve.',
+                        'error'
+                    );
+                    closePasswordModal();
+                    return;
+                }
+
+                if (result.success) {
+                    const { type, idx } = _pendingPasswordAction;
+                    closePasswordModal();
+                    if (type === 'edit') {
+                        editHistoryReport(idx, password);
+                    } else {
+                        confirmDeleteHistoryReport(idx, password);
+                    }
+                } else {
+                    document.getElementById('passwordError').classList.remove('hidden');
+                    document.getElementById('passwordInput').value = '';
+                    document.getElementById('passwordInput').focus();
+                }
+            } catch (err) {
+                showMessageModal('Erro de conexão', 'Verifique sua internet e tente novamente. Detalhe: ' + err.message, 'error');
+                closePasswordModal();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Confirmar';
+            }
+        }
+
+        function confirmDeleteHistoryReport(idx, password) {
+            const row = historyRowsFiltered[idx];
+            if (!row) return;
+            const codigo = row.Codigo || '—';
+            const ts = String(row.Timestamp || '');
+
+            showConfirmModal({
+                title: 'Apagar embarque?',
+                text: `O embarque "${codigo}" será removido permanentemente da planilha. Esta ação não pode ser desfeita.`,
+                confirmLabel: 'Apagar',
+                type: 'danger',
+                onConfirm: () => _executeDelete(ts, codigo, password)
+            });
+        }
+
+        function _executeDelete(ts, codigo, password) {
+            showSaveLoadingModal();
+            setSaveProgress(10, 'Apagando registro', 'Removendo da planilha...');
+
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'delete', originalTimestamp: ts, password })
+            })
+            .then(r => r.json())
+            .then(result => {
+                setSaveProgress(100, 'Concluído', 'Registro apagado.');
+                setTimeout(() => {
+                    hideSaveLoadingModal();
+                    if (result.success) {
+                        showMessageModal('Apagado!', `O embarque "${codigo}" foi removido da planilha.`, 'success');
+                        openHistory(); // recarrega lista
+                    } else {
+                        showMessageModal('Erro ao apagar', result.error || 'Tente novamente.', 'error');
+                    }
+                }, 600);
+            })
+            .catch(err => {
+                hideSaveLoadingModal();
+                showMessageModal('Erro de conexão', err.message, 'error');
+            });
+        }
+
+        // ===== FIM NUVEM =====
 
         function saveToLocalStorage() {
             const data = {
@@ -354,8 +1481,17 @@
                 customTempsData,
                 partnersData,
                 discardsData,
+                additionalInfoData,
                 aiSummary,
-                photosData
+                photosData,
+                driverName: document.getElementById('driverName').value,
+                vehiclePlate: document.getElementById('vehiclePlate').value,
+                departureTime: document.getElementById('departureTime').value,
+                boxType: document.getElementById('boxType').value,
+                palletQty: document.getElementById('palletQty').value,
+                palletsData,
+                sensorNumber: document.getElementById('sensorNumber').value,
+                lacreNumber: document.getElementById('lacreNumber').value
             };
             try {
                 localStorage.setItem('spg_form_data', JSON.stringify(data));
@@ -400,13 +1536,21 @@
                 if (data.customTempsData) customTempsData = data.customTempsData;
                 if (data.partnersData && data.partnersData.length) partnersData = data.partnersData;
                 if (data.discardsData && data.discardsData.length) discardsData = data.discardsData;
+                if (data.additionalInfoData) additionalInfoData = data.additionalInfoData;
+                else if (data.tempObservation && data.tempObservation !== 'CONFORME O INDICADO' && data.tempObservation.trim()) {
+                    additionalInfoData = [{ topic: 'Temperatura', text: data.tempObservation.trim() }];
+                }
                 if (data.aiSummary) aiSummary = data.aiSummary;
                 if (data.photosData && data.photosData.length) photosData = data.photosData;
+                const fields = ['driverName','vehiclePlate','departureTime','boxType','palletQty','sensorNumber','lacreNumber'];
+                fields.forEach(f => { if (data[f] !== undefined) document.getElementById(f).value = data[f]; });
+                if (data.palletsData && data.palletsData.length) palletsData = data.palletsData;
                 return true;
             } catch(e) { return false; }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
+            applyBrandAssets();
             lucide.createIcons();
             currentReportId = generateReportId();
 
@@ -420,7 +1564,9 @@
             renderNfeInputs();
             renderPartners();
             renderDiscards();
+            renderPallets();
             renderCustomTemps();
+            renderAdditionalInfo();
             renderPhotos();
             updatePreview();
         });
@@ -437,7 +1583,7 @@
             const container = document.getElementById('nfeContainer');
             container.innerHTML = nfeList.map((val, idx) => `
                 <div class="flex gap-2">
-                    <input type="text" value="${val}" placeholder="Ex: 7098" oninput="updateNfe(${idx}, this.value)" class="field-card flex-1 p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                    <input type="text" value="${val}" placeholder="Ex: 7098" oninput="updateNfe(${idx}, this.value)" class="field-card flex-1 p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
                     <button type="button" onclick="removeNfe(${idx})" class="px-2 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                 </div>
             `).join('');
@@ -521,7 +1667,7 @@
                 <div class="flex flex-col gap-1.5 bg-slate-50 rounded-xl p-2 border border-slate-200">
                     <div class="flex gap-2 items-center">
                         <select onchange="updatePartnerName(${idx}, this.value)" class="w-[34%] p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
-                            <option value="" ${nameSel === '' ? 'selected' : ''}>Parceiro...</option>
+                            <option value="" ${nameSel === '' ? 'selected' : ''}>Selecione</option>
                             ${PARTNER_PRESETS.map(n => `<option value="${n}" ${nameSel === n ? 'selected' : ''}>${n}</option>`).join('')}
                             <option value="Outro" ${nameSel === 'Outro' ? 'selected' : ''}>Outro (Digitar)</option>
                         </select>
@@ -541,14 +1687,82 @@
         function getValidPartners() {
             return partnersData.filter(p => getPartnerName(p).trim() !== '' && p.qty !== '' && !isNaN(parseFloat(p.qty)));
         }
-        function getMaxPartner() {
+        function getGroupedPartners() {
             const valid = getValidPartners();
-            if (valid.length === 0) return null;
-            return valid.reduce((max, p) => parseFloat(p.qty) > parseFloat(max.qty) ? p : max, valid[0]);
+            const map = new Map();
+            valid.forEach(p => {
+                const key = getPartnerName(p).trim() + '|' + getPartnerUnit(p);
+                if (map.has(key)) {
+                    const existing = map.get(key);
+                    existing.qty = (parseFloat(existing.qty) + parseFloat(p.qty)).toString();
+                } else {
+                    map.set(key, Object.assign({}, p, { qty: parseFloat(p.qty).toString() }));
+                }
+            });
+            return Array.from(map.values());
+        }
+        function getMaxPartner() {
+            const grouped = getGroupedPartners();
+            if (grouped.length === 0) return null;
+            return grouped.reduce((max, p) => parseFloat(p.qty) > parseFloat(max.qty) ? p : max, grouped[0]);
+        }
+
+        // ---------- Pallets ----------
+        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', photos: [] }); renderPallets(); updatePreview(); }
+        function removePallet(idx) { palletsData.splice(idx, 1); renderPallets(); updatePreview(); }
+        function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
+        function handlePalletPhotoUpload(idx, event) {
+            const files = Array.from(event.target.files);
+            event.target.value = '';
+            if (!palletsData[idx].photos) palletsData[idx].photos = [];
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = e => { palletsData[idx].photos.push(e.target.result); renderPallets(); updatePreview(); };
+                reader.readAsDataURL(file);
+            });
+        }
+        function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
+        function renderPallets() {
+            const container = document.getElementById('palletsContainer');
+            container.innerHTML = palletsData.map((pl, idx) => {
+                const photos = pl.photos || [];
+                return `
+                <div class="bg-amber-50 rounded-xl p-2 border border-amber-100 space-y-2">
+                    <div class="flex gap-2 items-center">
+                        <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" class="flex-1 p-2 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
+                        <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2">
+                            <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                            <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-20 p-1.5 text-sm outline-none bg-transparent">
+                        </div>
+                        <button type="button" onclick="removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center pl-1">
+                        ${photos.map((src, pidx) => `
+                            <div class="relative group">
+                                <img src="${src}" alt="Foto ${pidx+1}" class="w-14 h-14 object-cover rounded-lg border border-amber-200">
+                                <button type="button" onclick="removePalletPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
+                            </div>
+                        `).join('')}
+                        <button type="button" onclick="openPhotoSourceModal(e => handlePalletPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 cursor-pointer transition-colors">
+                            <i data-lucide="camera" class="w-4 h-4"></i>
+                            <span class="text-[8px] font-bold uppercase">Foto</span>
+                        </button>
+                        ${photos.length ? `<span class="text-[10px] text-amber-500 font-semibold">${photos.length} foto(s)</span>` : ''}
+                    </div>
+                </div>
+                `;
+            }).join('');
+            lucide.createIcons();
         }
 
         // ---------- Descartes ----------
-        function addDiscard() { discardsData.push({ partner: '', weight: '', reason: '', photos: [] }); renderDiscards(); }
+        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', reason: '', photos: [] }); renderDiscards(); }
+        function updateDiscardPartnerName(idx, value) {
+            discardsData[idx].partnerSel = value;
+            if (value !== 'Outro') discardsData[idx].partner = value;
+            renderDiscards();
+            updatePreview();
+        }
         function removeDiscard(idx) { discardsData.splice(idx, 1); renderDiscards(); updatePreview(); }
         function updateDiscard(idx, field, value) { discardsData[idx][field] = value; updatePreview(); }
         function handleDiscardPhotoUpload(idx, event) {
@@ -574,14 +1788,27 @@
             const container = document.getElementById('discardsContainer');
             container.innerHTML = discardsData.map((d, idx) => {
                 const photos = d.photos || [];
+                // normaliza dados antigos (texto livre → dropdown)
+                if (!d.partnerSel) {
+                    if (PARTNER_PRESETS.includes(d.partner)) { d.partnerSel = d.partner; }
+                    else if (d.partner) { d.partnerSel = 'Outro'; }
+                    else { d.partnerSel = ''; }
+                }
+                const pSel = d.partnerSel;
+                const pCustom = (pSel === 'Outro' ? d.partner : '').replace(/"/g, '&quot;');
                 return `
                 <div class="bg-rose-50 rounded-xl p-2 border border-rose-100 space-y-2">
                     <div class="flex gap-2 items-center">
-                        <input type="text" value="${d.partner}" placeholder="Parceiro" oninput="updateDiscard(${idx}, 'partner', this.value)" class="w-[25%] p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                        <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-[20%] p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                        <input type="text" value="${d.reason}" placeholder="Motivo (ex: fungos/amarelado)" oninput="updateDiscard(${idx}, 'reason', this.value)" class="flex-1 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                        <select onchange="updateDiscardPartnerName(${idx}, this.value)" class="w-[44%] p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                            <option value="" ${pSel === '' ? 'selected' : ''}>Selecione</option>
+                            ${PARTNER_PRESETS.map(n => `<option value="${n}" ${pSel === n ? 'selected' : ''}>${n}</option>`).join('')}
+                            <option value="Outro" ${pSel === 'Outro' ? 'selected' : ''}>Outro (Digitar)</option>
+                        </select>
+                        <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-[16%] p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                        <input type="text" value="${d.reason}" placeholder="Motivo" oninput="updateDiscard(${idx}, 'reason', this.value)" class="flex-1 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
                         <button type="button" onclick="removeDiscard(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
+                    ${pSel === 'Outro' ? `<input type="text" value="${pCustom}" placeholder="Digite o nome do parceiro..." oninput="updateDiscard(${idx}, 'partner', this.value)" class="p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none w-full animate-fade-in-down">` : ''}
                     <div class="flex flex-wrap gap-2 items-center pl-1">
                         ${photos.map((src, pidx) => `
                             <div class="relative group">
@@ -589,11 +1816,10 @@
                                 <button type="button" onclick="removeDiscardPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
                             </div>
                         `).join('')}
-                        <label class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-100 cursor-pointer transition-colors">
+                        <button type="button" onclick="openPhotoSourceModal(e => handleDiscardPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-100 cursor-pointer transition-colors">
                             <i data-lucide="camera" class="w-4 h-4"></i>
                             <span class="text-[8px] font-bold uppercase">Foto</span>
-                            <input type="file" accept="image/*" multiple onchange="handleDiscardPhotoUpload(${idx}, event)" class="hidden">
-                        </label>
+                        </button>
                         ${photos.length ? `<span class="text-[10px] text-rose-400 font-semibold">${photos.length} comprovante(s)</span>` : ''}
                     </div>
                 </div>
@@ -666,11 +1892,10 @@
                                 <button type="button" onclick="removeTempPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
                             </div>
                         `).join('')}
-                        <label class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-orange-300 text-orange-500 hover:bg-orange-100 cursor-pointer transition-colors">
+                        <button type="button" onclick="openPhotoSourceModal(e => handleTempPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-orange-300 text-orange-500 hover:bg-orange-100 cursor-pointer transition-colors">
                             <i data-lucide="camera" class="w-4 h-4"></i>
                             <span class="text-[8px] font-bold uppercase">Foto</span>
-                            <input type="file" accept="image/*" multiple onchange="handleTempPhotoUpload(${idx}, event)" class="hidden">
-                        </label>
+                        </button>
                         ${(t.photos || []).length ? `<span class="text-[10px] text-orange-400 font-semibold">${(t.photos || []).length} foto(s)</span>` : ''}
                     </div>
                 </div>`).join('')
@@ -729,13 +1954,48 @@
             lucide.createIcons();
         }
 
+        // ---------- Informações Adicionais ----------
+        const INFO_TOPICS = ['Temperatura', 'Carregamento'];
+        function addAdditionalInfo() { additionalInfoData.push({ topic: '', text: '' }); renderAdditionalInfo(); }
+        function removeAdditionalInfo(idx) { additionalInfoData.splice(idx, 1); renderAdditionalInfo(); updatePreview(); }
+        function updateAdditionalInfo(idx, field, value) {
+            additionalInfoData[idx][field] = value;
+            if (field === 'topic') {
+                if (value !== 'Outro') additionalInfoData[idx].topicCustom = '';
+                renderAdditionalInfo();
+            }
+            updatePreview();
+        }
+        function getAdditionalInfoTopic(a) { return a.topic === 'Outro' ? (a.topicCustom || '') : (a.topic || ''); }
+        function renderAdditionalInfo() {
+            const container = document.getElementById('additionalInfoContainer');
+            container.innerHTML = additionalInfoData.map((a, idx) => {
+                const tSel = a.topic || '';
+                const tCustom = (a.topicCustom || '').replace(/"/g, '&quot;');
+                return `
+                <div class="bg-slate-50 rounded-xl p-2 border border-slate-200 space-y-1.5">
+                    <div class="flex gap-2 items-center">
+                        <select onchange="updateAdditionalInfo(${idx}, 'topic', this.value)" class="w-[40%] p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none">
+                            <option value="" ${tSel===''?'selected':''}>Assunto...</option>
+                            ${INFO_TOPICS.map(t => `<option value="${t}" ${tSel===t?'selected':''}>${t}</option>`).join('')}
+                            <option value="Outro" ${tSel==='Outro'?'selected':''}>Outro (Digitar)</option>
+                        </select>
+                        <button type="button" onclick="removeAdditionalInfo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 ml-auto"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                    ${tSel === 'Outro' ? `<input type="text" value="${tCustom}" placeholder="Assunto..." oninput="updateAdditionalInfo(${idx}, 'topicCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none w-full animate-fade-in-down">` : ''}
+                    <textarea rows="2" placeholder="Observação..." oninput="updateAdditionalInfo(${idx}, 'text', this.value)" class="w-full p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none resize-none">${a.text.replace(/</g,'&lt;')}</textarea>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
         // ---------- Helpers do relatório formal ----------
         const S = 'border:1px solid #d0d8e4;';
         function rpSH(num, title) {
-            return `<div style="background:#f0f4fb;color:#1e3a6b;padding:6px 12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;border-top:2px solid #4a6fa5;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;display:flex;align-items:center;gap:8px;"><span style="background:#4a6fa5;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;font-weight:900;letter-spacing:0.04em;">${num}</span>${title}</div>`;
+            return `<div style="background:#f0fdf4;color:#064e3b;padding:6px 12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;border-top:2px solid #059669;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;display:flex;align-items:center;gap:8px;"><span style="background:#059669;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;font-weight:900;letter-spacing:0.04em;">${num}</span>${title}</div>`;
         }
         function rpTH(text, w) {
-            return `<td style="background:#f7f9fd;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#3d5a80;white-space:nowrap;border-bottom:2px solid #c5d4e8;${w?'width:'+w:''}">${text}</td>`;
+            return `<td style="background:#f7fdfb;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#065f46;white-space:nowrap;border-bottom:2px solid #6ee7b7;${w?'width:'+w:''}">${text}</td>`;
         }
         function rpTD(text, extra) {
             return `<td style="${S}padding:5px 8px;font-size:10px;color:#1a1a1a;vertical-align:middle;${extra||''}">${text||'—'}</td>`;
@@ -751,6 +2011,15 @@
             const product = (getProductName() || '---').toUpperCase();
             const client = document.getElementById('varietyInput').value || '---';
             const inspector = getInspectorName() || '---';
+            const driverName = document.getElementById('driverName').value || '---';
+            const vehiclePlate = (document.getElementById('vehiclePlate').value || '---').toUpperCase();
+            const departureTime = document.getElementById('departureTime').value || '---';
+            const boxType = document.getElementById('boxType').value || '---';
+            const palletQty = document.getElementById('palletQty').value || '---';
+            const validPallets = palletsData.filter(pl => pl.label && pl.label.trim() !== '');
+            const sensorNumber = document.getElementById('sensorNumber').value || '---';
+            const lacreNumber = document.getElementById('lacreNumber').value || '---';
+            const showInternalSections = currentPdfMode !== 'email';
 
             let displayDate = "--/--/----";
             if (dateVal) { const p = dateVal.split('-'); displayDate = `${p[2]}/${p[1]}/${p[0]}`; }
@@ -759,7 +2028,7 @@
             const emissionTime = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} às ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
             const nfeJoined = joinList(nfeList);
-            const validPartners = getValidPartners();
+            const validPartners = getGroupedPartners();
             const validDiscards = getValidDiscards();
             const totalQty = validPartners.reduce((sum, p) => sum + parseFloat(p.qty), 0);
             const totalDiscard = validDiscards.reduce((sum, d) => sum + parseFloat(d.weight), 0);
@@ -767,8 +2036,9 @@
             const maxDiscard = getMaxDiscardPartner();
             const thermoMode = document.getElementById('thermostatMode').value;
             const thermoValue = document.getElementById('thermostatValue').value || '0';
-            const tempObs = document.getElementById('tempObservation').value || '---';
+            const validAdditionalInfo = additionalInfoData.filter(a => a.text.trim() !== '');
             const validCustomTemps = getValidCustomTemps();
+            let _rn = 0; const rn = () => ++_rn;
 
             const hasAnyData = document.getElementById('productSelect').value || codigo !== '---';
             const previewContent = document.getElementById('previewContent');
@@ -782,7 +2052,7 @@
             let html = `<div style="border:1px solid #c8d4e0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;">
 
             <!-- CABEÇALHO -->
-            <div style="background:linear-gradient(135deg,#1e3a6b 0%,#2d5499 100%);padding:0;">
+            <div style="background:linear-gradient(135deg,#064e3b 0%,#047857 100%);padding:0;">
               <table style="width:100%;border-collapse:collapse;">
                 <tr>
                   <td style="width:100px;padding:6px 10px;vertical-align:middle;text-align:center;border-right:1px solid rgba(255,255,255,0.15);">
@@ -801,33 +2071,53 @@
             </div>
 
             <!-- 1. DADOS DO EMBARQUE -->
-            ${rpSH(1,'Dados do Embarque')}
+            ${rpSH(rn(),'Dados do Embarque')}
             ${rpTable(`<tr>${rpTH('Cód. Embarque',80)}${rpTH('NFe')}${rpTH('Data',90)}${rpTH('Produto')}${rpTH('Cliente')}${rpTH('Responsável')}</tr>
             <tr>${rpTD(codigo,'font-weight:700')}${rpTD(nfeJoined)}${rpTD(displayDate)}${rpTD(product,'font-weight:700')}${rpTD(client)}${rpTD(inspector)}</tr>`)}
 
-            <!-- 2. RESUMO -->
-            ${rpSH(2,'Resumo do Embarque')}
-            ${rpTable(`<tr>${rpTH('Total Caixas/Unid.')}${rpTH('Parceiros')}${rpTH('Total Descarte')}${rpTH('Maior Envio')}${rpTH('Maior Descarte')}${rpTH('Obs. Temperatura')}</tr>
-            <tr>${rpTD(totalQty,'font-weight:900;font-size:13px;')}${rpTD(validPartners.length,'font-size:13px;font-weight:700;')}${rpTD(totalDiscard+' kg','font-weight:900;font-size:13px;color:#b91c1c;')}${rpTD(maxPartner?getPartnerName(maxPartner):'—')}${rpTD(maxDiscard?maxDiscard.partner+' ('+maxDiscard.total+' kg)':'—')}${rpTD(tempObs)}</tr>`)}
+            <!-- 2. VEÍCULO / LOGÍSTICA -->
+            ${rpSH(rn(),'Veículo / Logística')}
+            ${rpTable(`<tr>${rpTH('Motorista')}${rpTH('Placa',80)}${rpTH('Horário Saída',80)}${rpTH('Tipo de Caixa')}${rpTH('Nº do Sensor',100)}${rpTH('Nº do Lacre',100)}</tr>
+            <tr>${rpTD(driverName)}${rpTD(vehiclePlate,'font-weight:700')}${rpTD(departureTime,'font-weight:700')}${rpTD(boxType)}${rpTD(sensorNumber,'font-weight:700')}${rpTD(lacreNumber,'font-weight:700')}</tr>`)}
 
-            <!-- 3. TEMPERATURAS -->
-            ${rpSH(3,'Temperaturas')}
+            <!-- 3. PALLETS -->
+            ${rpSH(rn(),'Pallets')}
+            ${rpTable(`<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Fotos',70)}</tr>
+            ${validPallets.length ? validPallets.map((pl,i)=>{
+                const bg = i%2===0?'':'background:#fffbeb;';
+                const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
+                const fotoCount = (pl.photos||[]).length;
+                return `<tr style="${bg}">${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(fotoCount?fotoCount+' foto(s)':'—','text-align:center;')}</tr>`;
+            }).join('') : `<tr><td colspan="3" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum pallet registrado.</td></tr>`}
+            ${validPallets.length?`<tr style="background:#fef3c7;">${rpTH('TOTAL')}${rpTD(palletQty+' pallet(s)','font-weight:900;text-align:center;')}${rpTD('')}</tr>`:''}`)}
+
+            <!-- 4. RESUMO -->
+            ${rpSH(rn(),'Resumo do Embarque')}
+            ${showInternalSections
+                ? rpTable(`<tr>${rpTH('Total Caixas/Unid.')}${rpTH('Parceiros')}${rpTH('Total Descarte')}${rpTH('Maior Envio')}${rpTH('Maior Descarte')}</tr>
+            <tr>${rpTD(totalQty,'font-weight:900;font-size:13px;')}${rpTD(validPartners.length,'font-size:13px;font-weight:700;')}${rpTD(totalDiscard+' kg','font-weight:900;font-size:13px;color:#b91c1c;')}${rpTD(maxPartner?getPartnerName(maxPartner):'—')}${rpTD(maxDiscard?maxDiscard.partner+' ('+maxDiscard.total+' kg)':'—')}</tr>`)
+                : rpTable(`<tr>${rpTH('Total Caixas/Unid.')}${rpTH('Maior Envio')}</tr>
+            <tr>${rpTD(totalQty,'font-weight:900;font-size:13px;')}${rpTD(maxPartner?getPartnerName(maxPartner):'—')}</tr>`)}
+
+            <!-- 5. TEMPERATURAS -->
+            ${rpSH(rn(),'Temperaturas')}
             ${rpTable(`<tr>${rpTH('Termostato',120)}${rpTH('Modo',100)}${validCustomTemps.map(t=>rpTH(t.label)).join('')}</tr>
             <tr>${rpTD(thermoValue+'°C','font-weight:700')}${rpTD(thermoMode)}${validCustomTemps.map(t=>rpTD(t.value!==''?t.value+'°C':'—','font-weight:700;text-align:center;')).join('')}</tr>`)}
 
-            <!-- 4. PARCEIROS / QUANTIDADES -->
-            ${rpSH(4,'Parceiros / Quantidades')}
+            ${showInternalSections ? `
+            <!-- 6. PARCEIROS / QUANTIDADES -->
+            ${rpSH(rn(),'Parceiros / Quantidades')}
             ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Quantidade',90)}${rpTH('Unidade',80)}${rpTH('% do Total',80)}</tr>
             ${validPartners.length ? validPartners.map((p,i)=>{
                 const pct = totalQty>0 ? (parseFloat(p.qty)/totalQty*100).toFixed(1)+'%' : '—';
-                const isMax = maxPartner && p===maxPartner;
+                const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p) === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner);
                 const bg = i%2===0?'':'background:#f0f6ff;';
                 return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="4" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#dbeafe;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ${validPartners.length?`<tr style="background:#d1fae5;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
-            <!-- 5. DESCARTES -->
-            ${rpSH(5,'Descartes')}
+            <!-- 7. DESCARTES -->
+            ${rpSH(rn(),'Descartes')}
             ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Peso (kg)',90)}${rpTH('Motivo')}${rpTH('% do Total',80)}</tr>
             ${validDiscards.length ? validDiscards.map((d,i)=>{
                 const pct = totalDiscard>0 ? (parseFloat(d.weight)/totalDiscard*100).toFixed(1)+'%' : '—';
@@ -835,22 +2125,33 @@
                 return `<tr style="${bg}">${rpTD(d.partner)}${rpTD(d.weight+' kg','font-weight:700;color:#b91c1c;text-align:right;')}${rpTD(d.reason||'—')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="4" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum descarte registrado.</td></tr>`}
             ${validDiscards.length?`<tr style="background:#fee2e2;">${rpTH('TOTAL DESCARTE')}${rpTD(totalDiscard+' kg','font-weight:900;color:#b91c1c;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ` : ''}
 
             ${aiSummary ? `
-            <!-- 6. ANÁLISE IA -->
-            ${rpSH(6,'Análise IA — Problemas e Recomendações')}
+            <!-- ANÁLISE IA -->
+            ${rpSH(rn(),'Análise IA — Problemas e Recomendações')}
             <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 14px;background:#fdfaff;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;">
                 ${aiSummary.split('\n').filter(l=>l.trim()).map(line=>`<div style="font-size:10px;color:#3b2a6b;padding:3px 0;line-height:1.6;display:flex;gap:6px;"><span style="color:#7c5cbf;font-weight:900;flex-shrink:0;">•</span><span>${line.replace(/^[•\-\*]\s*/,'')}</span></div>`).join('')}
               </div>
             </div>` : ''}
 
+            <!-- INFORMAÇÕES ADICIONAIS -->
+            ${validAdditionalInfo.length ? `
+            ${rpSH(rn(),'Informações Adicionais')}
+            ${rpTable(`<tr>${rpTH('Assunto',140)}${rpTH('Observação')}</tr>
+            ${validAdditionalInfo.map((a,i) => {
+                const bg = i%2===0?'':'background:#f8fafc;';
+                return `<tr style="${bg}">${rpTD(getAdditionalInfoTopic(a)||'—','font-weight:700;')}${rpTD(a.text)}</tr>`;
+            }).join('')}`)}` : ''}
+
             ${(() => {
                 const discardsWithPhotos = validDiscards.filter(d => (d.photos || []).length);
                 const tempsWithPhotos = validCustomTemps.filter(t => (t.photos || []).length);
-                const hasAnyPhoto = discardsWithPhotos.length || tempsWithPhotos.length || photosData.length;
+                const palletsWithPhotos = validPallets.filter(pl => (pl.photos || []).length);
+                const hasAnyPhoto = discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length || photosData.length;
                 if (!hasAnyPhoto) return '';
-                const secNum = aiSummary ? 7 : 6;
+                const secNum = rn();
                 return `
                 <!-- REGISTRO FOTOGRÁFICO -->
                 ${rpSH(secNum,'Registro Fotográfico')}
@@ -877,8 +2178,20 @@
                             </div>
                         `).join('')}
                     </div>` : ''}
+                    ${palletsWithPhotos.length ? `
+                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#92400e;margin:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '12px' : '0'} 0 8px;border-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '1px dashed #d0d8e4' : 'none'};padding-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '10px' : '0'};">Fotos dos Pallets</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:14px;">
+                        ${palletsWithPhotos.map(pl => `
+                            <div style="page-break-inside:avoid;">
+                                <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — ' + pl.temp + '°C' : ''}</div>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                                    ${pl.photos.map(src => `<img src="${src}" style="width:170px;height:170px;object-fit:cover;border:1px solid #fbbf24;border-radius:4px;">`).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>` : ''}
                     ${photosData.length ? `
-                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#1e3a6b;margin:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '12px' : '0'} 0 8px;border-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '1px dashed #d0d8e4' : 'none'};padding-top:${(discardsWithPhotos.length || tempsWithPhotos.length) ? '10px' : '0'};">Fotos Gerais do Embarque</div>
+                    <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:#064e3b;margin:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '12px' : '0'} 0 8px;border-top:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '1px dashed #d0d8e4' : 'none'};padding-top:${(discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length) ? '10px' : '0'};">Fotos Gerais do Embarque</div>
                     <div style="display:flex;flex-wrap:wrap;gap:10px;">
                         ${photosData.map((p,i)=>`<div style="page-break-inside:avoid;text-align:center;">
                             <img src="${p.dataUrl}" style="width:180px;height:180px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
@@ -889,7 +2202,7 @@
             })()}
 
             <!-- RODAPÉ -->
-            <div style="background:#f0f4fb;border-top:2px solid #4a6fa5;padding:6px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:0;">
+            <div style="background:#f0fdf4;border-top:2px solid #059669;padding:6px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:0;">
               <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Documento gerado eletronicamente pelo Sistema de Planejamento e Gestão (SPG) Sede.</span>
               <span style="font-size:8px;color:#5a6a7e;font-style:italic;">* Uso interno.</span>
             </div>
@@ -899,10 +2212,16 @@
             saveToLocalStorage();
         }
 
-        function confirmBeforeSend() {
+        function confirmBeforeSend(mode) {
             const form = document.getElementById('checklistForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
+            currentPdfMode = mode || 'interno';
+            const isEmail = currentPdfMode === 'email';
+            document.getElementById('confirmModalTitle').textContent = isEmail ? 'Gerar PDF para Email?' : 'Confirmar PDF Interno?';
+            document.getElementById('confirmModalText').innerHTML = isEmail
+                ? 'Verifique se os dados estão corretos.<br><br><span style="font-weight:700;color:#0f766e;">Este PDF <u>não incluirá</u> parceiros/quantidades e descartes.</span>'
+                : 'Verifique se todos os dados estão corretos.<br><br><span style="font-weight:700;">Este PDF incluirá todas as seções (uso interno).</span>';
             document.getElementById('confirmModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -915,6 +2234,7 @@
             if (isProcessingShare) return;
             isProcessingShare = true;
             try {
+                updatePreview();
                 window.print();
                 currentReportId = generateReportId();
             } catch (err) {
@@ -922,6 +2242,10 @@
                 showMessageModal('ERRO DE SISTEMA', 'Falha ao abrir impressão.', 'error');
             } finally {
                 isProcessingShare = false;
+                if (currentPdfMode !== 'interno') {
+                    currentPdfMode = 'interno';
+                    updatePreview();
+                }
             }
         }
 
@@ -988,7 +2312,7 @@
         }
         function saveApiKey() {
             const key = document.getElementById('apiKeyInput').value.trim();
-            if (!key) { alert('Informe a chave de API.'); return; }
+            if (!key) { showMessageModal('Campo obrigatório', 'Informe a chave de API antes de salvar.', 'error'); return; }
             localStorage.setItem('spg_groq_key', key);
             closeSettings();
             showMessageModal('CHAVE SALVA', 'Chave de API salva com sucesso. Agora você pode usar a análise por IA.', 'info');
@@ -1015,7 +2339,7 @@
             const thermoMode = document.getElementById('thermostatMode').value;
             const thermoValue = document.getElementById('thermostatValue').value || '0';
             const validCustomTemps = getValidCustomTemps();
-            const validPartners = getValidPartners();
+            const validPartners = getGroupedPartners();
             const validDiscards = getValidDiscards();
             const totalQty = validPartners.reduce((s, p) => s + parseFloat(p.qty), 0);
             const totalDiscard = validDiscards.reduce((s, d) => s + parseFloat(d.weight), 0);
