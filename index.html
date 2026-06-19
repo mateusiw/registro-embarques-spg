@@ -18,6 +18,8 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; background: linear-gradient(180deg,#eef2ff 0%, #f8fafc 280px); }
@@ -210,10 +212,11 @@
                                 <option value="Couve-Flor">Couve-Flor</option>
                                 <option value="Tomate Cereja">Tomate Cereja</option>
                                 <option value="Pepino">Pepino</option>
-                                <option value="Outro">Outro (Digitar)</option>
+                                <option value="Outro">Outro...</option>
                             </select>
-                            <div id="customProductContainer" class="hidden mt-2 animate-fade-in-down">
-                                <input type="text" id="customProductName" placeholder="Nome do produto..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <div id="customProductContainer" class="hidden relative">
+                                <input type="text" id="customProductName" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
+                                <button type="button" onclick="clearProductSelect()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                             </div>
                         </div>
                         <div>
@@ -226,15 +229,15 @@
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Cruzamento</label>
                         <select id="inspectorSelect" required onchange="handleInspectorChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
                             <option value="">Selecione</option>
-                            <option value="Dionisio Pereira de Albuquerque">Dionisio Pereira de Albuquerque</option>
                             <option value="João Victor Gonçalves">João Victor Gonçalves</option>
                             <option value="Thaynara Rodrigues da Silva">Thaynara Rodrigues da Silva</option>
                             <option value="Alesandra Leitão">Alesandra Leitão</option>
                             <option value="Francisco Fagner Isaias">Francisco Fagner Isaias</option>
-                            <option value="Outro">Outro (Digitar)</option>
+                            <option value="Outro">Outro...</option>
                         </select>
-                        <div id="customInspectorContainer" class="hidden mt-2 animate-fade-in-down">
-                            <input type="text" id="customInspectorName" placeholder="Nome do responsável..." oninput="updatePreview()" class="field-card w-full p-2 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none uppercase border">
+                        <div id="customInspectorContainer" class="hidden relative">
+                            <input type="text" id="customInspectorName" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <button type="button" onclick="clearInspectorSelect()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 </div>
@@ -248,25 +251,19 @@
                         <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Veículo / Logística</h2>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nome do Motorista</label>
-                            <input type="text" id="driverName" placeholder="Ex: João Silva" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Placa do Veículo</label>
-                            <input type="text" id="vehiclePlate" placeholder="Ex: ABC-1234" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
-                        </div>
+                    <div class="mb-3">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nome do Motorista</label>
+                        <input type="text" id="driverName" placeholder="Ex: João Silva" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Horário da Saída</label>
-                            <input type="time" id="departureTime" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Placa do Veículo</label>
+                            <input type="text" id="vehiclePlate" placeholder="Ex: ABC-1234" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
                         </div>
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tipo de Caixa</label>
-                            <input type="text" id="boxType" placeholder="Ex: Papelão / Plástico" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Horário da Saída</label>
+                            <input type="time" id="departureTime" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
                         </div>
                     </div>
 
@@ -290,12 +287,9 @@
                                 <i data-lucide="layers" class="w-5 h-5"></i>
                             </div>
                             <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Pallets</h2>
+                            <div id="palletQtyDisplay" class="w-6 h-6 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center shrink-0">0</div>
                         </div>
                         <button type="button" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Quantidade Total de Pallets</label>
-                        <input type="number" id="palletQty" placeholder="0" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-amber-400 outline-none border">
                     </div>
                     <div id="palletsContainer" class="space-y-2"></div>
                 </div>
@@ -434,6 +428,31 @@
             <div class="grid grid-cols-2 gap-3 mt-6">
                 <button onclick="hideConfirmModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Revisar</button>
                 <button onclick="executeSend()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Emitir Relatório</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LAYOUT PDF -->
+    <div id="layoutModal" class="fixed inset-0 bg-black/80 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm border border-slate-200">
+            <h3 class="text-base font-black text-slate-800 text-center uppercase tracking-tight mb-1">Como vai usar este PDF?</h3>
+            <p class="text-xs text-slate-500 text-center mb-5">Escolha o formato de geração do documento.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="chooseLayout('screen')" class="flex items-center gap-4 px-4 py-3.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all text-left">
+                    <div class="w-9 h-9 rounded-lg bg-sky-500 flex items-center justify-center shrink-0"><i data-lucide="monitor" class="w-5 h-5 text-white"></i></div>
+                    <div>
+                        <div class="text-sm font-bold text-sky-800">Ler no Computador</div>
+                        <div class="text-xs text-sky-600 mt-0.5">Página única e longa, sem quebras de página</div>
+                    </div>
+                </button>
+                <button onclick="chooseLayout('print')" class="flex items-center gap-4 px-4 py-3.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all text-left">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="printer" class="w-5 h-5 text-white"></i></div>
+                    <div>
+                        <div class="text-sm font-bold text-emerald-800">Imprimir / A4</div>
+                        <div class="text-xs text-emerald-600 mt-0.5">Dividido em páginas A4 para impressão</div>
+                    </div>
+                </button>
+                <button onclick="document.getElementById('layoutModal').classList.add('hidden')" class="mt-1 text-xs text-slate-400 hover:text-slate-600 text-center py-1 transition-colors">Cancelar</button>
             </div>
         </div>
     </div>
@@ -827,6 +846,7 @@
 
         let currentReportId = "------";
         let currentPdfMode = 'interno';
+        let currentPdfLayout = 'print';
         let editModeTimestamp = null;
         let nfeList = [""];
         let partnersData = [];
@@ -945,7 +965,7 @@
             const cliente = document.getElementById('varietyInput').value.trim() || '—';
             const motorista = document.getElementById('driverName').value.trim() || '—';
             const placa = document.getElementById('vehiclePlate').value.trim() || '—';
-            const qtdPallets = document.getElementById('palletQty').value || '—';
+            const qtdPallets = getPalletCount() || '—';
 
             const dataFmt = data ? new Date(data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
             document.getElementById('chk-1-detail').textContent = `Código: ${codigo || '—'} · Data: ${dataFmt}`;
@@ -1087,8 +1107,6 @@
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
-                boxType: document.getElementById('boxType').value,
-                palletQty: document.getElementById('palletQty').value,
                 palletsData,
                 sensorNumber: document.getElementById('sensorNumber').value,
                 lacreNumber: document.getElementById('lacreNumber').value
@@ -1336,8 +1354,8 @@
 
                 const fields = {
                     Motorista: 'driverName', Placa: 'vehiclePlate',
-                    HorarioSaida: 'departureTime', TipoCaixa: 'boxType',
-                    QtdPallets: 'palletQty', Sensor: 'sensorNumber', Lacre: 'lacreNumber'
+                    HorarioSaida: 'departureTime',
+                    Sensor: 'sensorNumber', Lacre: 'lacreNumber'
                 };
                 Object.entries(fields).forEach(([col, id]) => {
                     const el = document.getElementById(id);
@@ -1410,8 +1428,8 @@
 
             // Campos simples
             ['reportDate','embarqueCodigo','varietyInput','customProductName',
-             'driverName','vehiclePlate','departureTime','boxType',
-             'sensorNumber','lacreNumber','palletQty','thermostatValue',
+             'driverName','vehiclePlate','departureTime',
+             'sensorNumber','lacreNumber','thermostatValue',
              'customInspectorName','tempObservation'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
@@ -1605,8 +1623,6 @@
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
-                boxType: document.getElementById('boxType').value,
-                palletQty: document.getElementById('palletQty').value,
                 palletsData,
                 sensorNumber: document.getElementById('sensorNumber').value,
                 lacreNumber: document.getElementById('lacreNumber').value
@@ -1660,7 +1676,7 @@
                 }
                 if (data.aiSummary) aiSummary = data.aiSummary;
                 if (data.photosData && data.photosData.length) photosData = data.photosData;
-                const fields = ['driverName','vehiclePlate','departureTime','boxType','palletQty','sensorNumber','lacreNumber'];
+                const fields = ['driverName','vehiclePlate','departureTime','sensorNumber','lacreNumber'];
                 fields.forEach(f => { if (data[f] !== undefined) document.getElementById(f).value = data[f]; });
                 if (data.palletsData && data.palletsData.length) palletsData = data.palletsData;
                 return true;
@@ -1718,9 +1734,21 @@
         function handleProductChange() {
             const sel = document.getElementById('productSelect');
             const container = document.getElementById('customProductContainer');
-            const input = document.getElementById('customProductName');
-            if (sel.value === 'Outro') { container.classList.remove('hidden'); input.setAttribute('required', 'required'); }
-            else { container.classList.add('hidden'); input.removeAttribute('required'); }
+            if (sel.value === 'Outro') {
+                sel.classList.add('hidden');
+                container.classList.remove('hidden');
+                setTimeout(() => document.getElementById('customProductName').focus(), 50);
+            } else {
+                sel.classList.remove('hidden');
+                container.classList.add('hidden');
+            }
+            updatePreview();
+        }
+        function clearProductSelect() {
+            document.getElementById('productSelect').value = '';
+            document.getElementById('productSelect').classList.remove('hidden');
+            document.getElementById('customProductContainer').classList.add('hidden');
+            document.getElementById('customProductName').value = '';
             updatePreview();
         }
         function getProductName() {
@@ -1728,12 +1756,44 @@
             if (sel === 'Outro') return document.getElementById('customProductName').value;
             return sel;
         }
+        function handlePalletBoxTypeChange(idx, iidx, sel) {
+            palletsData[idx].items[iidx].boxType = sel.value;
+            palletsData[idx].items[iidx].boxTypeCustom = '';
+            renderPallets(); updatePreview();
+        }
+        function clearPalletBoxType(idx, iidx) {
+            palletsData[idx].items[iidx].boxType = '';
+            palletsData[idx].items[iidx].boxTypeCustom = '';
+            renderPallets(); updatePreview();
+        }
+        function handlePalletProductChange(idx, iidx, sel) {
+            palletsData[idx].items[iidx].product = sel.value;
+            palletsData[idx].items[iidx].productCustom = '';
+            renderPallets(); updatePreview();
+        }
+        function clearPalletProduct(idx, iidx) {
+            palletsData[idx].items[iidx].product = '';
+            palletsData[idx].items[iidx].productCustom = '';
+            renderPallets(); updatePreview();
+        }
         function handleInspectorChange() {
             const sel = document.getElementById('inspectorSelect');
             const container = document.getElementById('customInspectorContainer');
-            const input = document.getElementById('customInspectorName');
-            if (sel.value === 'Outro') { container.classList.remove('hidden'); input.setAttribute('required', 'required'); }
-            else { container.classList.add('hidden'); input.removeAttribute('required'); }
+            if (sel.value === 'Outro') {
+                sel.classList.add('hidden');
+                container.classList.remove('hidden');
+                setTimeout(() => document.getElementById('customInspectorName').focus(), 50);
+            } else {
+                sel.classList.remove('hidden');
+                container.classList.add('hidden');
+            }
+            updatePreview();
+        }
+        function clearInspectorSelect() {
+            document.getElementById('inspectorSelect').value = '';
+            document.getElementById('inspectorSelect').classList.remove('hidden');
+            document.getElementById('customInspectorContainer').classList.add('hidden');
+            document.getElementById('customInspectorName').value = '';
             updatePreview();
         }
         function getInspectorName() {
@@ -1748,6 +1808,8 @@
         function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) { partnersData[idx][field] = value; updatePreview(); }
+        function clearPartnerName(idx) { partnersData[idx].name = ''; partnersData[idx].nameCustom = ''; renderPartners(); updatePreview(); }
+        function clearPartnerUnit(idx) { partnersData[idx].unit = UNIT_PRESETS[0]; partnersData[idx].unitCustom = ''; renderPartners(); updatePreview(); }
         function updatePartnerUnit(idx, value) {
             partnersData[idx].unit = value;
             if (value !== 'Outro') partnersData[idx].unitCustom = '';
@@ -1757,6 +1819,7 @@
         function updatePartnerName(idx, value) {
             partnersData[idx].name = value;
             if (value !== 'Outro') partnersData[idx].nameCustom = '';
+            partnersData.sort((a, b) => getPartnerName(a).localeCompare(getPartnerName(b), 'pt-BR'));
             renderPartners();
             updatePreview();
         }
@@ -1784,20 +1847,28 @@
                 return `
                 <div class="flex flex-col gap-1.5 bg-slate-50 rounded-xl p-2 border border-slate-200">
                     <div class="flex gap-2 items-center">
+                        ${nameSel === 'Outro' ? `
+                        <div class="relative w-[34%]">
+                            <input type="text" value="${nameCustom.replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePartner(${idx}, 'nameCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-emerald-400 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+                            <button type="button" onclick="clearPartnerName(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>` : `
                         <select onchange="updatePartnerName(${idx}, this.value)" class="w-[34%] p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
                             <option value="" ${nameSel === '' ? 'selected' : ''}>Selecione</option>
                             ${PARTNER_PRESETS.map(n => `<option value="${n}" ${nameSel === n ? 'selected' : ''}>${n}</option>`).join('')}
-                            <option value="Outro" ${nameSel === 'Outro' ? 'selected' : ''}>Outro (Digitar)</option>
-                        </select>
+                            <option value="Outro">Outro...</option>
+                        </select>`}
                         <input type="number" value="${p.qty}" placeholder="Qtd" oninput="updatePartner(${idx}, 'qty', this.value)" class="w-[18%] p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+                        ${unitSel === 'Outro' ? `
+                        <div class="relative flex-1">
+                            <input type="text" value="${unitCustom.replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePartner(${idx}, 'unitCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-emerald-400 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
+                            <button type="button" onclick="clearPartnerUnit(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>` : `
                         <select onchange="updatePartnerUnit(${idx}, this.value)" class="flex-1 p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
                             ${UNIT_PRESETS.map(u => `<option value="${u}" ${unitSel === u ? 'selected' : ''}>${u}</option>`).join('')}
-                            <option value="Outro" ${unitSel === 'Outro' ? 'selected' : ''}>Outro (Digitar)</option>
-                        </select>
+                            <option value="Outro">Outro...</option>
+                        </select>`}
                         <button type="button" onclick="removePartner(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
-                    ${nameSel === 'Outro' ? `<input type="text" value="${nameCustom.replace(/"/g,'&quot;')}" placeholder="Digite o nome do parceiro..." oninput="updatePartner(${idx}, 'nameCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none animate-fade-in-down">` : ''}
-                    ${unitSel === 'Outro' ? `<input type="text" value="${unitCustom.replace(/"/g,'&quot;')}" placeholder="Digite a unidade..." oninput="updatePartner(${idx}, 'unitCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none animate-fade-in-down">` : ''}
                     <div class="flex items-center gap-2">
                         <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
                         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita</label>
@@ -1831,10 +1902,14 @@
         }
 
         // ---------- Pallets ----------
+        function getPalletCount() {
+            const labels = new Set(palletsData.map(pl => (pl.label || '').trim().toLowerCase()).filter(Boolean));
+            return labels.size;
+        }
         function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', items: [], photos: [] }); renderPallets(); updatePreview(); }
         function removePallet(idx) { palletsData.splice(idx, 1); renderPallets(); updatePreview(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
-        function addPalletItem(idx) { if (!palletsData[idx].items) palletsData[idx].items = []; palletsData[idx].items.push({ product: '', boxes: '' }); renderPallets(); }
+        function addPalletItem(idx) { if (!palletsData[idx].items) palletsData[idx].items = []; palletsData[idx].items.push({ product: '', productCustom: '', boxType: '', boxes: '' }); renderPallets(); }
         function removePalletItem(idx, iidx) { palletsData[idx].items.splice(iidx, 1); renderPallets(); updatePreview(); }
         function updatePalletItem(idx, iidx, field, value) { palletsData[idx].items[iidx][field] = value; updatePreview(); }
         function handlePalletPhotoUpload(idx, event) {
@@ -1868,11 +1943,42 @@
                     </button>` : `
                     <div class="space-y-1.5">
                         ${(pl.items||[]).map((item, iidx) => `
-                        <div class="flex gap-1.5 items-center">
-                            <input type="text" value="${(item.product||'').replace(/"/g,'&quot;')}" placeholder="Produto" oninput="updatePalletItem(${idx}, ${iidx}, 'product', this.value)" class="flex-1 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                            <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-16 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
-                            <span class="text-[11px] text-amber-600 font-bold shrink-0">cx</span>
-                            <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                        <div class="flex gap-1.5 items-start">
+                            <div class="flex-1">
+                                ${item.product === 'Outro' ? `
+                                <div class="relative">
+                                    <input type="text" value="${(item.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                    <button type="button" onclick="clearPalletProduct(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                    </button>
+                                </div>` : `
+                                <select onchange="handlePalletProductChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                    <option value="">Produto</option>
+                                    <option value="Brócolis" ${item.product==='Brócolis'?'selected':''}>Brócolis</option>
+                                    <option value="Couve-Flor" ${item.product==='Couve-Flor'?'selected':''}>Couve-Flor</option>
+                                    <option value="Tomatitos" ${item.product==='Tomatitos'?'selected':''}>Tomatitos</option>
+                                    <option value="Pepinitos" ${item.product==='Pepinitos'?'selected':''}>Pepinitos</option>
+                                    <option value="Outro">Outro...</option>
+                                </select>`}
+                            </div>
+                            <div class="w-28">
+                                ${item.boxType === 'Outro' ? `
+                                <div class="relative">
+                                    <input type="text" value="${(item.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                    <button type="button" onclick="clearPalletBoxType(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                    </button>
+                                </div>` : `
+                                <select onchange="handlePalletBoxTypeChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                    <option value="">Tipo caixa</option>
+                                    <option value="Plástica" ${item.boxType==='Plástica'?'selected':''}>Plástica</option>
+                                    <option value="Papelão" ${item.boxType==='Papelão'?'selected':''}>Papelão</option>
+                                    <option value="Outro">Outro...</option>
+                                </select>`}
+                            </div>
+                            <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
+                            <span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx</span>
+                            <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
                         </div>`).join('')}
                         <button type="button" onclick="addPalletItem(${idx})" class="flex items-center gap-1 text-amber-500 hover:text-amber-700 text-[10px] font-bold">
                             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
@@ -1895,6 +2001,8 @@
                 `;
             }).join('');
             lucide.createIcons();
+            const display = document.getElementById('palletQtyDisplay');
+            if (display) display.textContent = getPalletCount();
         }
 
         // ---------- Descartes ----------
@@ -1905,6 +2013,7 @@
             renderDiscards();
             updatePreview();
         }
+        function clearDiscardPartner(idx) { discardsData[idx].partnerSel = ''; discardsData[idx].partner = ''; renderDiscards(); updatePreview(); }
         function removeDiscard(idx) { discardsData.splice(idx, 1); renderDiscards(); updatePreview(); }
         function updateDiscard(idx, field, value) { discardsData[idx][field] = value; updatePreview(); }
         function handleDiscardPhotoUpload(idx, event) {
@@ -1941,16 +2050,20 @@
                 return `
                 <div class="bg-rose-50 rounded-xl p-2 border border-rose-100 space-y-2">
                     <div class="flex gap-2 items-center">
+                        ${pSel === 'Outro' ? `
+                        <div class="relative flex-1 min-w-0">
+                            <input type="text" value="${pCustom}" placeholder="Qual?" oninput="updateDiscard(${idx}, 'partner', this.value)" class="w-full p-2 pr-7 rounded-lg border border-rose-400 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                            <button type="button" onclick="clearDiscardPartner(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>` : `
                         <select onchange="updateDiscardPartnerName(${idx}, this.value)" class="flex-1 min-w-0 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
                             <option value="" ${pSel === '' ? 'selected' : ''}>Selecione</option>
                             ${PARTNER_PRESETS.map(n => `<option value="${n}" ${pSel === n ? 'selected' : ''}>${n}</option>`).join('')}
-                            <option value="Outro" ${pSel === 'Outro' ? 'selected' : ''}>Outro (Digitar)</option>
-                        </select>
+                            <option value="Outro">Outro...</option>
+                        </select>`}
                         <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-20 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
                         <button type="button" onclick="removeDiscard(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
                     <input type="text" value="${d.reason}" placeholder="Motivo do descarte..." oninput="updateDiscard(${idx}, 'reason', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                    ${pSel === 'Outro' ? `<input type="text" value="${pCustom}" placeholder="Digite o nome do parceiro..." oninput="updateDiscard(${idx}, 'partner', this.value)" class="p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none w-full animate-fade-in-down">` : ''}
                     <div class="flex flex-wrap gap-2 items-center pl-1">
                         ${photos.map((src, pidx) => `
                             <div class="relative group">
@@ -1986,6 +2099,7 @@
         // ---------- Temperaturas Personalizadas ----------
         function addCustomTemp() { customTempsData.push({ preset: '', labelCustom: '', value: '', photos: [] }); renderCustomTemps(); }
         function removeCustomTemp(idx) { customTempsData.splice(idx, 1); renderCustomTemps(); updatePreview(); }
+        function clearCustomTempPreset(idx) { customTempsData[idx].preset = ''; customTempsData[idx].labelCustom = ''; renderCustomTemps(); updatePreview(); }
         function updateCustomTemp(idx, field, value) {
             customTempsData[idx][field] = value;
             if (field === 'preset') { customTempsData[idx].labelCustom = ''; renderCustomTemps(); }
@@ -2018,15 +2132,19 @@
                 customTempsData.map((t, idx) => `
                 <div class="flex flex-col gap-1.5 bg-orange-50 rounded-xl p-2 border border-orange-100">
                     <div class="flex gap-2 items-center">
+                        ${t.preset === 'outro' ? `
+                        <div class="relative flex-1">
+                            <input type="text" value="${t.labelCustom}" placeholder="Qual?" oninput="updateCustomTemp(${idx}, 'labelCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-orange-400 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
+                            <button type="button" onclick="clearCustomTempPreset(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>` : `
                         <select onchange="updateCustomTemp(${idx}, 'preset', this.value)" class="flex-1 p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
                             <option value="">Selecione o local</option>
                             ${TEMP_LABELS.map(l => `<option value="${l}" ${t.preset === l ? 'selected' : ''}>${l}</option>`).join('')}
-                            <option value="outro" ${t.preset === 'outro' ? 'selected' : ''}>Outro (Digitar)</option>
-                        </select>
+                            <option value="outro">Outro...</option>
+                        </select>`}
                         <input type="number" step="0.1" value="${t.value}" placeholder="°C" oninput="updateCustomTemp(${idx}, 'value', this.value)" class="w-[28%] p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
                         <button type="button" onclick="removeCustomTemp(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
-                    ${t.preset === 'outro' ? `<input type="text" value="${t.labelCustom}" placeholder="Digite o nome do local..." oninput="updateCustomTemp(${idx}, 'labelCustom', this.value)" class="p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none animate-fade-in-down">` : ''}
                     <div class="flex flex-wrap gap-2 items-center pl-1">
                         ${(t.photos || []).map((src, pidx) => `
                             <div class="relative">
@@ -2100,6 +2218,7 @@
         const INFO_TOPICS = ['Temperatura', 'Carregamento'];
         function addAdditionalInfo() { additionalInfoData.push({ topic: '', text: '' }); renderAdditionalInfo(); }
         function removeAdditionalInfo(idx) { additionalInfoData.splice(idx, 1); renderAdditionalInfo(); updatePreview(); }
+        function clearAdditionalInfoTopic(idx) { additionalInfoData[idx].topic = ''; additionalInfoData[idx].topicCustom = ''; renderAdditionalInfo(); updatePreview(); }
         function updateAdditionalInfo(idx, field, value) {
             additionalInfoData[idx][field] = value;
             if (field === 'topic') {
@@ -2117,14 +2236,18 @@
                 return `
                 <div class="bg-slate-50 rounded-xl p-2 border border-slate-200 space-y-1.5">
                     <div class="flex gap-2 items-center">
+                        ${tSel === 'Outro' ? `
+                        <div class="relative w-[40%]">
+                            <input type="text" value="${tCustom}" placeholder="Qual?" oninput="updateAdditionalInfo(${idx}, 'topicCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-slate-400 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none">
+                            <button type="button" onclick="clearAdditionalInfoTopic(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>` : `
                         <select onchange="updateAdditionalInfo(${idx}, 'topic', this.value)" class="w-[40%] p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none">
                             <option value="" ${tSel===''?'selected':''}>Assunto...</option>
                             ${INFO_TOPICS.map(t => `<option value="${t}" ${tSel===t?'selected':''}>${t}</option>`).join('')}
-                            <option value="Outro" ${tSel==='Outro'?'selected':''}>Outro (Digitar)</option>
-                        </select>
+                            <option value="Outro">Outro...</option>
+                        </select>`}
                         <button type="button" onclick="removeAdditionalInfo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 ml-auto"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
-                    ${tSel === 'Outro' ? `<input type="text" value="${tCustom}" placeholder="Assunto..." oninput="updateAdditionalInfo(${idx}, 'topicCustom', this.value)" class="p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none w-full animate-fade-in-down">` : ''}
                     <textarea rows="2" placeholder="Observação..." oninput="updateAdditionalInfo(${idx}, 'text', this.value)" class="w-full p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none resize-none">${a.text.replace(/</g,'&lt;')}</textarea>
                 </div>`;
             }).join('');
@@ -2134,10 +2257,10 @@
         // ---------- Helpers do relatório formal ----------
         const S = 'border:1px solid #d0d8e4;';
         function rpSH(num, title) {
-            return `<div style="background:#f0fdf4;color:#064e3b;padding:6px 12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;border-top:2px solid #059669;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;display:flex;align-items:center;gap:8px;page-break-after:avoid;break-after:avoid;"><span style="background:#059669;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;font-weight:900;letter-spacing:0.04em;">${num}</span>${title}</div>`;
+            return `<div style="background:#f1f5f9;color:#374151;padding:6px 12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;border-top:2px solid #94a3b8;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;display:flex;align-items:center;gap:8px;page-break-after:avoid;break-after:avoid;"><span style="background:#64748b;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;font-weight:900;letter-spacing:0.04em;">${num}</span>${title}</div>`;
         }
         function rpTH(text, w) {
-            return `<td style="background:#f7fdfb;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#065f46;white-space:nowrap;border-bottom:2px solid #6ee7b7;${w?'width:'+w:''}">${text}</td>`;
+            return `<td style="background:#f8fafc;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#475569;white-space:nowrap;border-bottom:2px solid #cbd5e1;${w?'width:'+w:''}">${text}</td>`;
         }
         function rpTD(text, extra) {
             return `<td style="${S}padding:5px 8px;font-size:10px;color:#1a1a1a;vertical-align:middle;${extra||''}">${text||'—'}</td>`;
@@ -2156,8 +2279,7 @@
             const driverName = document.getElementById('driverName').value || '---';
             const vehiclePlate = (document.getElementById('vehiclePlate').value || '---').toUpperCase();
             const departureTime = document.getElementById('departureTime').value || '---';
-            const boxType = document.getElementById('boxType').value || '---';
-            const palletQty = document.getElementById('palletQty').value || '---';
+            const palletQty = getPalletCount() || '---';
             const validPallets = palletsData.filter(pl => pl.label && pl.label.trim() !== '');
             const sensorNumber = document.getElementById('sensorNumber').value || '---';
             const lacreNumber = document.getElementById('lacreNumber').value || '---';
@@ -2219,8 +2341,8 @@
 
             <!-- 2. VEÍCULO / LOGÍSTICA -->
             ${rpSH(rn(),'Veículo / Logística')}
-            ${rpTable(`<tr>${rpTH('Motorista')}${rpTH('Placa',80)}${rpTH('Horário Saída',80)}${rpTH('Tipo de Caixa')}${rpTH('Nº do Sensor',100)}${rpTH('Nº do Lacre',100)}</tr>
-            <tr>${rpTD(driverName)}${rpTD(vehiclePlate,'font-weight:700')}${rpTD(departureTime,'font-weight:700')}${rpTD(boxType)}${rpTD(sensorNumber,'font-weight:700')}${rpTD(lacreNumber,'font-weight:700')}</tr>`)}
+            ${rpTable(`<tr>${rpTH('Motorista')}${rpTH('Placa',80)}${rpTH('Horário Saída',80)}${rpTH('Nº do Sensor',100)}${rpTH('Nº do Lacre',100)}</tr>
+            <tr>${rpTD(driverName)}${rpTD(vehiclePlate,'font-weight:700')}${rpTD(departureTime,'font-weight:700')}${rpTD(sensorNumber,'font-weight:700')}${rpTD(lacreNumber,'font-weight:700')}</tr>`)}
 
             <!-- 3. PALLETS -->
             ${rpSH(rn(),'Pallets')}
@@ -2230,7 +2352,7 @@
                 const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
                 const validItems = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
                 const boxesHtml = validItems.length
-                    ? validItems.map(it => `<span style="display:block;">${it.boxes} cx${it.product ? ' <span style="color:#92400e;font-weight:600;">('+it.product+')</span>' : ''}</span>`).join('')
+                    ? validItems.map(it => { const prodLabel = it.product === 'Outro' ? (it.productCustom || 'Outro') : it.product; const boxLabel = it.boxType === 'Outro' ? (it.boxTypeCustom || 'Outro') : it.boxType; const extras = [prodLabel, boxLabel].filter(Boolean).join(' · '); return `<span style="display:block;">${it.boxes} cx${extras ? ' <span style="color:#92400e;font-weight:600;">('+extras+')</span>' : ''}</span>`; }).join('')
                     : (pl.boxes ? pl.boxes+' cx' : '—');
                 return `<tr style="${bg}">${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}</tr>`;
             }).join('') : `<tr><td colspan="3" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum pallet registrado.</td></tr>`}
@@ -2255,7 +2377,7 @@
                 const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
                 return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="5" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#d1fae5;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
@@ -2320,8 +2442,25 @@
                 const hasAnnex = discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length || photosData.length;
                 if (!hasAnnex) return '';
 
+                const PER_ROW = 5;
+                const PHOTO_SIZE = '140px';
+                const photoChunks = (arr) => {
+                    const chunks = [];
+                    for (let i = 0; i < arr.length; i += PER_ROW) chunks.push(arr.slice(i, i + PER_ROW));
+                    return chunks;
+                };
+                const photoRowDiv = (srcs, border, captionFn) =>
+                    photoChunks(srcs).map(chunk =>
+                        `<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;">
+                            ${chunk.map((src, i) => `<div style="text-align:center;">
+                                <img src="${src}" style="width:${PHOTO_SIZE};height:${PHOTO_SIZE};object-fit:cover;border:1px solid ${border};border-radius:4px;display:block;">
+                                ${captionFn ? `<div style="font-size:8px;color:#555;margin-top:2px;width:${PHOTO_SIZE};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
+                            </div>`).join('')}
+                        </div>`
+                    ).join('');
+
                 const annexSection = (title, color, items) => `
-                    <div style="margin-bottom:20px;page-break-inside:avoid;">
+                    <div style="margin-bottom:20px;">
                         <div style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.06em;color:${color};border-bottom:1px solid #e2e8f0;padding-bottom:5px;margin-bottom:10px;">${title}</div>
                         ${items}
                     </div>`;
@@ -2330,42 +2469,26 @@
                 <div style="page-break-before:always;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;padding:16px 20px;">
                     <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #059669;padding-bottom:8px;margin-bottom:20px;">Anexo Fotográfico</div>
 
-                    ${photosData.length ? annexSection('Fotos Gerais do Embarque','#064e3b',`
-                        <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                            ${photosData.map((p,i)=>`<div style="text-align:center;page-break-inside:avoid;">
-                                <img src="${p.dataUrl}" style="width:200px;height:200px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
-                                <div style="font-size:9px;color:#445;margin-top:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
-                            </div>`).join('')}
-                        </div>`) : ''}
-
                     ${discardsWithPhotos.length ? annexSection('Comprovantes dos Descartes','#b91c1c',
                         discardsWithPhotos.map(d=>`
-                        <div style="margin-bottom:12px;page-break-inside:avoid;">
-                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:6px;">${d.partner} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
-                            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                                ${(d.photos||[]).map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #e3b8b8;border-radius:4px;">`).join('')}
-                            </div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
+                            ${photoRowDiv(d.photos||[], '#e3b8b8', null)}
                         </div>`).join('')) : ''}
 
-                    ${tempsWithPhotos.length ? annexSection('Comprovantes das Temperaturas','#9a3412',`
-                        <div style="display:flex;flex-wrap:wrap;gap:14px;">
-                            ${tempsWithPhotos.map(t=>`<div style="page-break-inside:avoid;">
-                                <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:6px;">${t.label}${t.value !== '' && t.value != null ? ' — '+t.value+' °C' : ''}</div>
-                                <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                                    ${(t.photos||[]).map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #e8c9a8;border-radius:4px;">`).join('')}
-                                </div>
-                            </div>`).join('')}
-                        </div>`) : ''}
+                    ${tempsWithPhotos.length ? annexSection('Comprovantes das Temperaturas','#9a3412',
+                        tempsWithPhotos.map(t=>`
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:4px;">${t.label}${t.value !== '' && t.value != null ? ' — '+t.value+' °C' : ''}</div>
+                            ${photoRowDiv(t.photos||[], '#e8c9a8', null)}
+                        </div>`).join('')) : ''}
 
-                    ${palletsWithPhotos.length ? annexSection('Fotos dos Pallets','#92400e',`
-                        <div style="display:flex;flex-wrap:wrap;gap:14px;">
-                            ${palletsWithPhotos.map(pl=>`<div style="page-break-inside:avoid;">
-                                <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:6px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
-                                <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                                    ${pl.photos.map(src=>`<img src="${src}" style="width:200px;height:200px;object-fit:cover;border:1px solid #fbbf24;border-radius:4px;">`).join('')}
-                                </div>
-                            </div>`).join('')}
-                        </div>`) : ''}
+                    ${palletsWithPhotos.length ? annexSection('Fotos dos Pallets','#92400e',
+                        palletsWithPhotos.map(pl=>`
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
+                            ${photoRowDiv(pl.photos||[], '#fbbf24', null)}
+                        </div>`).join('')) : ''}
                 </div>`;
             })()}`;
 
@@ -2388,26 +2511,404 @@
         }
 
         function hideConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); }
-        function executeSend() { hideConfirmModal(); downloadAndShare(); }
+        function executeSend() {
+            hideConfirmModal();
+            document.getElementById('layoutModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function chooseLayout(layout) {
+            document.getElementById('layoutModal').classList.add('hidden');
+            currentPdfLayout = layout;
+            downloadAndShare();
+        }
+
+        async function loadImageAsDataUrl(url) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = img.width; c.height = img.height;
+                    c.getContext('2d').drawImage(img, 0, 0);
+                    try { resolve(c.toDataURL('image/png')); } catch(e) { resolve(null); }
+                };
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+
+        async function generatePDFWithJsPDF() {
+            if (currentPdfLayout === 'screen') {
+                const measuredY = await _buildPDF(4000, false);
+                await _buildPDF(measuredY + 12, true);
+            } else {
+                await _buildPDF(297, true);
+            }
+        }
+
+        async function _buildPDF(pageHeight, doSave) {
+            const { jsPDF } = window.jspdf;
+            const isScreen = currentPdfLayout === 'screen';
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [210, pageHeight] });
+            const PW = 210, PH = pageHeight, M = 3, CW = PW - 2 * M;
+            let y = 0, secNum = 0;
+
+            const C = {
+                gDark:  [6,78,59],   gMed:  [4,120,87],  gLight: [240,253,244],
+                gText:  [6,95,70],   gBord: [110,231,183],
+                gray:   [248,250,252], grayMid: [241,245,249], grayTxt: [71,85,105],
+                black:  [26,26,26],  white: [255,255,255],
+                red:    [185,28,28], amber: [146,64,14],
+            };
+
+            const checkPage = (need) => { if (!isScreen && y + need > PH - M - 8) { doc.addPage(); y = M; } };
+
+            // ── CABEÇALHO ──────────────────────────────────────────────────────
+            const HDR_H = 16;
+            // Fundo base sólido cobre a página inteira (evita bordas brancas)
+            doc.setFillColor(6,78,59);
+            doc.rect(-1, -1, PW+2, HDR_H+1, 'F');
+            // Gradiente horizontal de #064e3b → #047857
+            const STRIPS = 60;
+            const fromR=6,fromG=78,fromB=59, toR=4,toG=120,toB=87;
+            const sw = (PW+2) / STRIPS;
+            for (let i=0;i<STRIPS;i++) {
+                const t = i/STRIPS;
+                doc.setFillColor(
+                    Math.round(fromR+(toR-fromR)*t),
+                    Math.round(fromG+(toG-fromG)*t),
+                    Math.round(fromB+(toB-fromB)*t)
+                );
+                doc.rect(-1 + i*sw, -1, sw+0.2, HDR_H+1, 'F');
+            }
+
+            // Coluna logo (largura ~30mm) com separador vertical
+            const LOGO_COL = 42;
+            doc.setFillColor(0,0,0); doc.setGState(new doc.GState({opacity:0.12}));
+            doc.rect(0, 0, LOGO_COL, HDR_H, 'F');
+            doc.setGState(new doc.GState({opacity:1}));
+            doc.setDrawColor(255,255,255); doc.setLineWidth(0.3);
+            doc.line(LOGO_COL, 1, LOGO_COL, HDR_H-1);
+
+            // Usa o logo já renderizado no relatório preview (base64 embutido)
+            const logoImgEl = document.querySelector('#report-card img');
+            const logo = logoImgEl ? logoImgEl.src : null;
+            if (logo) { try { doc.addImage(logo, 'PNG', LOGO_COL/2-7, HDR_H/2-7, 14, 14); } catch(e) {} }
+
+            // Título + subtítulo centrados na área entre logo e coluna de emissão
+            const EMIT_COL = 38;
+            const centerX = LOGO_COL + (PW - LOGO_COL - EMIT_COL) / 2;
+            doc.setTextColor(...C.white);
+            doc.setFont('helvetica','bold'); doc.setFontSize(11);
+            doc.text('REGISTRO DE EMBARQUE', centerX, HDR_H/2 - 1, { align:'center', charSpace: 0.5 });
+            doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
+            doc.setTextColor(255,255,255); doc.setGState(new doc.GState({opacity:0.75}));
+            doc.text('Relatório de Controle de Embarque  •  SPG Sede', centerX, HDR_H/2 + 4, { align:'center' });
+            doc.setGState(new doc.GState({opacity:1}));
+
+            // Coluna EMISSÃO à direita
+            const now = new Date();
+            const emDate = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+            const emTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            doc.setTextColor(255,255,255); doc.setGState(new doc.GState({opacity:0.75}));
+            doc.setFont('helvetica','normal'); doc.setFontSize(6);
+            doc.text('EMISSÃO', PW - M, HDR_H/2 - 1.5, { align:'right' });
+            doc.setGState(new doc.GState({opacity:1}));
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...C.white);
+            doc.text(`${emDate} às ${emTime}`, PW - M, HDR_H/2 + 3.5, { align:'right' });
+            y = HDR_H + 2;
+
+            // ── SEÇÃO ──────────────────────────────────────────────────────────
+            const sec = (title) => {
+                secNum++;
+                checkPage(9);
+                doc.setFillColor(...C.gLight); doc.rect(M, y, CW, 7, 'F');
+                doc.setDrawColor(...C.gBord); doc.setLineWidth(0.4);
+                doc.line(M, y, M + CW, y);
+                doc.setFillColor(...C.gMed);
+                doc.roundedRect(M + 1.5, y + 1, 6, 5, 0.8, 0.8, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...C.white);
+                doc.text(String(secNum), M + 4.5, y + 4.3, { align:'center' });
+                doc.setTextColor(...C.gText); doc.setFontSize(7.5);
+                doc.text(title.toUpperCase(), M + 10, y + 4.3);
+                y += 7;
+            };
+
+            const tbl = (extra = {}) => ({
+                theme: 'plain',
+                styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2 },
+                headStyles: { fillColor: C.gray, textColor: C.grayTxt, fontStyle: 'bold', fontSize: 7 },
+                margin: { left: M, right: M },
+                tableLineColor: [208,216,228], tableLineWidth: 0.2,
+                ...extra,
+            });
+
+            // ── DADOS ──────────────────────────────────────────────────────────
+            const dateVal = document.getElementById('reportDate').value;
+            let displayDate = '--/--/----';
+            if (dateVal) { const p = dateVal.split('-'); displayDate = `${p[2]}/${p[1]}/${p[0]}`; }
+            const codigo      = document.getElementById('embarqueCodigo').value || '---';
+            const nfeJoined   = joinList(nfeList);
+            const product     = (getProductName() || '---').toUpperCase();
+            const client      = document.getElementById('varietyInput').value || '---';
+            const inspector   = getInspectorName() || '---';
+            const driverName  = document.getElementById('driverName').value || '---';
+            const plate       = (document.getElementById('vehiclePlate').value || '---').toUpperCase();
+            const depTime     = document.getElementById('departureTime').value || '---';
+            const sensor      = document.getElementById('sensorNumber').value || '---';
+            const lacre       = document.getElementById('lacreNumber').value || '---';
+            const thermoMode  = document.getElementById('thermostatMode').value || '---';
+            const thermoVal   = document.getElementById('thermostatValue').value || '0';
+            const palletQty   = getPalletCount();
+
+            const validPartners    = getGroupedPartners();
+            const validDiscards    = getValidDiscards();
+            const validCustomTemps = getValidCustomTemps();
+            const validPallets     = palletsData.filter(pl => pl.label && pl.label.trim() !== '');
+            const totalQty         = validPartners.reduce((s,p) => s + parseFloat(p.qty||0), 0);
+            const totalDiscard     = validDiscards.reduce((s,d) => s + parseFloat(d.weight||0), 0);
+            const maxPartner       = getMaxPartner();
+
+            // 1. Dados do Embarque
+            sec('Dados do Embarque');
+            doc.autoTable(tbl({ startY: y,
+                head: [['Cód. Embarque','NFe','Data','Produto','Cliente','Responsável']],
+                body: [[codigo, nfeJoined, displayDate, product, client, inspector]],
+                columnStyles: { 0:{cellWidth:25}, 2:{cellWidth:22}, 3:{fontStyle:'bold'} },
+            }));
+            y = doc.lastAutoTable.finalY;
+
+            // 2. Veículo / Logística
+            y += 2; sec('Veículo / Logística');
+            doc.autoTable(tbl({ startY: y,
+                head: [['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre']],
+                body: [[driverName, plate, depTime, sensor, lacre]],
+                columnStyles: { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'} },
+            }));
+            y = doc.lastAutoTable.finalY;
+
+            // 3. Pallets
+            y += 2; sec('Pallets');
+            const palletRows = validPallets.map(pl => {
+                const items = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
+                const temp  = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
+                const boxes = items.length
+                    ? items.map(it => {
+                        const prod = it.product==='Outro'?(it.productCustom||'Outro'):it.product;
+                        const bx   = it.boxType==='Outro'?(it.boxTypeCustom||'Outro'):it.boxType;
+                        return `${it.boxes} cx${[prod,bx].filter(Boolean).length ? ' ('+[prod,bx].filter(Boolean).join(' · ')+')' : ''}`;
+                      }).join('\n')
+                    : '—';
+                return [pl.label, temp, boxes];
+            });
+            if (palletRows.length) palletRows.push([
+                {content:'TOTAL',styles:{fontStyle:'bold'}},
+                {content:palletQty+' pallet(s)',styles:{fontStyle:'bold',halign:'center',fillColor:[254,243,199]}},
+                {content:'',styles:{fillColor:[254,243,199]}},
+            ]);
+            doc.autoTable(tbl({ startY: y,
+                head: [['Pallet','Temperatura','Qtd. Caixas']],
+                body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','']],
+                columnStyles: { 0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber} },
+            }));
+            y = doc.lastAutoTable.finalY;
+
+            // 4. Resumo
+            y += 2; sec('Resumo do Embarque');
+            const maxD = validDiscards.length ? validDiscards.reduce((mx,d) => parseFloat(d.weight)>parseFloat(mx.weight)?d:mx, validDiscards[0]) : null;
+            doc.autoTable(tbl({ startY: y,
+                head: [['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
+                body: [[
+                    totalQty ? totalQty+' cx' : '---',
+                    String(validPartners.length || 0),
+                    {content:(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
+                    maxPartner ? getPartnerName(maxPartner) : '—',
+                    maxD ? (maxD.partnerSel==='Outro'?maxD.partner:maxD.partnerSel)||'—' : '—',
+                ]],
+            }));
+            y = doc.lastAutoTable.finalY;
+
+            // 5. Temperaturas
+            y += 2; sec('Temperaturas');
+            doc.autoTable(tbl({ startY: y,
+                head: [['Termostato','Modo',...validCustomTemps.map(t=>t.label)]],
+                body: [[thermoVal+'°C', thermoMode, ...validCustomTemps.map(t=>t.value!==''?t.value+'°C':'—')]],
+                columnStyles: { 0:{fontStyle:'bold'} },
+            }));
+            y = doc.lastAutoTable.finalY;
+
+            if (currentPdfMode !== 'email') {
+                // 6. Parceiros
+                y += 2; sec('Parceiros / Quantidades');
+                const pRows = validPartners.map(p => {
+                    const pct  = totalQty>0 ? ((parseFloat(p.qty)/totalQty)*100).toFixed(1)+'%' : '—';
+                    const hd   = p.harvestDate ? (hd=>{const pp=hd.split('-');return `${pp[2]}/${pp[1]}/${pp[0]}`;}) (p.harvestDate) : '—';
+                    const nm   = getPartnerName(p);
+                    const star = maxPartner && getPartnerName(maxPartner)===nm;
+                    return [{content:(star?'★ ':'')+nm, styles:{fontStyle:star?'bold':'normal'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
+                });
+                if (pRows.length) pRows.push([
+                    {content:'TOTAL',styles:{fontStyle:'bold'}},
+                    {content:totalQty+' cx',styles:{fontStyle:'bold',halign:'right'}},
+                    '','',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
+                ]);
+                doc.autoTable(tbl({ startY: y,
+                    head: [['Parceiro','Quantidade','Unidade','Data Colheita','% do Total']],
+                    body: pRows.length ? pRows : [['Nenhum parceiro.','','','','']],
+                    columnStyles: { 1:{halign:'right'}, 4:{halign:'right'} },
+                }));
+                y = doc.lastAutoTable.finalY;
+
+                // 7. Descartes
+                y += 2; sec('Descartes');
+                const dRows = validDiscards.map(d => {
+                    const pct = totalDiscard>0 ? ((parseFloat(d.weight)/totalDiscard)*100).toFixed(1)+'%' : '—';
+                    const nm  = d.partnerSel==='Outro' ? d.partner : (d.partnerSel||d.partner||'—');
+                    return [nm, {content:parseFloat(d.weight)+' kg',styles:{halign:'right'}}, d.reason||'—', {content:pct,styles:{halign:'right'}}];
+                });
+                if (dRows.length) dRows.push([
+                    {content:'TOTAL DESCARTE',styles:{fontStyle:'bold'}},
+                    {content:totalDiscard+' kg',styles:{fontStyle:'bold',halign:'right',textColor:C.red}},
+                    '',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
+                ]);
+                doc.autoTable(tbl({ startY: y,
+                    head: [['Parceiro','Peso (kg)','Motivo','% do Total']],
+                    body: dRows.length ? dRows : [['Nenhum descarte registrado.','','','']],
+                }));
+                y = doc.lastAutoTable.finalY;
+            }
+
+            // 8. Análise IA (só interno)
+            if (currentPdfMode !== 'email' && aiSummary) {
+                y += 2; sec('Análise IA — Problemas e Recomendações');
+                const aiLines = aiSummary.split('\n').filter(l => l.trim()).map(l => l.replace(/^[•\-\*]\s*/, ''));
+                doc.autoTable(tbl({ startY: y,
+                    body: aiLines.map(l => [{
+                        content: l,
+                        styles: { textColor: [59,42,107], fontSize: 8, cellPadding: { top:2, bottom:2, left:3, right:3 } }
+                    }]),
+                    columnStyles: { 0: { cellWidth: CW } },
+                    rowPageBreak: 'avoid',
+                    didParseCell(data) {
+                        data.cell.styles.fillColor = data.row.index % 2 === 0 ? [245,243,255] : [255,255,255];
+                    },
+                }));
+                y = doc.lastAutoTable.finalY;
+            }
+
+            // 9. Info Adicionais
+            const validInfo = additionalInfoData.filter(a => a.text && a.text.trim());
+            if (validInfo.length) {
+                y += 2; sec('Informações Adicionais');
+                doc.autoTable(tbl({ startY: y,
+                    head: [['Assunto','Observação']],
+                    body: validInfo.map(a => [getAdditionalInfoTopic(a)||'—', a.text]),
+                    columnStyles: { 0:{cellWidth:40} },
+                }));
+                y = doc.lastAutoTable.finalY;
+            }
+
+            // ── ANEXO FOTOGRÁFICO ──────────────────────────────────────────────
+            const PER_ROW  = 5;
+            const PS       = 34;   // photo size mm
+            const PG       = 3;    // gap mm
+            const ROW_H    = PS + PG + 2;
+
+            const discardsWP = discardsData.filter(d => (d.photos||[]).length);
+            const tempsWP    = (customTempsData||[]).filter(t => (t.photos||[]).length);
+            const palletsWP  = validPallets.filter(pl => (pl.photos||[]).length);
+
+            if (discardsWP.length || tempsWP.length || palletsWP.length) {
+                if (!isScreen) { doc.addPage(); y = M; } else { y += 8; }
+                doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...C.black);
+                doc.text('ANEXO FOTOGRÁFICO', M, y + 5);
+                doc.setDrawColor(...C.gMed); doc.setLineWidth(0.5);
+                doc.line(M, y + 7, M + CW, y + 7);
+                y += 13;
+
+                const drawPhotos = (sectionTitle, color, groups) => {
+                    checkPage(12);
+                    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+                    doc.setTextColor(...color);
+                    doc.text(sectionTitle.toUpperCase(), M, y + 4);
+                    doc.setDrawColor(210,210,210); doc.setLineWidth(0.2);
+                    doc.line(M, y + 5.5, M + CW, y + 5.5);
+                    y += 9;
+
+                    groups.forEach(({ label, photos }) => {
+                        if (label) {
+                            checkPage(7);
+                            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(80,80,80);
+                            doc.text(label, M, y + 3); y += 5;
+                        }
+                        for (let i = 0; i < photos.length; i += PER_ROW) {
+                            const chunk = photos.slice(i, i + PER_ROW);
+                            checkPage(ROW_H);
+                            chunk.forEach((src, ci) => {
+                                const x = M + ci * (PS + PG);
+                                try { doc.addImage(src, 'JPEG', x, y, PS, PS, undefined, 'FAST'); }
+                                catch(e) { try { doc.addImage(src, 'PNG', x, y, PS, PS, undefined, 'FAST'); } catch(e2) {} }
+                                doc.setDrawColor(200,200,200); doc.setLineWidth(0.15);
+                                doc.rect(x, y, PS, PS);
+                            });
+                            y += ROW_H;
+                        }
+                        y += 2;
+                    });
+                    y += 3;
+                };
+
+                if (discardsWP.length) drawPhotos('Comprovantes dos Descartes', C.red,
+                    discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: d.photos })));
+
+                if (tempsWP.length) drawPhotos('Comprovantes das Temperaturas', [154,52,18],
+                    tempsWP.map(t => ({ label: `${t.label}${t.value!==''?' — '+t.value+'°C':''}`, photos: t.photos })));
+
+                if (palletsWP.length) drawPhotos('Fotos dos Pallets', C.amber,
+                    palletsWP.map(pl => ({ label: `${pl.label}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: pl.photos })));
+            }
+
+            // ── RODAPÉ ────────────────────────────────────────────────────────
+            if (isScreen) {
+                // Página única: rodapé logo abaixo do último conteúdo
+                y += 6;
+                doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(150,150,150);
+                doc.text('* Documento Gerado Eletronicamente.', M, y);
+                doc.text('* Uso Interno.', PW - M, y, { align:'right' });
+            } else {
+                const total = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= total; i++) {
+                    doc.setPage(i);
+                    doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(150,150,150);
+                    doc.text('* Documento Gerado Eletronicamente.', M, PH - 5);
+                    doc.text(`Página ${i} de ${total}`, PW - M, PH - 5, { align:'right' });
+                    if (i === 1) doc.text('* Uso Interno.', PW - M, PH - 8, { align:'right' });
+                }
+            }
+
+            if (doSave) {
+                doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}.pdf`);
+            }
+            return y;
+        }
 
         let isProcessingShare = false;
         function downloadAndShare() {
             if (isProcessingShare) return;
             isProcessingShare = true;
-            try {
-                updatePreview();
-                window.print();
-                currentReportId = generateReportId();
-            } catch (err) {
-                console.error(err);
-                showMessageModal('ERRO DE SISTEMA', 'Falha ao abrir impressão.', 'error');
-            } finally {
-                isProcessingShare = false;
-                if (currentPdfMode !== 'interno') {
-                    currentPdfMode = 'interno';
-                    updatePreview();
-                }
-            }
+            generatePDFWithJsPDF()
+                .then(() => { currentReportId = generateReportId(); })
+                .catch(err => {
+                    console.error(err);
+                    showMessageModal('ERRO DE SISTEMA', 'Falha ao gerar PDF: ' + (err.message || err), 'error');
+                })
+                .finally(() => {
+                    isProcessingShare = false;
+                    if (currentPdfMode !== 'interno') {
+                        currentPdfMode = 'interno';
+                        updatePreview();
+                    }
+                });
         }
 
         function downloadFile(uri, name) { const link = document.createElement('a'); link.href = uri; link.download = name; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
