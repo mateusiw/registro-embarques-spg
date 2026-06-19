@@ -1171,73 +1171,50 @@
 
             const body = JSON.stringify(data);
 
-            return new Promise((resolve) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', APPS_SCRIPT_URL, true);
+            setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
+            let serverPct = 10;
+            const serverInterval = setInterval(() => {
+                serverPct += (90 - serverPct) * 0.06;
+                setSaveProgress(serverPct, 'Processando no servidor', 'Gravando na planilha...');
+            }, 400);
 
-                // Progresso real do upload (0 → 70%)
-                xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
-                        const uploadPct = (e.loaded / e.total) * 70;
-                        const mb = (e.loaded / 1048576).toFixed(1);
-                        const total = (e.total / 1048576).toFixed(1);
-                        setSaveProgress(uploadPct,
-                            'Enviando arquivos',
-                            `${mb} MB de ${total} MB enviados...`);
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body });
+                clearInterval(serverInterval);
+                setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
+                await new Promise(r => setTimeout(r, 600));
+                hideSaveLoadingModal();
+                if (!resp.ok) {
+                    showMessageModal('Erro do servidor', `HTTP ${resp.status} — ${resp.statusText}`, 'error');
+                    return;
+                }
+                const text = await resp.text();
+                let result;
+                try { result = JSON.parse(text); } catch(_) {
+                    showMessageModal('Resposta inválida', 'O servidor retornou:\n' + text.substring(0, 200), 'error');
+                    return;
+                }
+                if (result.success) {
+                    const d = result.data;
+                    if (d.photosData)      photosData = d.photosData;
+                    if (d.discardsData)    discardsData = d.discardsData;
+                    if (d.customTempsData) customTempsData = d.customTempsData;
+                    if (d.palletsData)     palletsData = d.palletsData;
+                    saveToLocalStorage();
+                    if (isEdit) {
+                        clearEditMode();
+                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                    } else {
+                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
                     }
-                };
-
-                xhr.upload.onload = () => {
-                    // Upload concluído → simular processamento no servidor (70 → 95%)
-                    setSaveProgress(70, 'Processando no servidor', 'Gravando na planilha e salvando fotos no Drive...');
-                    let serverPct = 70;
-                    const interval = setInterval(() => {
-                        serverPct += (95 - serverPct) * 0.08;
-                        setSaveProgress(serverPct, 'Processando no servidor', 'Aguarde, o servidor está finalizando...');
-                    }, 300);
-                    xhr._serverInterval = interval;
-                };
-
-                xhr.onload = () => {
-                    clearInterval(xhr._serverInterval);
-                    setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
-
-                    setTimeout(() => {
-                        hideSaveLoadingModal();
-                        try {
-                            const result = JSON.parse(xhr.responseText);
-                            if (result.success) {
-                                const d = result.data;
-                                if (d.photosData)     photosData = d.photosData;
-                                if (d.discardsData)   discardsData = d.discardsData;
-                                if (d.customTempsData) customTempsData = d.customTempsData;
-                                if (d.palletsData)    palletsData = d.palletsData;
-                                saveToLocalStorage();
-                                if (isEdit) {
-                                    clearEditMode();
-                                    showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
-                                } else {
-                                    showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
-                                }
-                            } else {
-                                showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
-                            }
-                        } catch(e) {
-                            showMessageModal('Erro inesperado', 'Resposta inválida do servidor.', 'error');
-                        }
-                        resolve();
-                    }, 600);
-                };
-
-                xhr.onerror = () => {
-                    clearInterval(xhr._serverInterval);
-                    hideSaveLoadingModal();
-                    showMessageModal('Erro de conexão', 'Verifique sua internet e a URL do Apps Script.', 'error');
-                    resolve();
-                };
-
-                xhr.send(body);
-            });
+                } else {
+                    showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
+                }
+            } catch(err) {
+                clearInterval(serverInterval);
+                hideSaveLoadingModal();
+                showMessageModal('Erro de conexão', err.message || 'Falha ao conectar. Verifique sua internet.', 'error');
+            }
         }
 
         async function openHistory() {
