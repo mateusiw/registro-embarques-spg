@@ -832,7 +832,8 @@
 
         // ===== FIM PWA =====
 
-        let APPS_SCRIPT_URL = localStorage.getItem('spg_apps_script_url') || 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
+        localStorage.removeItem('spg_apps_script_url');
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
 
         let currentReportId = "------";
         let currentPdfMode = 'interno';
