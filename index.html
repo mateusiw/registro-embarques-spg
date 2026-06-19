@@ -2639,6 +2639,35 @@
             });
         }
 
+        async function _resolvePhotoSrc(src) {
+            if (!src) return null;
+            if (src.startsWith('data:')) return src; // já é base64, usar direto
+            // É uma URL (Drive ou outra) — tentar converter para base64
+            try {
+                const resp = await fetch(src);
+                if (!resp.ok) return null;
+                const blob = await resp.blob();
+                return await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(blob);
+                });
+            } catch(e) {
+                return loadImageAsDataUrl(src); // fallback via canvas
+            }
+        }
+
+        async function _preloadPhotos(sources) {
+            const cache = {};
+            await Promise.all(sources.map(async src => {
+                if (src && !cache[src]) {
+                    cache[src] = await _resolvePhotoSrc(src);
+                }
+            }));
+            return cache;
+        }
+
         async function generatePDFWithJsPDF() {
             if (currentPdfLayout === 'screen') {
                 const measuredY = await _buildPDF(4000, false);
@@ -2920,6 +2949,15 @@
             const tempsWP    = getValidCustomTemps().filter(t => t.photos.length);
             const palletsWP  = validPallets.filter(pl => (pl.photos||[]).length);
 
+            // Pré-carregar todas as fotos como base64 (necessário quando vêm como URLs do Drive)
+            const _allPhotoSrcs = [
+                ...discardsWP.flatMap(d => d.photos||[]),
+                ...tempsWP.flatMap(t => t.photos||[]),
+                ...palletsWP.flatMap(pl => pl.photos||[]),
+            ];
+            const _photoCache = await _preloadPhotos(_allPhotoSrcs);
+            const _photo = src => _photoCache[src] || src;
+
             if (discardsWP.length || tempsWP.length || palletsWP.length) {
                 if (!isScreen) { doc.addPage(); y = M; } else { y += 8; }
                 doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...C.black);
@@ -2948,8 +2986,11 @@
                             checkPage(ROW_H);
                             chunk.forEach((src, ci) => {
                                 const x = M + ci * (PS + PG);
-                                try { doc.addImage(src, 'JPEG', x, y, PS, PS, undefined, 'FAST'); }
-                                catch(e) { try { doc.addImage(src, 'PNG', x, y, PS, PS, undefined, 'FAST'); } catch(e2) {} }
+                                const resolved = _photo(src);
+                                if (resolved) {
+                                    try { doc.addImage(resolved, 'JPEG', x, y, PS, PS, undefined, 'FAST'); }
+                                    catch(e) { try { doc.addImage(resolved, 'PNG', x, y, PS, PS, undefined, 'FAST'); } catch(e2) {} }
+                                }
                                 doc.setDrawColor(200,200,200); doc.setLineWidth(0.15);
                                 doc.rect(x, y, PS, PS);
                             });
