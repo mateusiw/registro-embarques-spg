@@ -871,6 +871,7 @@
 
         // ===== SELEÇÃO DE FONTE DE FOTO =====
         let _photoSourceCallback = null;
+        let _lastPhotoSource = null;
 
         function openPhotoSourceModal(callback) {
             _photoSourceCallback = callback;
@@ -896,11 +897,31 @@
 
         function triggerPhotoCapture(source) {
             const cb = _photoSourceCallback; // salva antes do close zerar
+            _lastPhotoSource = source;
             closePhotoSourceModal();
             const input = document.getElementById(source === 'camera' ? 'photoInput_camera' : 'photoInput_gallery');
             input.value = '';
             input.onchange = (e) => { if (cb) cb(e); };
             input.click();
+        }
+        function _savePhotoToGallery(dataUrl) {
+            try {
+                const arr = dataUrl.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                const blob = new Blob([u8arr], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'foto_embarque_' + Date.now() + '.jpg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch(e) {}
         }
 
         // ===== MODAL DE CONFIRMAÇÃO GENÉRICO =====
@@ -1601,6 +1622,41 @@
 
         // ===== FIM NUVEM =====
 
+        // ===== IndexedDB (armazena fotos sem limite de cota) =====
+        const _IDB_NAME = 'spg_embarque';
+        const _IDB_STORE = 'formData';
+        function _openIDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(_IDB_NAME, 1);
+                req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+        async function _saveToIDB(data) {
+            try {
+                const db = await _openIDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction(_IDB_STORE, 'readwrite');
+                    tx.objectStore(_IDB_STORE).put(data, 'main');
+                    tx.oncomplete = resolve;
+                    tx.onerror = e => reject(e.target.error);
+                });
+            } catch(e) {}
+        }
+        async function _loadFromIDB() {
+            try {
+                const db = await _openIDB();
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(_IDB_STORE, 'readonly');
+                    const req = tx.objectStore(_IDB_STORE).get('main');
+                    req.onsuccess = e => resolve(e.target.result || null);
+                    req.onerror = e => reject(e.target.error);
+                });
+            } catch(e) { return null; }
+        }
+        // ===== FIM IndexedDB =====
+
         function saveToLocalStorage() {
             const data = {
                 reportDate: document.getElementById('reportDate').value,
@@ -1627,6 +1683,7 @@
                 sensorNumber: document.getElementById('sensorNumber').value,
                 lacreNumber: document.getElementById('lacreNumber').value
             };
+            _saveToIDB(data);
             try {
                 localStorage.setItem('spg_form_data', JSON.stringify(data));
             } catch(e) {
@@ -1641,11 +1698,8 @@
             }
         }
 
-        function loadFromLocalStorage() {
-            const raw = localStorage.getItem('spg_form_data');
-            if (!raw) return false;
+        function _applyLoadedData(data) {
             try {
-                const data = JSON.parse(raw);
                 if (data.reportDate) document.getElementById('reportDate').value = data.reportDate;
                 if (data.embarqueCodigo) document.getElementById('embarqueCodigo').value = data.embarqueCodigo;
                 if (data.nfeList) nfeList = data.nfeList;
@@ -1682,13 +1736,22 @@
                 return true;
             } catch(e) { return false; }
         }
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem('spg_form_data');
+            if (!raw) return false;
+            try { return _applyLoadedData(JSON.parse(raw)); } catch(e) { return false; }
+        }
 
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
             applyBrandAssets();
             lucide.createIcons();
             currentReportId = generateReportId();
 
-            const loaded = loadFromLocalStorage();
+            let loaded = false;
+            const idbData = await _loadFromIDB();
+            if (idbData) loaded = _applyLoadedData(idbData);
+            if (!loaded) loaded = loadFromLocalStorage();
+
             if (!loaded) {
                 document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
                 addPartner();
@@ -1913,11 +1976,17 @@
         function updatePalletItem(idx, iidx, field, value) { palletsData[idx].items[iidx][field] = value; updatePreview(); }
         function handlePalletPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
+            const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!palletsData[idx].photos) palletsData[idx].photos = [];
             files.forEach(file => {
                 const reader = new FileReader();
-                reader.onload = e => { palletsData[idx].photos.push(e.target.result); renderPallets(); updatePreview(); };
+                reader.onload = e => {
+                    if (fromCamera) _savePhotoToGallery(e.target.result);
+                    palletsData[idx].photos.push(e.target.result);
+                    renderPallets();
+                    updatePreview();
+                };
                 reader.readAsDataURL(file);
             });
         }
@@ -2017,11 +2086,13 @@
         function updateDiscard(idx, field, value) { discardsData[idx][field] = value; updatePreview(); }
         function handleDiscardPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
+            const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
+                    if (fromCamera) _savePhotoToGallery(e.target.result);
                     discardsData[idx].photos.push(e.target.result);
                     renderDiscards();
                     updatePreview();
@@ -2106,11 +2177,13 @@
         }
         function handleTempPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
+            const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
+                    if (fromCamera) _savePhotoToGallery(e.target.result);
                     customTempsData[idx].photos.push(e.target.result);
                     renderCustomTemps();
                     updatePreview();
@@ -2171,10 +2244,12 @@
         // ---------- Fotos ----------
         function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
+            const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
+                    if (fromCamera) _savePhotoToGallery(e.target.result);
                     photosData.push({ dataUrl: e.target.result, caption: '' });
                     renderPhotos();
                     updatePreview();
