@@ -1819,7 +1819,6 @@
         function updatePartnerName(idx, value) {
             partnersData[idx].name = value;
             if (value !== 'Outro') partnersData[idx].nameCustom = '';
-            partnersData.sort((a, b) => getPartnerName(a).localeCompare(getPartnerName(b), 'pt-BR'));
             renderPartners();
             updatePreview();
         }
@@ -2292,8 +2291,8 @@
             const emissionTime = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} às ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
             const nfeJoined = joinList(nfeList);
-            const validPartners = getGroupedPartners();
-            const validDiscards = getValidDiscards();
+            const validPartners = getGroupedPartners().sort((a, b) => getPartnerName(a).localeCompare(getPartnerName(b), 'pt-BR'));
+            const validDiscards = getValidDiscards().sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
             const totalQty = validPartners.reduce((sum, p) => sum + parseFloat(p.qty), 0);
             const totalDiscard = validDiscards.reduce((sum, d) => sum + parseFloat(d.weight), 0);
             const maxPartner = getMaxPartner();
@@ -2661,8 +2660,8 @@
             const thermoVal   = document.getElementById('thermostatValue').value || '0';
             const palletQty   = getPalletCount();
 
-            const validPartners    = getGroupedPartners();
-            const validDiscards    = getValidDiscards();
+            const validPartners    = getGroupedPartners().sort((a, b) => getPartnerName(a).localeCompare(getPartnerName(b), 'pt-BR'));
+            const validDiscards    = getValidDiscards().sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
             const validCustomTemps = getValidCustomTemps();
             const validPallets     = palletsData.filter(pl => pl.label && pl.label.trim() !== '');
             const totalQty         = validPartners.reduce((s,p) => s + parseFloat(p.qty||0), 0);
