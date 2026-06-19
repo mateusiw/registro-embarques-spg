@@ -496,16 +496,6 @@
                 <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Configurações</h3>
             </div>
 
-            <!-- Apps Script URL -->
-            <div class="mb-4">
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="link" class="w-3 h-3"></i></div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">URL do Apps Script</label>
-                </div>
-                <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/..." class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none">
-                <p class="text-[10px] text-slate-400 mt-1">URL da Web App publicada no Google Apps Script. Necessária para salvar e consultar histórico.</p>
-            </div>
-
             <div class="border-t border-slate-100 my-4"></div>
 
             <!-- API Key Groq -->
@@ -3072,7 +3062,6 @@
 
         // ---------- Configurações / API Key ----------
         function openSettings() {
-            document.getElementById('appsScriptUrlInput').value = localStorage.getItem('spg_apps_script_url') || '';
             document.getElementById('apiKeyInput').value = localStorage.getItem('spg_groq_key') || '';
             document.getElementById('settingsModal').classList.remove('hidden');
             lucide.createIcons();
@@ -3109,15 +3098,8 @@
         }
         function saveApiKey() { saveSettings(); }
         function saveSettings() {
-            const url = document.getElementById('appsScriptUrlInput').value.trim();
             const key = document.getElementById('apiKeyInput').value.trim();
-            if (url) {
-                localStorage.setItem('spg_apps_script_url', url);
-                APPS_SCRIPT_URL = url;
-            } else {
-                localStorage.removeItem('spg_apps_script_url');
-                APPS_SCRIPT_URL = '';
-            }
+            localStorage.removeItem('spg_apps_script_url');
             if (key) {
                 localStorage.setItem('spg_groq_key', key);
             } else {
