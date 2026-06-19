@@ -1867,7 +1867,7 @@
 
         // ---------- Parceiros ----------
         const UNIT_PRESETS = ['Brócolis Filetado', 'Brócolis Inteiro'];
-        const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá'];
+        const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','P.Q Oásis','P.Q Parceiros','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá'];
         function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) { partnersData[idx][field] = value; updatePreview(); }
@@ -2889,7 +2889,7 @@
             const ROW_H    = PS + PG + 2;
 
             const discardsWP = discardsData.filter(d => (d.photos||[]).length);
-            const tempsWP    = (customTempsData||[]).filter(t => (t.photos||[]).length);
+            const tempsWP    = getValidCustomTemps().filter(t => t.photos.length);
             const palletsWP  = validPallets.filter(pl => (pl.photos||[]).length);
 
             if (discardsWP.length || tempsWP.length || palletsWP.length) {
@@ -2961,7 +2961,8 @@
             }
 
             if (doSave) {
-                doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}.pdf`);
+                const clientSlug = client.replace(/[^a-zA-Z0-9À-ÿ]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}${clientSlug ? '_'+clientSlug : ''}.pdf`);
             }
             return y;
         }
