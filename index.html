@@ -3233,7 +3233,6 @@
                 if (!hasAnnex) return '';
 
                 const PER_ROW = 2;
-                const PHOTO_SIZE = '290px';
                 const photoChunks = (arr) => {
                     const chunks = [];
                     for (let i = 0; i < arr.length; i += PER_ROW) chunks.push(arr.slice(i, i + PER_ROW));
@@ -3241,10 +3240,10 @@
                 };
                 const photoRowDiv = (srcs, border, captionFn) =>
                     photoChunks(srcs).map(chunk =>
-                        `<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;">
-                            ${chunk.map((src, i) => `<div style="text-align:center;">
-                                <img src="${src}" style="width:${PHOTO_SIZE};height:${PHOTO_SIZE};object-fit:cover;border:1px solid ${border};border-radius:4px;display:block;">
-                                ${captionFn ? `<div style="font-size:12px;color:#555;margin-top:3px;width:${PHOTO_SIZE};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
+                        `<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;width:100%;">
+                            ${chunk.map((src, i) => `<div style="flex:1;min-width:0;text-align:center;">
+                                <img src="${src}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border:1px solid ${border};border-radius:4px;display:block;">
+                                ${captionFn ? `<div style="font-size:12px;color:#555;margin-top:3px;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
                             </div>`).join('')}
                         </div>`
                     ).join('');
