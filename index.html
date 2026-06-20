@@ -136,6 +136,10 @@
                         </button>
                     </div>
                 </div>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="loginKeepMe" class="w-4 h-4 rounded accent-emerald-500 cursor-pointer">
+                    <span class="text-xs text-slate-500 font-semibold">Manter conectado</span>
+                </label>
                 <button type="button" onclick="doLogin()" id="loginBtn"
                     class="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-black rounded-xl text-sm transition-all uppercase tracking-widest shadow-lg shadow-emerald-900/30 active:scale-95 disabled:opacity-60">
                     Entrar
@@ -815,40 +819,66 @@
     </div>
 
     <!-- BOTTOM NAV (mobile only) -->
-    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#1e293b; border-top:1px solid #334155; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
-        <div id="mobileNavRow1" style="display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid #334155;">
+    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#1e293b;border-top:1px solid #334155;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+
+        <!-- Overlay para fechar popups ao clicar fora -->
+        <div id="mobileNavOverlay" onclick="closeMobilePopups()" style="display:none;position:fixed;inset:0;z-index:-1;"></div>
+
+        <!-- Popup: PDF Interno + PDF Email -->
+        <div id="mobilePopupPdf" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(0,0,0,0.6);">
+            <div style="padding:7px 14px;border-bottom:1px solid #334155;">
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Gerar PDF</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;">
+                <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="file-text" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Interno</span>
+                </button>
+                <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="mail" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Email</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Popup: Histórico + Config. -->
+        <div id="mobilePopupMenu" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(0,0,0,0.6);">
+            <div style="padding:7px 14px;border-bottom:1px solid #334155;">
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Mais opções</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;">
+                <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="history" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
+                </button>
+                <button id="mobileNavSettings" type="button" onclick="openSettings();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="settings" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Linha única de botões -->
+        <div id="mobileNavRow1" style="display:grid;grid-template-columns:repeat(5,1fr);">
 
             <button type="button" id="saveCloudBtnMobile" onclick="saveToCloud()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="cloud-upload" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Salvar</span>
             </button>
 
-            <button id="mobileNavHistorico" type="button" onclick="openHistory()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="history" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
+            <button type="button" id="mobileNavPdfGroup" onclick="toggleMobilePopup('Pdf')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF</span>
             </button>
 
-            <button id="mobileNavAnalisar" type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavAnalisar" type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="sparkles" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Analisar</span>
             </button>
 
-        </div>
-        <div id="mobileNavRow2" style="display:grid; grid-template-columns:repeat(4,1fr);">
-
-            <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Interno</span>
-            </button>
-
-            <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="mail" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Email</span>
-            </button>
-
-            <button id="mobileNavSettings" type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="settings" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
+            <button type="button" id="mobileNavMenuGroup" onclick="toggleMobilePopup('Menu')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="more-horizontal" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Mais</span>
             </button>
 
             <button id="mobileNavLimpar" type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
@@ -857,7 +887,8 @@
             </button>
 
         </div>
-        <!-- Linha de logout/logout mobile -->
+
+        <!-- Linha de logout mobile -->
         <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid #334155;padding:10px 8px;gap:10px;">
             <span id="mobileUserLabel" style="font-size:11px;font-weight:600;color:#94a3b8;flex:1;padding-left:12px;"></span>
             <button type="button" onclick="doLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;cursor:pointer;color:#fca5a5;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
@@ -1657,6 +1688,28 @@
             document.getElementById('editModeBanner').classList.add('hidden');
         }
 
+        function toggleMobilePopup(name) {
+            const popup = document.getElementById('mobilePopup' + name);
+            const other = document.getElementById('mobilePopup' + (name === 'Pdf' ? 'Menu' : 'Pdf'));
+            const overlay = document.getElementById('mobileNavOverlay');
+            const isVisible = popup.style.display !== 'none';
+            other.style.display = 'none';
+            if (isVisible) {
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                popup.style.display = 'block';
+                overlay.style.display = 'block';
+                lucide.createIcons();
+            }
+        }
+
+        function closeMobilePopups() {
+            document.getElementById('mobilePopupPdf').style.display = 'none';
+            document.getElementById('mobilePopupMenu').style.display = 'none';
+            document.getElementById('mobileNavOverlay').style.display = 'none';
+        }
+
         function clearForm() {
             document.getElementById('clearFormModal').classList.remove('hidden');
             lucide.createIcons();
@@ -1686,13 +1739,26 @@
             document.getElementById('customShipResponsibleContainer').classList.add('hidden');
             document.getElementById('customShipResponsible').value = '';
 
-            // Containers dinâmicos
-            ['nfeContainer','palletsContainer','customTempsContainer',
-             'partnersContainer','discardsContainer','additionalInfoContainer',
-             'photosContainer'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = '';
-            });
+            // Reseta arrays de dados
+            nfeList = [''];
+            palletsData = [];
+            customTempsData = [];
+            partnersData = [];
+            discardsData = [];
+            additionalInfoData = [];
+            photosData = [];
+            aiSummary = null;
+            _collapsedPallets = [];
+            _collapsedTemps = [];
+            _collapsedDiscards = [];
+
+            // Renderiza containers dinâmicos (agora vazios)
+            renderNfeInputs();
+            renderPallets();
+            renderCustomTemps();
+            renderPartners();
+            renderDiscards();
+            renderAdditionalInfo();
 
             const photosHint = document.getElementById('photosHint');
             if (photosHint) photosHint.style.display = '';
@@ -1976,11 +2042,13 @@
             applyBrandAssets();
             lucide.createIcons();
 
-            // Verifica sessão existente
+            // Verifica sessão existente (persistente primeiro, depois de aba)
             try {
+                const persistent = localStorage.getItem('spg_persistent_session');
                 const session = sessionStorage.getItem('spg_session');
-                if (session) {
-                    currentUser = JSON.parse(session);
+                const saved = persistent || session;
+                if (saved) {
+                    currentUser = JSON.parse(saved);
                     document.getElementById('loginOverlay').style.display = 'none';
                     await initApp();
                     return;
@@ -2056,7 +2124,14 @@
 
                 if (result.success) {
                     currentUser = result.user;
-                    sessionStorage.setItem('spg_session', JSON.stringify(currentUser));
+                    const keepMe = document.getElementById('loginKeepMe').checked;
+                    if (keepMe) {
+                        localStorage.setItem('spg_persistent_session', JSON.stringify(currentUser));
+                        sessionStorage.removeItem('spg_session');
+                    } else {
+                        sessionStorage.setItem('spg_session', JSON.stringify(currentUser));
+                        localStorage.removeItem('spg_persistent_session');
+                    }
                     document.getElementById('loginOverlay').style.display = 'none';
                     await initApp();
                 } else {
@@ -2074,6 +2149,7 @@
 
         function doLogout() {
             sessionStorage.removeItem('spg_session');
+            localStorage.removeItem('spg_persistent_session');
             currentUser = null;
             document.getElementById('loginNome').value = '';
             document.getElementById('loginSenha').value = '';
@@ -2090,12 +2166,16 @@
                 'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                 'section-veiculo', 'section-parceiros', 'section-descartes', 'section-adicional', 'section-fotos',
                 'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
-                'mobileNavHistorico', 'mobileNavAnalisar', 'mobileNavRow2'
+                'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup'
             ];
             masterOnly.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = isEmbarque ? 'none' : '';
             });
+
+            // Embarque: só Salvar + Limpar na linha do nav
+            const row1 = document.getElementById('mobileNavRow1');
+            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(2,1fr)' : 'repeat(5,1fr)';
 
             // badge usuário desktop
             const badge = document.getElementById('userBadge');
@@ -2958,7 +3038,7 @@
             return `<div style="background:#f1f5f9;color:#374151;padding:6px 12px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.07em;border-top:2px solid #94a3b8;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;display:flex;align-items:center;gap:8px;page-break-after:avoid;break-after:avoid;"><span style="background:#64748b;color:#fff;border-radius:3px;padding:1px 6px;font-size:9px;font-weight:900;letter-spacing:0.04em;">${num}</span>${title}</div>`;
         }
         function rpTH(text, w) {
-            return `<td style="background:#f8fafc;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#475569;white-space:nowrap;border-bottom:2px solid #cbd5e1;${w?'width:'+w:''}">${text}</td>`;
+            return `<td style="background:#f8fafc;${S}padding:5px 8px;font-size:9px;font-weight:800;text-transform:uppercase;color:#475569;word-break:break-word;border-bottom:2px solid #cbd5e1;${w?'width:'+w+'px;':''}">${text}</td>`;
         }
         function rpTD(text, extra) {
             return `<td style="${S}padding:5px 8px;font-size:10px;color:#1a1a1a;vertical-align:middle;${extra||''}">${text||'—'}</td>`;
