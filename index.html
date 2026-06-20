@@ -3741,18 +3741,40 @@
                 return;
             }
 
-            const prompt = `Você é um especialista sênior em pós-colheita, logística e controle de qualidade de hortifrutigranjeiros, com foco em brócolis e folhosas, trabalhando para a empresa SPG.
+            const prompt = `Você é um especialista sênior em pós-colheita, logística e controle de qualidade de hortifrutigranjeiros, trabalhando para a empresa SPG.
 
-Você conhece profundamente os principais problemas que afetam o brócolis durante o transporte e armazenagem:
-- AMARELAMENTO: causado por temperatura acima do ideal (>4°C por tempo prolongado), etileno acumulado, ou colheita tardia. Acelera a senescência. Ideal: manter entre 0°C e 2°C.
-- MANCHAS ESCURAS / PODRIDÃO: causadas por fungos (Alternaria, Botrytis) ou bactérias (Erwinia), favorecidas por umidade alta, condensação e temperatura irregular. Sinal: manchas marrons ou pretas nos floretes.
-- PASSADO DO PONTO DE COLHEITA: floretes abertos, coloração amarelada já na colheita, cabeça frouxa. Deve ser colhido com cabeça compacta e cor verde-escura uniforme.
-- QUEIMA POR FRIO (chilling injury): abaixo de -1°C pode causar escurecimento interno dos floretes.
-- MURCHA / PERDA DE TURGIDEZ: desidratação por tempo excessivo sem câmara fria ou embalagem inadequada.
-- ODOR FORTE / DETERIORAÇÃO: quebra de glucosinolatos em temperaturas altas ou tempo longo pós-colheita.
+Principais problemas pós-colheita por produto:
+
+BRÓCOLIS
+- AMARELAMENTO: temperatura acima de 4°C por tempo prolongado, etileno acumulado ou colheita tardia. Ideal: 0°C a 2°C.
+- MANCHAS ESCURAS / PODRIDÃO: fungos (Alternaria, Botrytis) ou bactérias (Erwinia) por umidade alta e temperatura irregular.
+- PASSADO DO PONTO: floretes abertos, cabeça frouxa, cor amarelada já na colheita.
+- QUEIMA POR FRIO: abaixo de -1°C causa escurecimento interno dos floretes.
+- MURCHA / PERDA DE TURGIDEZ: desidratação por tempo sem câmara fria ou embalagem inadequada.
+- ODOR FORTE: quebra de glucosinolatos em temperaturas altas ou tempo longo pós-colheita.
+
+TOMATE
+- AMADURECIMENTO PRECOCE / PODRIDÃO: temperatura acima de 15°C acelera amadurecimento e favorece fungos (Botrytis, Alternaria). Ideal: 8°C a 12°C.
+- RACHADURAS / DANOS MECÂNICOS: manuseio inadequado, vibração no transporte ou compressão excessiva.
+- MURCHA / PERDA DE FIRMEZA: temperatura irregular, embalagem inadequada ou alta transpiração.
+- MANCHAS FÚNGICAS: Botrytis, Alternaria em condições de alta umidade.
+
+PEPINO
+- MURCHA / PERDA DE TURGIDEZ: muito sensível à desidratação. Temperatura ideal: 10°C a 13°C.
+- QUEIMA POR FRIO: abaixo de 10°C por mais de 3 dias causa manchas d'água e amolecimento.
+- AMARELAMENTO: temperatura alta ou etileno acumulado aceleram a senescência.
+- MANCHAS E APODRECIMENTO: Pythium e bactérias em condições úmidas.
+
+COUVE-FLOR
+- AMARELAMENTO: exposição à luz ou temperatura acima de 4°C desencadeia produção de clorofila na cabeça.
+- MANCHAS ESCURAS / PODRIDÃO CINZENTA: Botrytis e Alternaria em alta umidade.
+- DETERIORAÇÃO DA CABEÇA: temperatura acima do ideal causa amolecimento e odor desagradável.
+- QUEIMA POR FRIO: abaixo de -1°C pode danificar as inflorescências.
+
+Para todos os produtos:
 - CONCENTRAÇÃO DE DESCARTE EM UM ÚNICO PARCEIRO: pode indicar problema na roça, na colheita ou no manuseio específico daquele produtor.
 
-Cruce essas informações com os dados do embarque abaixo para identificar o que realmente ocorreu.
+Com base no produto informado no embarque, aplique o conhecimento técnico correspondente e cruce com os dados abaixo para identificar o que realmente ocorreu.
 
 Analise os dados do seguinte registro de embarque e forneça uma análise detalhada em português, com linguagem clara e direta, como se estivesse explicando para o responsável pelo embarque o que aconteceu. Use tópicos com emojis para organizar.
 
@@ -3784,8 +3806,8 @@ ${tempObs}
 Estruture sua resposta EXATAMENTE neste formato, com as tags:
 
 [RESUMO]
-Com base nos dados do embarque e no seu conhecimento técnico sobre brócolis, responda com bullets curtos (•) e diretos:
-1. Quais problemas ocorreram neste embarque? (cruce motivos de descarte, temperaturas e volumes para identificar: amarelamento, manchas, passado do ponto, murcha, etc.)
+Com base nos dados do embarque e no conhecimento técnico do produto informado, responda com bullets curtos (•) e diretos:
+1. Quais problemas ocorreram neste embarque? (cruce motivos de descarte, temperaturas e volumes para identificar os problemas típicos do produto: amarelamento, manchas, murcha, podridão, etc.)
 2. Quem foi o principal causador? (parceiro com maior descarte e qual problema predominou nele)
 3. Com base nos problemas identificados, dê 1 ou 2 recomendações práticas e específicas para evitar a repetição nos próximos embarques (ex: temperatura ideal, ponto de colheita, tempo máximo pós-colheita, sinais de rejeição no campo)
 4. Se os dados não indicarem problemas relevantes, informe que o embarque ocorreu dentro do padrão esperado.
