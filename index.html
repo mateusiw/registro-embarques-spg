@@ -109,6 +109,94 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-[140px] xl:pb-20 select-none">
 
+    <!-- ===== LOGIN OVERLAY ===== -->
+    <div id="loginOverlay" class="fixed inset-0 z-[300] flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#064e3b 100%);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 border border-slate-100">
+            <div class="text-center mb-7">
+                <img src="https://i.imgur.com/FSUbdya.png" class="w-16 h-16 mx-auto mb-3 rounded-xl shadow-lg">
+                <h1 class="text-xl font-black text-slate-800 uppercase tracking-wide">SPG SEDE</h1>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Registro de Embarque</p>
+            </div>
+            <div id="loginError" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold text-center"></div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Usuário</label>
+                    <input type="text" id="loginNome" placeholder="Nome de usuário" autocomplete="username"
+                        class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-slate-50 focus:bg-white transition-colors"
+                        onkeydown="if(event.key==='Enter') document.getElementById('loginSenha').focus()">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Senha</label>
+                    <div class="relative">
+                        <input type="password" id="loginSenha" placeholder="••••••••" autocomplete="current-password"
+                            class="w-full p-3 pr-10 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 outline-none bg-slate-50 focus:bg-white transition-colors"
+                            onkeydown="if(event.key==='Enter') doLogin()">
+                        <button type="button" onclick="toggleLoginPassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                            <i data-lucide="eye" class="w-4 h-4" id="loginEyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" onclick="doLogin()" id="loginBtn"
+                    class="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-black rounded-xl text-sm transition-all uppercase tracking-widest shadow-lg shadow-emerald-900/30 active:scale-95 disabled:opacity-60">
+                    Entrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL GERENCIAR USUÁRIOS ===== -->
+    <div id="usersModal" class="fixed inset-0 bg-black/80 z-[100] hidden flex justify-center items-start backdrop-blur-sm overflow-y-auto p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Gerenciar Usuários</h3>
+                </div>
+                <button onclick="document.getElementById('usersModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <!-- Form novo usuário -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Novo Usuário</p>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Nome</label>
+                            <input type="text" id="newUserNome" placeholder="Nome" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Senha</label>
+                            <input type="text" id="newUserSenha" placeholder="Senha" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Perfil</label>
+                            <select id="newUserPerfil" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                                <option value="master">Master</option>
+                                <option value="embarque">Embarque</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Status</label>
+                            <select id="newUserStatus" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                                <option value="ativado">Ativado</option>
+                                <option value="desativado">Desativado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="addUser()" class="w-full py-2 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1"></i> Adicionar Usuário
+                    </button>
+                </div>
+                <!-- Lista de usuários -->
+                <div>
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Usuários Cadastrados</p>
+                    <div id="usersList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-3 flex justify-between items-center shadow-lg sticky top-0 z-40">
         <div class="flex items-center gap-3">
@@ -126,32 +214,59 @@
 
         <!-- Botões desktop -->
         <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-2">
-            <button type="button" onclick="clearForm()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Limpar dados do formulário">
+            <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20"></div>
+            <button type="button" id="navBtnLimpar" onclick="clearForm()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Limpar dados do formulário">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                 <span>Limpar</span>
             </button>
-            <button type="button" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
+            <button type="button" id="navBtnSettings" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
                 <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+            <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Gerenciar usuários">
+                <i data-lucide="users" class="w-4 h-4"></i>
             </button>
             <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 transition-all active:scale-95" title="Salvar na nuvem">
                 <i data-lucide="cloud-upload" class="w-4 h-4"></i>
                 <span>Salvar</span>
             </button>
-            <button type="button" onclick="openHistory()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Ver histórico de embarques">
+            <button type="button" id="navBtnHistorico" onclick="openHistory()" class="relative flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Ver histórico de embarques">
                 <i data-lucide="history" class="w-4 h-4"></i>
                 <span>Histórico</span>
+                <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-amber-400 text-slate-900 text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
             </button>
-            <button type="button" onclick="runAIAnalysis()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/30 transition-all active:scale-95">
+            <button type="button" id="navBtnAnalisar" onclick="runAIAnalysis()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/30 transition-all active:scale-95">
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
                 <span>Analisar</span>
             </button>
-            <button type="button" onclick="confirmBeforeSend('interno')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF Interno (completo)">
+            <button type="button" id="navBtnPdfInterno" onclick="confirmBeforeSend('interno')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF Interno (completo)">
                 <i data-lucide="file-text" class="w-4 h-4"></i>
                 <span>PDF Interno</span>
             </button>
-            <button type="button" onclick="confirmBeforeSend('email')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF para Email (sem parceiros e descartes)">
+            <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF para Email (sem parceiros e descartes)">
                 <i data-lucide="mail" class="w-4 h-4"></i>
                 <span>PDF Email</span>
+            </button>
+            <button type="button" onclick="doLogout()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Sair">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- BANNER DE NOTIFICAÇÃO (pendentes) -->
+    <div id="pendingBanner" class="hidden mx-4 mt-3 max-w-[1700px] xl:mx-auto">
+        <div class="bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center shrink-0">
+                <i data-lucide="bell-ring" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-black text-amber-800"><span id="pendingCount">0</span> embarque(s) pendente(s) de revisão</p>
+                <p class="text-xs text-amber-600 mt-0.5">Registros enviados pelo perfil Embarque aguardando revisão.</p>
+            </div>
+            <button onclick="openHistoryPendentes()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0">
+                Ver Pendentes
+            </button>
+            <button onclick="document.getElementById('pendingBanner').classList.add('hidden')" class="text-amber-400 hover:text-amber-700 transition-colors shrink-0">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
     </div>
@@ -195,7 +310,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div id="section-nfe" class="mb-3">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-between">
                             <span>Número(s) de NFe</span>
                             <button type="button" onclick="addNfe()" class="text-emerald-600 hover:text-emerald-800 flex items-center gap-1 normal-case font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
@@ -203,7 +318,7 @@
                         <div id="nfeContainer" class="space-y-2"></div>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-3 mb-3">
+                    <div id="section-produto-cliente" class="grid grid-cols-1 gap-3 mb-3">
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Produto</label>
                             <select id="productSelect" onchange="handleProductChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
@@ -225,7 +340,7 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div id="section-resp-cruzamento">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Cruzamento</label>
                         <select id="inspectorSelect" required onchange="handleInspectorChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
                             <option value="">Selecione</option>
@@ -240,10 +355,25 @@
                             <button type="button" onclick="clearInspectorSelect()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                         </div>
                     </div>
+                    <div id="section-resp-embarque">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Embarque</label>
+                        <select id="shipResponsible" onchange="handleShipResponsibleChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
+                            <option value="">Selecione</option>
+                            <option value="João Victor Gonçalves">João Victor Gonçalves</option>
+                            <option value="Thaynara Rodrigues da Silva">Thaynara Rodrigues da Silva</option>
+                            <option value="Alesandra Leitão">Alesandra Leitão</option>
+                            <option value="Francisco Fagner Isaias">Francisco Fagner Isaias</option>
+                            <option value="Outro">Outro...</option>
+                        </select>
+                        <div id="customShipResponsibleContainer" class="hidden relative">
+                            <input type="text" id="customShipResponsible" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <button type="button" onclick="clearShipResponsible()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- VEÍCULO / LOGÍSTICA -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-veiculo" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
                             <i data-lucide="car" class="w-5 h-5"></i>
@@ -321,7 +451,7 @@
                 </div>
 
                 <!-- PARCEIROS / QUANTIDADES -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-parceiros" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
@@ -335,7 +465,7 @@
                 </div>
 
                 <!-- DESCARTES -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-descartes" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
@@ -349,7 +479,7 @@
                 </div>
 
                 <!-- INFORMAÇÕES ADICIONAIS -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-adicional" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
@@ -364,7 +494,7 @@
                 </div>
 
                 <!-- FOTOS DO EMBARQUE -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-fotos" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
@@ -479,8 +609,15 @@
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
-            <div class="p-3 border-b border-slate-100 shrink-0">
+            <div class="px-4 pt-3 pb-0 border-b border-slate-100 shrink-0 space-y-2">
                 <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
+                <div class="flex gap-2 pb-3">
+                    <button id="tabTodos" onclick="setHistoryTab('todos')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all">Todos</button>
+                    <button id="tabPendentes" onclick="setHistoryTab('pendentes')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5">
+                        Pendentes
+                        <span id="tabPendentesBadge" class="hidden min-w-[18px] h-[18px] bg-amber-400 text-slate-900 text-[10px] font-black rounded-full inline-flex items-center justify-center px-1"></span>
+                    </button>
+                </div>
             </div>
             <div id="historyList" class="overflow-y-auto flex-1 p-4 space-y-2">
                 <div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>
@@ -517,101 +654,22 @@
         </div>
     </div>
 
-    <!-- MODAL CHECKLIST DE SALVAMENTO -->
-    <div id="saveChecklistModal" class="fixed inset-0 bg-black/80 z-[70] hidden flex justify-center items-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-md border border-slate-200 flex flex-col max-h-[90vh]">
-
-            <div class="flex items-center gap-3 p-5 border-b border-slate-200 shrink-0">
-                <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
-                    <i data-lucide="clipboard-check" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Verificação antes de salvar</h3>
-                    <p class="text-[10px] text-slate-400 font-medium mt-0.5">Confirme cada item para liberar o envio</p>
-                </div>
-            </div>
-
-            <!-- Alerta de duplicata -->
-            <div id="duplicateWarning" class="hidden mx-5 mt-4 p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3">
-                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"></i>
-                <div>
-                    <p class="text-xs font-black text-amber-700 uppercase tracking-wide">Possível duplicata detectada</p>
-                    <p id="duplicateWarningText" class="text-xs text-amber-600 mt-0.5 leading-snug"></p>
-                </div>
-            </div>
-
-            <!-- Itens do checklist -->
-            <div class="p-5 space-y-3 overflow-y-auto flex-1">
-                <label id="chk-label-1" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-1" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">Código e data do embarque</p>
-                        <p class="text-xs text-slate-400 mt-0.5" id="chk-1-detail">Verifique se o código e a data estão corretos.</p>
-                    </div>
-                </label>
-
-                <label id="chk-label-2" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-2" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">NFe(s) conferida(s)</p>
-                        <p class="text-xs text-slate-400 mt-0.5" id="chk-2-detail">Os números de NFe foram verificados.</p>
-                    </div>
-                </label>
-
-                <label id="chk-label-3" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-3" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">Produto e cliente corretos</p>
-                        <p class="text-xs text-slate-400 mt-0.5" id="chk-3-detail">Produto e cliente estão preenchidos corretamente.</p>
-                    </div>
-                </label>
-
-                <label id="chk-label-4" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-4" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">Motorista, placa e pallets</p>
-                        <p class="text-xs text-slate-400 mt-0.5" id="chk-4-detail">Veículos e quantidades de pallets conferidos.</p>
-                    </div>
-                </label>
-
-                <label id="chk-label-5" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-5" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">Temperaturas registradas</p>
-                        <p class="text-xs text-slate-400 mt-0.5" id="chk-5-detail">Termostato e temperaturas anotadas corretamente.</p>
-                    </div>
-                </label>
-
-                <label id="chk-label-6" class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors select-none">
-                    <input type="checkbox" id="chk-6" onchange="updateSaveChecklistBtn()" class="mt-0.5 w-4 h-4 accent-sky-600 cursor-pointer shrink-0">
-                    <div>
-                        <p class="text-sm font-bold text-slate-700">Este embarque ainda NÃO foi salvo</p>
-                        <p class="text-xs text-slate-400 mt-0.5">Confirmo que não estou reenviando um registro já gravado.</p>
-                    </div>
-                </label>
-            </div>
-
-            <!-- Progresso -->
-            <div class="px-5 pb-2 shrink-0">
-                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                    <span>Progresso</span>
-                    <span id="chk-count">0 / 6</span>
-                </div>
-                <div class="bar-track">
-                    <div id="chk-progress-bar" class="bar-fill bg-sky-500" style="width:0%"></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 p-5 pt-3 shrink-0">
-                <button onclick="closeSaveChecklist()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
-                <button id="confirmSaveBtn" onclick="executeSaveToCloud()" disabled class="px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all opacity-40 cursor-not-allowed">
-                    Salvar na Nuvem
-                </button>
-            </div>
-        </div>
+    <!-- MODAL SELEÇÃO DE FOTO -->
+    <!-- LIGHTBOX -->
+    <div id="photoViewerModal" class="hidden fixed inset-0 z-[99] bg-black/95 flex items-center justify-center" onclick="if(event.target===this) closePhotoViewer()">
+        <button onclick="closePhotoViewer()" class="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-colors z-10">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <button id="viewerPrev" onclick="viewerPrev()" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-colors z-10">
+            <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        </button>
+        <img id="viewerImg" src="" alt="Foto" class="max-w-[90vw] max-h-[85vh] object-contain rounded-lg select-none">
+        <button id="viewerNext" onclick="viewerNext()" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition-colors z-10">
+            <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        </button>
+        <div id="viewerCounter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm font-semibold bg-black/50 px-4 py-1.5 rounded-full"></div>
     </div>
 
-    <!-- MODAL SELEÇÃO DE FOTO -->
     <div id="photoSourceModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-end justify-center backdrop-blur-sm" onclick="if(event.target===this) closePhotoSourceModal()">
         <div class="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl pb-safe overflow-hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
@@ -754,46 +812,53 @@
 
     <!-- BOTTOM NAV (mobile only) -->
     <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#1e293b; border-top:1px solid #334155; box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid #334155;">
+        <div id="mobileNavRow1" style="display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid #334155;">
 
             <button type="button" id="saveCloudBtnMobile" onclick="saveToCloud()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="cloud-upload" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Salvar</span>
             </button>
 
-            <button type="button" onclick="openHistory()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavHistorico" type="button" onclick="openHistory()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="history" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
             </button>
 
-            <button type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavAnalisar" type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="sparkles" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Analisar</span>
             </button>
 
         </div>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr);">
+        <div id="mobileNavRow2" style="display:grid; grid-template-columns:repeat(4,1fr);">
 
-            <button type="button" onclick="confirmBeforeSend('interno')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Interno</span>
             </button>
 
-            <button type="button" onclick="confirmBeforeSend('email')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="mail" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF Email</span>
             </button>
 
-            <button type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavSettings" type="button" onclick="openSettings()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="settings" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
             </button>
 
-            <button type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
+            <button id="mobileNavLimpar" type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="trash-2" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#fca5a5;">Limpar</span>
             </button>
 
+        </div>
+        <!-- Linha de logout/logout mobile -->
+        <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid #334155;padding:10px 8px;gap:10px;">
+            <span id="mobileUserLabel" style="font-size:11px;font-weight:600;color:#94a3b8;flex:1;padding-left:12px;"></span>
+            <button type="button" onclick="doLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;cursor:pointer;color:#fca5a5;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+                <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sair
+            </button>
         </div>
         <div style="height:env(safe-area-inset-bottom,0px);background:#1e293b;"></div>
     </nav>
@@ -835,6 +900,7 @@
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
 
+        let currentUser = null; // { nome, perfil }
         let currentReportId = "------";
         let currentPdfMode = 'interno';
         let currentPdfLayout = 'print';
@@ -953,119 +1019,58 @@
             cancelBtn.onclick = () => { close(); if (onCancel)  onCancel();  };
         }
 
-        // ===== CHECKLIST DE SALVAMENTO =====
+        // ===== SALVAR NA NUVEM (com verificação automática de duplicata) =====
 
-        function saveToCloud() {
-            openSaveChecklist();
-        }
-
-        function openSaveChecklist() {
-            // Resetar checkboxes
-            for (let i = 1; i <= 6; i++) {
-                const chk = document.getElementById('chk-' + i);
-                if (chk) chk.checked = false;
+        async function saveToCloud() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
+                return;
             }
-            updateSaveChecklistBtn();
 
-            // Preencher detalhes dinâmicos
-            const codigo = document.getElementById('embarqueCodigo').value.trim();
-            const data = document.getElementById('reportDate').value;
-            const nfes = nfeList.filter(n => n.trim()).join(', ') || '—';
-            const produto = (document.getElementById('productSelect').value === 'Outro'
-                ? document.getElementById('customProductName').value
-                : document.getElementById('productSelect').value) || '—';
-            const cliente = document.getElementById('varietyInput').value.trim() || '—';
-            const motorista = document.getElementById('driverName').value.trim() || '—';
-            const placa = document.getElementById('vehiclePlate').value.trim() || '—';
-            const qtdPallets = getPalletCount() || '—';
-
-            const dataFmt = data ? new Date(data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-            document.getElementById('chk-1-detail').textContent = `Código: ${codigo || '—'} · Data: ${dataFmt}`;
-            document.getElementById('chk-2-detail').textContent = `NFe(s): ${nfes}`;
-            document.getElementById('chk-3-detail').textContent = `Produto: ${produto} · Cliente: ${cliente}`;
-            document.getElementById('chk-4-detail').textContent = `Motorista: ${motorista} · Placa: ${placa} · Pallets: ${qtdPallets}`;
-            document.getElementById('chk-5-detail').textContent = `Termostato: ${document.getElementById('thermostatMode').value} ${document.getElementById('thermostatValue').value || '—'}°C`;
-
-            // Modo edição: adaptar último item e ocultar alerta de duplicata
-            const chk6Label = document.querySelector('label[id="chk-label-6"] p.text-sm');
-            const chk6Detail = document.querySelector('label[id="chk-label-6"] p.text-xs');
-            const dupWarn = document.getElementById('duplicateWarning');
+            // Modo edição manual: salva direto como update
             if (editModeTimestamp) {
-                if (chk6Label) chk6Label.textContent = 'Confirmo que as correções estão certas';
-                if (chk6Detail) chk6Detail.textContent = 'Estou atualizando o registro existente — o original será substituído.';
-                dupWarn.classList.add('hidden');
-            } else {
-                if (chk6Label) chk6Label.textContent = 'Este embarque ainda NÃO foi salvo';
-                if (chk6Detail) chk6Detail.textContent = 'Confirmo que não estou reenviando um registro já gravado.';
-                // Verificar duplicata no histórico local
-                const savedKeys = JSON.parse(localStorage.getItem('spg_saved_keys') || '[]');
-                const key = `${codigo}_${data}`;
-                if (codigo && data && savedKeys.includes(key)) {
-                    document.getElementById('duplicateWarningText').textContent =
-                        `O embarque ${codigo} do dia ${dataFmt} já foi salvo anteriormente. Verifique antes de continuar.`;
-                    dupWarn.classList.remove('hidden');
-                } else {
-                    dupWarn.classList.add('hidden');
-                }
+                await _doSaveToCloud();
+                return;
             }
 
-            // Ajustar título e botão conforme modo
-            const modalTitle = document.querySelector('#saveChecklistModal h3');
-            const confirmBtn = document.getElementById('confirmSaveBtn');
-            if (editModeTimestamp) {
-                if (modalTitle) modalTitle.textContent = 'Verificação antes de atualizar';
-                if (confirmBtn) confirmBtn.textContent = 'Atualizar Registro';
-            } else {
-                if (modalTitle) modalTitle.textContent = 'Verificação antes de salvar';
-                if (confirmBtn) confirmBtn.textContent = 'Salvar na Nuvem';
-            }
-
-            document.getElementById('saveChecklistModal').classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        function closeSaveChecklist() {
-            document.getElementById('saveChecklistModal').classList.add('hidden');
-        }
-
-        function updateSaveChecklistBtn() {
-            let checked = 0;
-            for (let i = 1; i <= 6; i++) {
-                if (document.getElementById('chk-' + i)?.checked) checked++;
-            }
-            const btn = document.getElementById('confirmSaveBtn');
-            const bar = document.getElementById('chk-progress-bar');
-            const count = document.getElementById('chk-count');
-            const pct = Math.round((checked / 6) * 100);
-            if (bar) bar.style.width = pct + '%';
-            if (count) count.textContent = checked + ' / 6';
-            if (btn) {
-                if (checked === 6) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-40', 'cursor-not-allowed');
-                } else {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-40', 'cursor-not-allowed');
-                }
-            }
-        }
-
-        async function executeSaveToCloud() {
-            closeSaveChecklist();
-
-            // Registrar chave no histórico local para detectar duplicatas futuras
             const codigo = document.getElementById('embarqueCodigo').value.trim();
-            const data = document.getElementById('reportDate').value;
-            if (codigo && data) {
-                const savedKeys = JSON.parse(localStorage.getItem('spg_saved_keys') || '[]');
-                const key = `${codigo}_${data}`;
-                if (!savedKeys.includes(key)) {
-                    savedKeys.push(key);
-                    localStorage.setItem('spg_saved_keys', JSON.stringify(savedKeys));
-                }
+            const currentNfes = nfeList.filter(n => n.trim());
+
+            // Se não tem código nem NFe, salva como novo direto
+            if (!codigo && !currentNfes.length) {
+                await _doSaveToCloud();
+                return;
             }
 
-            await _doSaveToCloud();
+            // Garante historyRows carregado para checar duplicata
+            let rows = historyRows;
+            if (!rows.length) {
+                try {
+                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                    const result = await resp.json();
+                    if (result.success) { rows = result.rows || []; historyRows = rows; }
+                } catch(e) {}
+            }
+
+            // Procura registro com mesmo código de embarque E mesma NFe
+            const match = rows.find(row => {
+                const rowCodigo = String(row.Codigo || '').trim();
+                const rowNfes   = String(row.NFes   || '').split(',').map(n => n.trim()).filter(Boolean);
+                const codigoOk  = codigo && rowCodigo === codigo;
+                const nfeOk     = currentNfes.length && currentNfes.some(n => rowNfes.includes(n.trim()));
+                return codigoOk && nfeOk;
+            });
+
+            if (match) {
+                // Substitui o registro existente automaticamente
+                editModeTimestamp = String(match.Timestamp);
+                _editPassword = 'spg@2024';
+                await _doSaveToCloud();
+                editModeTimestamp = null;
+                _editPassword = null;
+            } else {
+                await _doSaveToCloud();
+            }
         }
 
         // ===== MOBILE TABS =====
@@ -1108,6 +1113,8 @@
                 varietyInput: document.getElementById('varietyInput').value,
                 inspectorSelect: document.getElementById('inspectorSelect').value,
                 customInspectorName: document.getElementById('customInspectorName').value,
+                shipResponsible: document.getElementById('shipResponsible').value,
+                customShipResponsible: document.getElementById('customShipResponsible').value,
                 thermostatMode: document.getElementById('thermostatMode').value,
                 thermostatValue: document.getElementById('thermostatValue').value,
                 customTempsData,
@@ -1121,7 +1128,8 @@
                 departureTime: document.getElementById('departureTime').value,
                 palletsData,
                 sensorNumber: document.getElementById('sensorNumber').value,
-                lacreNumber: document.getElementById('lacreNumber').value
+                lacreNumber: document.getElementById('lacreNumber').value,
+                statusRegistro: (currentUser && currentUser.perfil === 'embarque') ? 'pendente' : 'revisado'
             };
         }
 
@@ -1217,11 +1225,15 @@
             }
         }
 
+        let _historyTab = 'todos';
+
         async function openHistory() {
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
                 return;
             }
+            _historyTab = 'todos';
+            _updateHistoryTabUI();
             document.getElementById('historyModal').classList.remove('hidden');
             document.getElementById('historySearch').value = '';
             document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
@@ -1235,15 +1247,83 @@
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
+                _updatePendingUI();
                 renderHistoryList(historyRowsFiltered);
             } catch (err) {
                 document.getElementById('historyList').innerHTML = `<div class="text-center py-10 text-red-400 text-sm font-bold">Erro ao carregar histórico:<br>${err.message}</div>`;
             }
         }
 
+        function openHistoryPendentes() {
+            _historyTab = 'pendentes';
+            openHistory().then(() => { _historyTab = 'pendentes'; _updateHistoryTabUI(); filterHistory(document.getElementById('historySearch').value); });
+        }
+
+        function setHistoryTab(tab) {
+            _historyTab = tab;
+            _updateHistoryTabUI();
+            filterHistory(document.getElementById('historySearch').value);
+        }
+
+        function _updateHistoryTabUI() {
+            const todos = document.getElementById('tabTodos');
+            const pend  = document.getElementById('tabPendentes');
+            if (!todos || !pend) return;
+            if (_historyTab === 'pendentes') {
+                todos.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
+                pend.className  = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-white transition-all flex items-center gap-1.5';
+            } else {
+                todos.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all';
+                pend.className  = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5';
+            }
+        }
+
+        function _updatePendingUI() {
+            const pendentes = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
+            const count = pendentes.length;
+
+            // banner
+            const banner = document.getElementById('pendingBanner');
+            if (banner) {
+                if (count > 0 && currentUser && currentUser.perfil === 'master') {
+                    banner.classList.remove('hidden');
+                    document.getElementById('pendingCount').textContent = count;
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+            // badge botão histórico
+            const badge = document.getElementById('histPendingBadge');
+            if (badge) {
+                if (count > 0 && currentUser && currentUser.perfil === 'master') {
+                    badge.classList.remove('hidden');
+                    badge.textContent = count;
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+            // badge tab pendentes
+            const tabBadge = document.getElementById('tabPendentesBadge');
+            if (tabBadge) {
+                if (count > 0) { tabBadge.classList.remove('hidden'); tabBadge.textContent = count; }
+                else tabBadge.classList.add('hidden');
+            }
+        }
+
+        async function checkPendingNotifications() {
+            if (!APPS_SCRIPT_URL || !currentUser || currentUser.perfil !== 'master') return;
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                const result = await resp.json();
+                if (!result.success) return;
+                historyRows = result.rows || [];
+                _updatePendingUI();
+            } catch(e) {}
+        }
+
         function filterHistory(query) {
             const q = query.toLowerCase().trim();
-            historyRowsFiltered = q
+            let base = q
                 ? historyRows.filter(r =>
                     (r.Codigo||'').toLowerCase().includes(q) ||
                     (r.Produto||'').toLowerCase().includes(q) ||
@@ -1251,44 +1331,80 @@
                     (r.Cliente||'').toLowerCase().includes(q)
                   )
                 : [...historyRows];
+            if (_historyTab === 'pendentes') {
+                base = base.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
+            }
+            historyRowsFiltered = base;
             renderHistoryList(historyRowsFiltered);
         }
 
         function renderHistoryList(rows) {
             const container = document.getElementById('historyList');
             if (!rows.length) {
-                container.innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Nenhum registro encontrado.</div>';
+                const msg = _historyTab === 'pendentes' ? 'Nenhum embarque pendente.' : 'Nenhum registro encontrado.';
+                container.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">${msg}</div>`;
                 return;
             }
+            const isMaster = currentUser && currentUser.perfil === 'master';
             const sorted = [...rows].reverse();
             container.innerHTML = sorted.map((row, i) => {
                 const originalIdx = rows.length - 1 - i;
-                const rawDate = row.Data || '';
-                const parts = rawDate.split('-');
-                const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
+                const rawDate = row.Data ? String(row.Data) : '';
+                const dateOnly = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                const parts = dateOnly.split('-');
+                const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : dateOnly;
                 const code = row.Codigo || '—';
                 const product = row.Produto || '—';
                 const inspector = row.Responsavel || '—';
                 const client = row.Cliente || '';
+                const isPending = (row.StatusRegistro || '').toLowerCase() === 'pendente';
+                const pendingBadge = isPending
+                    ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</span>`
+                    : '';
+                const reviewBtn = (isPending && isMaster)
+                    ? `<button onclick="markReviewed(${originalIdx})" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Revisado</button>`
+                    : '';
                 return `
-                <div class="border border-slate-200 rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
+                <div class="border ${isPending ? 'border-amber-300 bg-amber-50' : 'border-slate-200'} rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="text-xs font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">${code}</span>
                                 <span class="text-xs text-slate-400">${dateDisplay}</span>
+                                ${pendingBadge}
                             </div>
                             <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
                             <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
                         </div>
                         <div class="flex flex-col gap-1.5 shrink-0">
                             <button onclick="loadHistoryReport(${originalIdx})" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all active:scale-95">Carregar</button>
+                            ${reviewBtn}
                             <button onclick="requestPasswordFor('edit', ${originalIdx})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="pencil" class="w-3 h-3"></i> Editar</button>
                             <button onclick="requestPasswordFor('delete', ${originalIdx})" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Apagar</button>
                         </div>
                     </div>
                 </div>`;
             }).join('');
+            lucide.createIcons();
+        }
+
+        async function markReviewed(originalIdx) {
+            const row = historyRowsFiltered[originalIdx];
+            if (!row || !row.Timestamp) return;
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'markReviewed', timestamp: String(row.Timestamp), password: 'spg@2024' })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error);
+                // Atualiza local
+                row.StatusRegistro = 'revisado';
+                const globalRow = historyRows.find(r => String(r.Timestamp) === String(row.Timestamp));
+                if (globalRow) globalRow.StatusRegistro = 'revisado';
+                _updatePendingUI();
+                filterHistory(document.getElementById('historySearch').value);
+            } catch(e) { alert('Erro ao marcar como revisado: ' + e.message); }
         }
 
         function loadHistoryReport(idx) {
@@ -1343,13 +1459,37 @@
 
                 const fields = {
                     Motorista: 'driverName', Placa: 'vehiclePlate',
-                    HorarioSaida: 'departureTime',
-                    Sensor: 'sensorNumber', Lacre: 'lacreNumber'
+                    Sensor: 'sensorNumber', Lacre: 'lacreNumber',
                 };
                 Object.entries(fields).forEach(([col, id]) => {
                     const el = document.getElementById(id);
                     if (el && row[col] !== undefined) el.value = row[col];
                 });
+
+                // RespEmbarque com suporte a "Outro"
+                if (row.RespEmbarque !== undefined) {
+                    const knownShip = Array.from(document.getElementById('shipResponsible').options).map(o => o.value);
+                    const respEmb = String(row.RespEmbarque || '');
+                    if (knownShip.includes(respEmb)) {
+                        document.getElementById('shipResponsible').value = respEmb;
+                        document.getElementById('customShipResponsibleContainer').classList.add('hidden');
+                    } else if (respEmb) {
+                        document.getElementById('shipResponsible').value = 'Outro';
+                        document.getElementById('customShipResponsibleContainer').classList.remove('hidden');
+                        document.getElementById('customShipResponsible').value = respEmb;
+                    }
+                }
+
+                // HorarioSaida pode vir como ISO timestamp do Sheets (ex: 1899-12-30T17:30:00.000Z)
+                const rawTime = row.HorarioSaida ? String(row.HorarioSaida) : '';
+                if (rawTime) {
+                    let timeValue = rawTime;
+                    if (rawTime.includes('T')) {
+                        const timePart = rawTime.split('T')[1] || '';
+                        timeValue = timePart.substring(0, 5); // extrai HH:MM
+                    }
+                    document.getElementById('departureTime').value = timeValue;
+                }
 
                 customTempsData = parse(row.Temperaturas);
                 partnersData    = parse(row.Parceiros);
@@ -1432,6 +1572,9 @@
             const inspectorSelect = document.getElementById('inspectorSelect');
             if (inspectorSelect) inspectorSelect.value = '';
             document.getElementById('customInspectorContainer')?.classList.add('hidden');
+            document.getElementById('shipResponsible').value = '';
+            document.getElementById('customShipResponsibleContainer').classList.add('hidden');
+            document.getElementById('customShipResponsible').value = '';
 
             // Containers dinâmicos
             ['nfeContainer','palletsContainer','customTempsContainer',
@@ -1635,6 +1778,8 @@
                 varietyInput: document.getElementById('varietyInput').value,
                 inspectorSelect: document.getElementById('inspectorSelect').value,
                 customInspectorName: document.getElementById('customInspectorName').value,
+                shipResponsible: document.getElementById('shipResponsible').value,
+                customShipResponsible: document.getElementById('customShipResponsible').value,
                 thermostatMode: document.getElementById('thermostatMode').value,
                 thermostatValue: document.getElementById('thermostatValue').value,
                 tempObservation: document.getElementById('tempObservation').value,
@@ -1686,6 +1831,13 @@
                         document.getElementById('customInspectorName').value = data.customInspectorName || '';
                     }
                 }
+                if (data.shipResponsible !== undefined) {
+                    document.getElementById('shipResponsible').value = data.shipResponsible || '';
+                    if (data.shipResponsible === 'Outro') {
+                        document.getElementById('customShipResponsibleContainer').classList.remove('hidden');
+                        document.getElementById('customShipResponsible').value = data.customShipResponsible || '';
+                    }
+                }
                 if (data.thermostatMode) document.getElementById('thermostatMode').value = data.thermostatMode;
                 if (data.thermostatValue !== undefined) document.getElementById('thermostatValue').value = data.thermostatValue;
                 if (data.tempObservation !== undefined) document.getElementById('tempObservation').value = data.tempObservation;
@@ -1713,6 +1865,23 @@
         document.addEventListener("DOMContentLoaded", async () => {
             applyBrandAssets();
             lucide.createIcons();
+
+            // Verifica sessão existente
+            try {
+                const session = sessionStorage.getItem('spg_session');
+                if (session) {
+                    currentUser = JSON.parse(session);
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    await initApp();
+                    return;
+                }
+            } catch(e) {}
+
+            // Mostra tela de login
+            lucide.createIcons();
+        });
+
+        async function initApp() {
             currentReportId = generateReportId();
 
             let loaded = false;
@@ -1734,7 +1903,199 @@
             renderAdditionalInfo();
             renderPhotos();
             updatePreview();
-        });
+            applyProfileRestrictions();
+            checkPendingNotifications();
+        }
+
+        // ===== LOGIN / LOGOUT =====
+        function toggleLoginPassword() {
+            const input = document.getElementById('loginSenha');
+            const icon = document.getElementById('loginEyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function doLogin() {
+            const nome = document.getElementById('loginNome').value.trim();
+            const senha = document.getElementById('loginSenha').value;
+            const errEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            if (!nome || !senha) {
+                errEl.textContent = 'Preencha usuário e senha.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', nome, senha })
+                });
+                const result = await resp.json();
+
+                if (result.success) {
+                    currentUser = result.user;
+                    sessionStorage.setItem('spg_session', JSON.stringify(currentUser));
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    await initApp();
+                } else {
+                    errEl.textContent = result.error || 'Usuário ou senha incorretos.';
+                    errEl.classList.remove('hidden');
+                }
+            } catch (e) {
+                errEl.textContent = 'Erro de conexão. Verifique a URL do Apps Script.';
+                errEl.classList.remove('hidden');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Entrar';
+        }
+
+        function doLogout() {
+            sessionStorage.removeItem('spg_session');
+            currentUser = null;
+            document.getElementById('loginNome').value = '';
+            document.getElementById('loginSenha').value = '';
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('loginOverlay').style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        // ===== PERFIL / RESTRIÇÕES =====
+        function applyProfileRestrictions() {
+            if (!currentUser) return;
+            const isEmbarque = currentUser.perfil === 'embarque';
+            const masterOnly = [
+                'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
+                'section-veiculo', 'section-parceiros', 'section-descartes', 'section-adicional', 'section-fotos',
+                'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
+                'mobileNavHistorico', 'mobileNavAnalisar', 'mobileNavRow2'
+            ];
+            masterOnly.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = isEmbarque ? 'none' : '';
+            });
+
+            // badge usuário desktop
+            const badge = document.getElementById('userBadge');
+            if (badge) {
+                badge.style.display = 'flex';
+                badge.innerHTML = `
+                    <span style="font-size:11px;font-weight:700;color:#e2e8f0;">${currentUser.nome.split(' ')[0]}</span>
+                    <span style="font-size:9px;padding:2px 7px;border-radius:999px;font-weight:800;background:${isEmbarque ? '#0ea5e9' : '#10b981'};color:#fff;text-transform:uppercase;letter-spacing:0.05em;">${isEmbarque ? 'Embarque' : 'Master'}</span>
+                `;
+            }
+            // badge mobile
+            const mobileLabel = document.getElementById('mobileUserLabel');
+            if (mobileLabel) {
+                mobileLabel.textContent = `${currentUser.nome.split(' ')[0]} · ${isEmbarque ? 'Embarque' : 'Master'}`;
+            }
+        }
+
+        // ===== GERENCIAR USUÁRIOS =====
+        async function openUsersModal() {
+            document.getElementById('usersModal').classList.remove('hidden');
+            lucide.createIcons();
+            await loadUsersList();
+        }
+
+        async function loadUsersList() {
+            const list = document.getElementById('usersList');
+            list.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">Carregando...</div>';
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'listUsers', masterPassword: 'spg@2024' })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error);
+
+                if (!result.users.length) {
+                    list.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">Nenhum usuário encontrado.</div>';
+                    return;
+                }
+
+                list.innerHTML = result.users.map((u, i) => `
+                    <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold text-slate-800 truncate">${u.nome}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${u.perfil === 'master' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}">${u.perfil === 'master' ? 'Master' : 'Embarque'}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${u.status === 'ativado' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}">${u.status === 'ativado' ? 'Ativado' : 'Desativado'}</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleUserStatus(${i}, '${u.status === 'ativado' ? 'desativado' : 'ativado'}')" title="${u.status === 'ativado' ? 'Desativar' : 'Ativar'}"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
+                            <i data-lucide="${u.status === 'ativado' ? 'toggle-right' : 'toggle-left'}" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteUser(${i})" title="Excluir usuário"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch(e) {
+                list.innerHTML = `<div class="text-center py-4 text-rose-500 text-xs">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function addUser() {
+            const nome = document.getElementById('newUserNome').value.trim();
+            const senha = document.getElementById('newUserSenha').value.trim();
+            const perfil = document.getElementById('newUserPerfil').value;
+            const status = document.getElementById('newUserStatus').value;
+
+            if (!nome || !senha) { alert('Preencha nome e senha.'); return; }
+
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'addUser', masterPassword: 'spg@2024', user: { nome, senha, perfil, status } })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error);
+                document.getElementById('newUserNome').value = '';
+                document.getElementById('newUserSenha').value = '';
+                await loadUsersList();
+            } catch(e) { alert('Erro: ' + e.message); }
+        }
+
+        async function toggleUserStatus(rowIndex, newStatus) {
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'updateUser', masterPassword: 'spg@2024', rowIndex, field: 'Status', value: newStatus })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error);
+                await loadUsersList();
+            } catch(e) { alert('Erro: ' + e.message); }
+        }
+
+        async function deleteUser(rowIndex) {
+            if (!confirm('Excluir este usuário?')) return;
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'deleteUser', masterPassword: 'spg@2024', rowIndex })
+                });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error);
+                await loadUsersList();
+            } catch(e) { alert('Erro: ' + e.message); }
+        }
 
         // ---------- NFe ----------
         function addNfe() { nfeList.push(""); renderNfeInputs(); }
@@ -1832,13 +2193,46 @@
             if (sel === 'Outro') return document.getElementById('customInspectorName').value;
             return sel;
         }
+        function handleShipResponsibleChange() {
+            const sel = document.getElementById('shipResponsible').value;
+            const container = document.getElementById('customShipResponsibleContainer');
+            if (sel === 'Outro') {
+                container.classList.remove('hidden');
+                setTimeout(() => document.getElementById('customShipResponsible').focus(), 50);
+            } else {
+                container.classList.add('hidden');
+            }
+            updatePreview();
+        }
+        function clearShipResponsible() {
+            document.getElementById('shipResponsible').value = '';
+            document.getElementById('customShipResponsibleContainer').classList.add('hidden');
+            document.getElementById('customShipResponsible').value = '';
+            updatePreview();
+        }
+        function getShipResponsibleName() {
+            const sel = document.getElementById('shipResponsible').value;
+            if (sel === 'Outro') return document.getElementById('customShipResponsible').value;
+            return sel;
+        }
 
         // ---------- Parceiros ----------
         const UNIT_PRESETS = ['Brócolis Filetado', 'Brócolis Inteiro'];
         const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','P.Q Oásis','P.Q Parceiros','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá'];
         function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
-        function updatePartner(idx, field, value) { partnersData[idx][field] = value; updatePreview(); }
+        function updatePartner(idx, field, value) {
+            partnersData[idx][field] = value;
+            if (field === 'qty') {
+                const gIdx = _partnerGroups.findIndex(g => g.entries.some(e => e.idx === idx));
+                if (gIdx !== -1) {
+                    const total = _partnerGroups[gIdx].entries.reduce((s, {p}) => s + (parseFloat(p.qty) || 0), 0);
+                    const el = document.getElementById('partner-group-total-' + gIdx);
+                    if (el) el.textContent = total + ' cx';
+                }
+            }
+            updatePreview();
+        }
         function clearPartnerName(idx) { partnersData[idx].name = ''; partnersData[idx].nameCustom = ''; renderPartners(); updatePreview(); }
         function clearPartnerUnit(idx) { partnersData[idx].unit = UNIT_PRESETS[0]; partnersData[idx].unitCustom = ''; renderPartners(); updatePreview(); }
         function updatePartnerUnit(idx, value) {
@@ -1861,6 +2255,10 @@
         }
         let _partnerGroups = [];
         let _collapsedGroupNames = new Set();
+        let _knownGroupNames = new Set();
+        let _collapsedPallets = [];
+        let _collapsedDiscards = [];
+        let _collapsedTemps = [];
 
         function _renderPartnerEntry(idx, p) {
             const unitSel = p.unit;
@@ -1939,6 +2337,14 @@
             });
             _partnerGroups = groupOrder.map(name => ({ name, entries: groupMap[name] }));
 
+            // Novos grupos entram recolhidos por padrão
+            _partnerGroups.forEach(g => {
+                if (!_knownGroupNames.has(g.name)) {
+                    _knownGroupNames.add(g.name);
+                    _collapsedGroupNames.add(g.name);
+                }
+            });
+
             let html = '';
             _partnerGroups.forEach((g, gIdx) => {
                 const total = g.entries.reduce((s, {p}) => s + (parseFloat(p.qty) || 0), 0);
@@ -1951,7 +2357,7 @@
                             <span class="text-sm font-bold text-emerald-900">${g.name}<\/span>
                         <\/div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${total} cx<\/span>
+                            <span id="partner-group-total-${gIdx}" class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${total} cx<\/span>
                             <button type="button" onclick="event.stopPropagation(); addPartnerToGroup(${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white">
                                 <i data-lucide="plus" class="w-3 h-3"><\/i> Lote
                             <\/button>
@@ -1996,12 +2402,21 @@
             const labels = new Set(palletsData.map(pl => (pl.label || '').trim().toLowerCase()).filter(Boolean));
             return labels.size;
         }
-        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', items: [], photos: [] }); renderPallets(); updatePreview(); }
-        function removePallet(idx) { palletsData.splice(idx, 1); renderPallets(); updatePreview(); }
+        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', items: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
+        function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
+        function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
         function addPalletItem(idx) { if (!palletsData[idx].items) palletsData[idx].items = []; palletsData[idx].items.push({ product: '', productCustom: '', boxType: '', boxes: '' }); renderPallets(); }
         function removePalletItem(idx, iidx) { palletsData[idx].items.splice(iidx, 1); renderPallets(); updatePreview(); }
-        function updatePalletItem(idx, iidx, field, value) { palletsData[idx].items[iidx][field] = value; updatePreview(); }
+        function updatePalletItem(idx, iidx, field, value) {
+            palletsData[idx].items[iidx][field] = value;
+            if (field === 'boxes') {
+                const total = (palletsData[idx].items || []).reduce((s, item) => s + (parseFloat(item.boxes) || 0), 0);
+                const el = document.getElementById('pallet-total-' + idx);
+                if (el) el.textContent = total + ' cx';
+            }
+            updatePreview();
+        }
         function handlePalletPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
@@ -2021,78 +2436,90 @@
         function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
         function renderPallets() {
             const container = document.getElementById('palletsContainer');
+            while (_collapsedPallets.length < palletsData.length) _collapsedPallets.push(true);
             container.innerHTML = palletsData.map((pl, idx) => {
                 const photos = pl.photos || [];
+                const collapsed = !!_collapsedPallets[idx];
+                const totalBoxes = (pl.items||[]).reduce((s, item) => s + (parseFloat(item.boxes)||0), 0);
                 return `
-                <div class="bg-amber-50 rounded-xl p-2 border border-amber-100 space-y-2">
-                    <div class="flex gap-2 items-center">
-                        <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" class="flex-1 p-2 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
-                        <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2">
-                            <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-                            <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-16 p-1.5 text-sm outline-none bg-transparent">
+                <div class="rounded-xl border border-amber-200 overflow-hidden">
+                    <div class="flex items-center justify-between bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                            <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="flex-1 min-w-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
+                            <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 shrink-0" onclick="event.stopPropagation()">
+                                <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                                <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-14 p-1.5 text-sm outline-none bg-transparent">
+                            </div>
                         </div>
-                        <button type="button" onclick="removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        <div class="flex items-center gap-2 ml-2 shrink-0">
+                            <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">${totalBoxes} cx</span>
+                            <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
                     </div>
-                    ${(pl.items||[]).length === 0 ? `
-                    <button type="button" onclick="addPalletItem(${idx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold transition-colors">
-                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
-                    </button>` : `
-                    <div class="space-y-1.5">
-                        ${(pl.items||[]).map((item, iidx) => `
-                        <div class="flex gap-1.5 items-start">
-                            <div class="flex-1">
-                                ${item.product === 'Outro' ? `
-                                <div class="relative">
-                                    <input type="text" value="${(item.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                    <button type="button" onclick="clearPalletProduct(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
-                                    </button>
-                                </div>` : `
-                                <select onchange="handlePalletProductChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                    <option value="">Produto</option>
-                                    <option value="Brócolis" ${item.product==='Brócolis'?'selected':''}>Brócolis</option>
-                                    <option value="Couve-Flor" ${item.product==='Couve-Flor'?'selected':''}>Couve-Flor</option>
-                                    <option value="Tomatitos" ${item.product==='Tomatitos'?'selected':''}>Tomatitos</option>
-                                    <option value="Pepinitos" ${item.product==='Pepinitos'?'selected':''}>Pepinitos</option>
-                                    <option value="Outro">Outro...</option>
-                                </select>`}
-                            </div>
-                            <div class="w-28">
-                                ${item.boxType === 'Outro' ? `
-                                <div class="relative">
-                                    <input type="text" value="${(item.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                    <button type="button" onclick="clearPalletBoxType(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
-                                    </button>
-                                </div>` : `
-                                <select onchange="handlePalletBoxTypeChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                    <option value="">Tipo caixa</option>
-                                    <option value="Plástica" ${item.boxType==='Plástica'?'selected':''}>Plástica</option>
-                                    <option value="Papelão" ${item.boxType==='Papelão'?'selected':''}>Papelão</option>
-                                    <option value="Outro">Outro...</option>
-                                </select>`}
-                            </div>
-                            <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
-                            <span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx</span>
-                            <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                        </div>`).join('')}
-                        <button type="button" onclick="addPalletItem(${idx})" class="flex items-center gap-1 text-amber-500 hover:text-amber-700 text-[10px] font-bold">
+                    ${collapsed ? '' : `
+                    <div class="p-2 bg-amber-50 border-t border-amber-100 space-y-2">
+                        ${(pl.items||[]).length === 0 ? `
+                        <button type="button" onclick="addPalletItem(${idx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold transition-colors">
                             <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
-                        </button>
+                        </button>` : `
+                        <div class="space-y-1.5">
+                            ${(pl.items||[]).map((item, iidx) => `
+                            <div class="flex gap-1.5 items-start">
+                                <div class="flex-1">
+                                    ${item.product === 'Outro' ? `
+                                    <div class="relative">
+                                        <input type="text" value="${(item.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                        <button type="button" onclick="clearPalletProduct(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>` : `
+                                    <select onchange="handlePalletProductChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                        <option value="">Produto</option>
+                                        <option value="Brócolis" ${item.product==='Brócolis'?'selected':''}>Brócolis</option>
+                                        <option value="Couve-Flor" ${item.product==='Couve-Flor'?'selected':''}>Couve-Flor</option>
+                                        <option value="Tomatitos" ${item.product==='Tomatitos'?'selected':''}>Tomatitos</option>
+                                        <option value="Pepinitos" ${item.product==='Pepinitos'?'selected':''}>Pepinitos</option>
+                                        <option value="Outro">Outro...</option>
+                                    </select>`}
+                                </div>
+                                <div class="w-28">
+                                    ${item.boxType === 'Outro' ? `
+                                    <div class="relative">
+                                        <input type="text" value="${(item.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                        <button type="button" onclick="clearPalletBoxType(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>` : `
+                                    <select onchange="handlePalletBoxTypeChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                                        <option value="">Tipo caixa</option>
+                                        <option value="Plástica" ${item.boxType==='Plástica'?'selected':''}>Plástica</option>
+                                        <option value="Papelão" ${item.boxType==='Papelão'?'selected':''}>Papelão</option>
+                                        <option value="Outro">Outro...</option>
+                                    </select>`}
+                                </div>
+                                <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
+                                <span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx</span>
+                                <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                            </div>`).join('')}
+                            <button type="button" onclick="addPalletItem(${idx})" class="flex items-center gap-1 text-amber-500 hover:text-amber-700 text-[10px] font-bold">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
+                            </button>
+                        </div>`}
+                        <div class="flex flex-wrap gap-2 items-center pl-1">
+                            ${photos.map((src, pidx) => `
+                                <div class="relative group">
+                                    <img src="${src}" alt="Foto ${pidx+1}" onclick="openPhotoViewer(palletsData[${idx}].photos, ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-amber-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <button type="button" onclick="removePalletPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            `).join('')}
+                            <button type="button" onclick="openPhotoSourceModal(e => handlePalletPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 cursor-pointer transition-colors">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                <span class="text-[8px] font-bold uppercase">Foto</span>
+                            </button>
+                            ${photos.length ? `<span class="text-[10px] text-amber-500 font-semibold">${photos.length} foto(s)</span>` : ''}
+                        </div>
                     </div>`}
-                    <div class="flex flex-wrap gap-2 items-center pl-1">
-                        ${photos.map((src, pidx) => `
-                            <div class="relative group">
-                                <img src="${src}" alt="Foto ${pidx+1}" class="w-14 h-14 object-cover rounded-lg border border-amber-200">
-                                <button type="button" onclick="removePalletPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
-                            </div>
-                        `).join('')}
-                        <button type="button" onclick="openPhotoSourceModal(e => handlePalletPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 cursor-pointer transition-colors">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span class="text-[8px] font-bold uppercase">Foto</span>
-                        </button>
-                        ${photos.length ? `<span class="text-[10px] text-amber-500 font-semibold">${photos.length} foto(s)</span>` : ''}
-                    </div>
                 </div>
                 `;
             }).join('');
@@ -2102,7 +2529,7 @@
         }
 
         // ---------- Descartes ----------
-        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', reason: '', photos: [] }); renderDiscards(); }
+        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
         function updateDiscardPartnerName(idx, value) {
             discardsData[idx].partnerSel = value;
             if (value !== 'Outro') discardsData[idx].partner = value;
@@ -2110,8 +2537,16 @@
             updatePreview();
         }
         function clearDiscardPartner(idx) { discardsData[idx].partnerSel = ''; discardsData[idx].partner = ''; renderDiscards(); updatePreview(); }
-        function removeDiscard(idx) { discardsData.splice(idx, 1); renderDiscards(); updatePreview(); }
-        function updateDiscard(idx, field, value) { discardsData[idx][field] = value; updatePreview(); }
+        function removeDiscard(idx) { discardsData.splice(idx, 1); _collapsedDiscards.splice(idx, 1); renderDiscards(); updatePreview(); }
+        function toggleDiscard(idx) { _collapsedDiscards[idx] = !_collapsedDiscards[idx]; renderDiscards(); }
+        function updateDiscard(idx, field, value) {
+            discardsData[idx][field] = value;
+            if (field === 'weight') {
+                const el = document.getElementById('discard-weight-' + idx);
+                if (el) el.textContent = (value || 0) + ' kg';
+            }
+            updatePreview();
+        }
         function handleDiscardPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
@@ -2135,9 +2570,10 @@
         }
         function renderDiscards() {
             const container = document.getElementById('discardsContainer');
+            while (_collapsedDiscards.length < discardsData.length) _collapsedDiscards.push(true);
             container.innerHTML = discardsData.map((d, idx) => {
                 const photos = d.photos || [];
-                // normaliza dados antigos (texto livre → dropdown)
+                const collapsed = !!_collapsedDiscards[idx];
                 if (!d.partnerSel) {
                     if (PARTNER_PRESETS.includes(d.partner)) { d.partnerSel = d.partner; }
                     else if (d.partner) { d.partnerSel = 'Outro'; }
@@ -2146,35 +2582,42 @@
                 const pSel = d.partnerSel;
                 const pCustom = (pSel === 'Outro' ? d.partner : '').replace(/"/g, '&quot;');
                 return `
-                <div class="bg-rose-50 rounded-xl p-2 border border-rose-100 space-y-2">
-                    <div class="flex gap-2 items-center">
-                        ${pSel === 'Outro' ? `
-                        <div class="relative flex-1 min-w-0">
-                            <input type="text" value="${pCustom}" placeholder="Qual?" oninput="updateDiscard(${idx}, 'partner', this.value)" class="w-full p-2 pr-7 rounded-lg border border-rose-400 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                            <button type="button" onclick="clearDiscardPartner(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
-                        </div>` : `
-                        <select onchange="updateDiscardPartnerName(${idx}, this.value)" class="flex-1 min-w-0 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                            <option value="" ${pSel === '' ? 'selected' : ''}>Selecione</option>
-                            ${PARTNER_PRESETS.map(n => `<option value="${n}" ${pSel === n ? 'selected' : ''}>${n}</option>`).join('')}
-                            <option value="Outro">Outro...</option>
-                        </select>`}
-                        <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-20 p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                        <button type="button" onclick="removeDiscard(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <div class="rounded-xl border border-rose-200 overflow-hidden">
+                    <div class="flex items-center justify-between bg-rose-50 px-3 py-2 cursor-pointer select-none" onclick="toggleDiscard(${idx})">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-rose-600 shrink-0"></i>
+                            ${pSel === 'Outro' ? `
+                            <div class="relative flex-1 min-w-0" onclick="event.stopPropagation()">
+                                <input type="text" value="${pCustom}" placeholder="Qual?" oninput="updateDiscard(${idx}, 'partner', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-rose-400 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                                <button type="button" onclick="clearDiscardPartner(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                            </div>` : `
+                            <select onchange="updateDiscardPartnerName(${idx}, this.value)" onclick="event.stopPropagation()" class="flex-1 min-w-0 p-1.5 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                                <option value="" ${pSel === '' ? 'selected' : ''}>Selecione</option>
+                                ${PARTNER_PRESETS.map(n => `<option value="${n}" ${pSel === n ? 'selected' : ''}>${n}</option>`).join('')}
+                                <option value="Outro">Outro...</option>
+                            </select>`}
+                            <span id="discard-weight-${idx}" class="text-xs font-semibold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full shrink-0">${d.weight||0} kg</span>
+                        </div>
+                        <button type="button" onclick="event.stopPropagation(); removeDiscard(${idx})" class="px-1 text-rose-500 hover:text-rose-700 ml-2 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
-                    <input type="text" value="${d.reason}" placeholder="Motivo do descarte..." oninput="updateDiscard(${idx}, 'reason', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                    <div class="flex flex-wrap gap-2 items-center pl-1">
-                        ${photos.map((src, pidx) => `
-                            <div class="relative group">
-                                <img src="${src}" alt="Comprovante ${pidx+1}" class="w-14 h-14 object-cover rounded-lg border border-rose-200">
-                                <button type="button" onclick="removeDiscardPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
-                            </div>
-                        `).join('')}
-                        <button type="button" onclick="openPhotoSourceModal(e => handleDiscardPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-100 cursor-pointer transition-colors">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span class="text-[8px] font-bold uppercase">Foto</span>
-                        </button>
-                        ${photos.length ? `<span class="text-[10px] text-rose-400 font-semibold">${photos.length} comprovante(s)</span>` : ''}
-                    </div>
+                    ${collapsed ? '' : `
+                    <div class="p-2 bg-rose-50 border-t border-rose-100 space-y-2">
+                        <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                        <input type="text" value="${d.reason}" placeholder="Motivo do descarte..." oninput="updateDiscard(${idx}, 'reason', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                        <div class="flex flex-wrap gap-2 items-center pl-1">
+                            ${photos.map((src, pidx) => `
+                                <div class="relative group">
+                                    <img src="${src}" alt="Comprovante ${pidx+1}" onclick="openPhotoViewer(discardsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-rose-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <button type="button" onclick="removeDiscardPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            `).join('')}
+                            <button type="button" onclick="openPhotoSourceModal(e => handleDiscardPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-rose-300 text-rose-500 hover:bg-rose-100 cursor-pointer transition-colors">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                <span class="text-[8px] font-bold uppercase">Foto</span>
+                            </button>
+                            ${photos.length ? `<span class="text-[10px] text-rose-400 font-semibold">${photos.length} comprovante(s)</span>` : ''}
+                        </div>
+                    </div>`}
                 </div>
             `}).join('');
             lucide.createIcons();
@@ -2195,12 +2638,17 @@
         }
 
         // ---------- Temperaturas Personalizadas ----------
-        function addCustomTemp() { customTempsData.push({ preset: '', labelCustom: '', value: '', photos: [] }); renderCustomTemps(); }
-        function removeCustomTemp(idx) { customTempsData.splice(idx, 1); renderCustomTemps(); updatePreview(); }
+        function addCustomTemp() { customTempsData.push({ preset: '', labelCustom: '', value: '', photos: [] }); _collapsedTemps.push(true); renderCustomTemps(); }
+        function removeCustomTemp(idx) { customTempsData.splice(idx, 1); _collapsedTemps.splice(idx, 1); renderCustomTemps(); updatePreview(); }
+        function toggleCustomTemp(idx) { _collapsedTemps[idx] = !_collapsedTemps[idx]; renderCustomTemps(); }
         function clearCustomTempPreset(idx) { customTempsData[idx].preset = ''; customTempsData[idx].labelCustom = ''; renderCustomTemps(); updatePreview(); }
         function updateCustomTemp(idx, field, value) {
             customTempsData[idx][field] = value;
             if (field === 'preset') { customTempsData[idx].labelCustom = ''; renderCustomTemps(); }
+            if (field === 'value') {
+                const el = document.getElementById('temp-value-' + idx);
+                if (el) el.textContent = (value !== '' ? value + ' °C' : '—');
+            }
             updatePreview();
         }
         function handleTempPhotoUpload(idx, event) {
@@ -2227,38 +2675,55 @@
         function renderCustomTemps() {
             const container = document.getElementById('customTempsContainer');
             if (customTempsData.length === 0) { container.innerHTML = ''; return; }
+            while (_collapsedTemps.length < customTempsData.length) _collapsedTemps.push(true);
             const TEMP_LABELS = ['Interna do Baú (ADC)','Polpa Brócolis (CF)','Interna Baú - (AOC)','Polpa Brócolis (AOC)','Florete (AOC)'];
             container.innerHTML = `<div class="space-y-2">${
-                customTempsData.map((t, idx) => `
-                <div class="flex flex-col gap-1.5 bg-orange-50 rounded-xl p-2 border border-orange-100">
-                    <div class="flex gap-2 items-center">
-                        ${t.preset === 'outro' ? `
-                        <div class="relative flex-1">
-                            <input type="text" value="${t.labelCustom}" placeholder="Qual?" oninput="updateCustomTemp(${idx}, 'labelCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-orange-400 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
-                            <button type="button" onclick="clearCustomTempPreset(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
-                        </div>` : `
-                        <select onchange="updateCustomTemp(${idx}, 'preset', this.value)" class="flex-1 p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
-                            <option value="">Selecione o local</option>
-                            ${TEMP_LABELS.map(l => `<option value="${l}" ${t.preset === l ? 'selected' : ''}>${l}</option>`).join('')}
-                            <option value="outro">Outro...</option>
-                        </select>`}
-                        <input type="number" step="0.1" value="${t.value}" placeholder="°C" oninput="updateCustomTemp(${idx}, 'value', this.value)" class="w-[28%] p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
-                        <button type="button" onclick="removeCustomTemp(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
-                    </div>
-                    <div class="flex flex-wrap gap-2 items-center pl-1">
-                        ${(t.photos || []).map((src, pidx) => `
-                            <div class="relative">
-                                <img src="${src}" alt="Foto temp ${pidx+1}" class="w-14 h-14 object-cover rounded-lg border border-orange-200">
-                                <button type="button" onclick="removeTempPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
-                            </div>
-                        `).join('')}
-                        <button type="button" onclick="openPhotoSourceModal(e => handleTempPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-orange-300 text-orange-500 hover:bg-orange-100 cursor-pointer transition-colors">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
-                            <span class="text-[8px] font-bold uppercase">Foto</span>
-                        </button>
-                        ${(t.photos || []).length ? `<span class="text-[10px] text-orange-400 font-semibold">${(t.photos || []).length} foto(s)</span>` : ''}
-                    </div>
-                </div>`).join('')
+                customTempsData.map((t, idx) => {
+                    const collapsed = !!_collapsedTemps[idx];
+                    const label = t.preset === 'outro' ? (t.labelCustom || '—') : (t.preset || '—');
+                    return `
+                <div class="rounded-xl border border-orange-200 overflow-hidden">
+                    <div class="flex items-center justify-between bg-orange-50 px-3 py-2 cursor-pointer select-none" onclick="toggleCustomTemp(${idx})">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-orange-600 shrink-0"></i>
+                            <span class="text-sm font-bold text-orange-900 truncate">${label}<\/span>
+                        <\/div>
+                        <div class="flex items-center gap-2 ml-2 shrink-0">
+                            <span id="temp-value-${idx}" class="text-xs font-semibold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">${t.value !== '' && t.value != null ? t.value + ' °C' : '—'}<\/span>
+                            <button type="button" onclick="event.stopPropagation(); removeCustomTemp(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button>
+                        <\/div>
+                    <\/div>
+                    ${collapsed ? '' : `
+                    <div class="p-2 bg-orange-50 border-t border-orange-100 space-y-2">
+                        <div class="flex gap-2 items-center">
+                            ${t.preset === 'outro' ? `
+                            <div class="relative flex-1">
+                                <input type="text" value="${t.labelCustom}" placeholder="Qual?" oninput="updateCustomTemp(${idx}, 'labelCustom', this.value)" class="w-full p-2 pr-7 rounded-lg border border-orange-400 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
+                                <button type="button" onclick="clearCustomTempPreset(${idx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                            </div>` : `
+                            <select onchange="updateCustomTemp(${idx}, 'preset', this.value)" class="flex-1 p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
+                                <option value="">Selecione o local</option>
+                                ${TEMP_LABELS.map(l => `<option value="${l}" ${t.preset === l ? 'selected' : ''}>${l}</option>`).join('')}
+                                <option value="outro">Outro...</option>
+                            </select>`}
+                            <input type="number" step="0.1" value="${t.value}" placeholder="°C" oninput="updateCustomTemp(${idx}, 'value', this.value)" class="w-[28%] p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center pl-1">
+                            ${(t.photos || []).map((src, pidx) => `
+                                <div class="relative">
+                                    <img src="${src}" alt="Foto temp ${pidx+1}" onclick="openPhotoViewer(customTempsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-orange-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <button type="button" onclick="removeTempPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            `).join('')}
+                            <button type="button" onclick="openPhotoSourceModal(e => handleTempPhotoUpload(${idx}, e))" class="w-14 h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-dashed border-orange-300 text-orange-500 hover:bg-orange-100 cursor-pointer transition-colors">
+                                <i data-lucide="camera" class="w-4 h-4"></i>
+                                <span class="text-[8px] font-bold uppercase">Foto</span>
+                            </button>
+                            ${(t.photos || []).length ? `<span class="text-[10px] text-orange-400 font-semibold">${(t.photos || []).length} foto(s)</span>` : ''}
+                        </div>
+                    </div>`}
+                </div>`;
+                }).join('')
             }</div>`;
             lucide.createIcons();
         }
@@ -2294,6 +2759,27 @@
             photosData[idx].caption = value;
             updatePreview();
         }
+        // ---------- Lightbox ----------
+        let _viewerPhotos = [], _viewerIdx = 0;
+        function openPhotoViewer(photos, idx) {
+            _viewerPhotos = Array.isArray(photos) ? photos : [photos];
+            _viewerIdx = idx || 0;
+            _updateViewer();
+            document.getElementById('photoViewerModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+        function _updateViewer() {
+            document.getElementById('viewerImg').src = _viewerPhotos[_viewerIdx];
+            const counter = document.getElementById('viewerCounter');
+            counter.textContent = (_viewerIdx + 1) + ' / ' + _viewerPhotos.length;
+            counter.style.display = _viewerPhotos.length > 1 ? '' : 'none';
+            document.getElementById('viewerPrev').style.display = _viewerPhotos.length > 1 ? '' : 'none';
+            document.getElementById('viewerNext').style.display = _viewerPhotos.length > 1 ? '' : 'none';
+        }
+        function viewerPrev() { _viewerIdx = (_viewerIdx - 1 + _viewerPhotos.length) % _viewerPhotos.length; _updateViewer(); }
+        function viewerNext() { _viewerIdx = (_viewerIdx + 1) % _viewerPhotos.length; _updateViewer(); }
+        function closePhotoViewer() { document.getElementById('photoViewerModal').classList.add('hidden'); _viewerPhotos = []; }
+
         function renderPhotos() {
             const container = document.getElementById('photosContainer');
             const hint = document.getElementById('photosHint');
@@ -2305,7 +2791,7 @@
             hint.classList.add('hidden');
             container.innerHTML = photosData.map((p, idx) => `
                 <div class="flex gap-2 items-start bg-teal-50 rounded-xl p-2 border border-teal-100">
-                    <img src="${p.dataUrl}" alt="Foto ${idx+1}" class="w-16 h-16 object-cover rounded-lg border border-teal-200 shrink-0">
+                    <img src="${p.dataUrl}" alt="Foto ${idx+1}" onclick="openPhotoViewer(photosData.map(p=>p.dataUrl), ${idx})" class="w-16 h-16 object-cover rounded-lg border border-teal-200 shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
                     <div class="flex-1 min-w-0">
                         <input type="text" value="${p.caption.replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updatePhotoCaption(${idx}, this.value)" class="w-full p-2 rounded-lg border border-teal-200 text-sm bg-white focus:ring-2 focus:ring-teal-400 outline-none">
                         <span class="text-[10px] text-slate-400 ml-1">Foto ${idx+1}</span>
@@ -2378,6 +2864,7 @@
             const product = (getProductName() || '---').toUpperCase();
             const client = document.getElementById('varietyInput').value || '---';
             const inspector = getInspectorName() || '---';
+            const shipResponsible = getShipResponsibleName() || '---';
             const driverName = document.getElementById('driverName').value || '---';
             const vehiclePlate = (document.getElementById('vehiclePlate').value || '---').toUpperCase();
             const departureTime = document.getElementById('departureTime').value || '---';
@@ -2438,8 +2925,8 @@
 
             <!-- 1. DADOS DO EMBARQUE -->
             ${rpSH(rn(),'Dados do Embarque')}
-            ${rpTable(`<tr>${rpTH('Cód. Embarque',80)}${rpTH('NFe')}${rpTH('Data',90)}${rpTH('Produto')}${rpTH('Cliente')}${rpTH('Responsável')}</tr>
-            <tr>${rpTD(codigo,'font-weight:700')}${rpTD(nfeJoined)}${rpTD(displayDate)}${rpTD(product,'font-weight:700')}${rpTD(client)}${rpTD(inspector)}</tr>`)}
+            ${rpTable(`<tr>${rpTH('Cód. Embarque',80)}${rpTH('NFe')}${rpTH('Data',90)}${rpTH('Produto')}${rpTH('Cliente')}${rpTH('Responsável Dados')}${rpTH('Responsável Embarque')}</tr>
+            <tr>${rpTD(codigo,'font-weight:700')}${rpTD(nfeJoined)}${rpTD(displayDate)}${rpTD(product,'font-weight:700')}${rpTD(client)}${rpTD(inspector)}${rpTD(shipResponsible)}</tr>`)}
 
             <!-- 2. VEÍCULO / LOGÍSTICA -->
             ${rpSH(rn(),'Veículo / Logística')}
@@ -2448,17 +2935,28 @@
 
             <!-- 3. PALLETS -->
             ${rpSH(rn(),'Pallets')}
-            ${rpTable(`<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}</tr>
-            ${validPallets.length ? validPallets.map((pl,i)=>{
-                const bg = i%2===0?'':'background:#fffbeb;';
-                const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
-                const validItems = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
-                const boxesHtml = validItems.length
-                    ? validItems.map(it => { const prodLabel = it.product === 'Outro' ? (it.productCustom || 'Outro') : it.product; const boxLabel = it.boxType === 'Outro' ? (it.boxTypeCustom || 'Outro') : it.boxType; const extras = [prodLabel, boxLabel].filter(Boolean).join(' · '); return `<span style="display:block;">${it.boxes} cx${extras ? ' <span style="color:#92400e;font-weight:600;">('+extras+')</span>' : ''}</span>`; }).join('')
-                    : (pl.boxes ? pl.boxes+' cx' : '—');
-                return `<tr style="${bg}">${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}</tr>`;
-            }).join('') : `<tr><td colspan="3" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum pallet registrado.</td></tr>`}
-            ${validPallets.length?`<tr style="background:#fef3c7;">${rpTH('TOTAL')}${rpTD(palletQty+' pallet(s)','font-weight:900;text-align:center;')}${rpTD('')}</tr>`:''}`)}
+            ${rpTable((() => {
+                const palletCell = (pl, i) => {
+                    if (!pl) return `${rpTD('','','')}${rpTD('','','')}${rpTD('','','')}`;
+                    const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
+                    const validItems = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
+                    const boxesHtml = validItems.length
+                        ? validItems.map(it => { const prodLabel = it.product==='Outro'?(it.productCustom||'Outro'):it.product; const boxLabel = it.boxType==='Outro'?(it.boxTypeCustom||'Outro'):it.boxType; const extras=[prodLabel,boxLabel].filter(Boolean).join(' · '); return `<span style="display:block;">${it.boxes} cx${extras?' <span style="color:#92400e;font-weight:600;">('+extras+')</span>':''}</span>`; }).join('')
+                        : (pl.boxes ? pl.boxes+' cx' : '—');
+                    return `${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}`;
+                };
+                let rows = `<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}</tr>`;
+                if (!validPallets.length) {
+                    rows += `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum pallet registrado.</td></tr>`;
+                } else {
+                    for (let i = 0; i < validPallets.length; i += 2) {
+                        const bg = Math.floor(i/2)%2===0?'':'background:#fffbeb;';
+                        rows += `<tr style="${bg}">${palletCell(validPallets[i])}${palletCell(validPallets[i+1]||null)}</tr>`;
+                    }
+                    rows += `<tr style="background:#fef3c7;"><td colspan="2" style="${S}padding:5px 8px;font-weight:900;font-size:10px;text-transform:uppercase;">TOTAL</td>${rpTD(palletQty+' pallet(s)','font-weight:900;text-align:center;')}<td colspan="3" style="${S}"></td></tr>`;
+                }
+                return rows;
+            })())}
 
             <!-- 4. RESUMO (só no PDF interno) -->
             ${showInternalSections ? rpSH(rn(),'Resumo do Embarque') + rpTable('<tr>'+rpTH('Total Caixas/Unid.')+rpTH('Parceiros')+rpTH('Total Descarte')+rpTH('Maior Envio')+rpTH('Maior Descarte')+'</tr><tr>'+rpTD(totalQty,'font-weight:900;font-size:13px;')+rpTD(validPartners.length,'font-size:13px;font-weight:700;')+rpTD(totalDiscard+' kg','font-weight:900;font-size:13px;color:#b91c1c;')+rpTD(maxPartner?getPartnerName(maxPartner):'—')+rpTD(maxDiscard?maxDiscard.partner+' ('+maxDiscard.total+' kg)':'—')+'</tr>') : ''}
@@ -2519,10 +3017,10 @@
                 <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 12px;background:#fbfdfd;">
                     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
                         ${preview.map((p,i)=>`<div style="page-break-inside:avoid;text-align:center;">
-                            <img src="${p.dataUrl}" style="width:160px;height:160px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
-                            <div style="font-size:9px;color:#445;margin-top:3px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
+                            <img src="${p.dataUrl}" style="width:340px;height:340px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
+                            <div style="font-size:13px;color:#445;margin-top:4px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
                         </div>`).join('')}
-                        ${photosData.length > 5 ? `<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:4px;">
+                        ${photosData.length > 5 ? `<div style="width:340px;height:340px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:4px;">
                             <span style="font-size:22px;font-weight:900;color:#64748b;">+${photosData.length - 5}</span>
                             <span style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">em anexo</span>
                         </div>` : ''}
@@ -2544,8 +3042,8 @@
                 const hasAnnex = discardsWithPhotos.length || tempsWithPhotos.length || palletsWithPhotos.length || photosData.length;
                 if (!hasAnnex) return '';
 
-                const PER_ROW = 5;
-                const PHOTO_SIZE = '140px';
+                const PER_ROW = 2;
+                const PHOTO_SIZE = '290px';
                 const photoChunks = (arr) => {
                     const chunks = [];
                     for (let i = 0; i < arr.length; i += PER_ROW) chunks.push(arr.slice(i, i + PER_ROW));
@@ -2556,7 +3054,7 @@
                         `<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;">
                             ${chunk.map((src, i) => `<div style="text-align:center;">
                                 <img src="${src}" style="width:${PHOTO_SIZE};height:${PHOTO_SIZE};object-fit:cover;border:1px solid ${border};border-radius:4px;display:block;">
-                                ${captionFn ? `<div style="font-size:8px;color:#555;margin-top:2px;width:${PHOTO_SIZE};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
+                                ${captionFn ? `<div style="font-size:12px;color:#555;margin-top:3px;width:${PHOTO_SIZE};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
                             </div>`).join('')}
                         </div>`
                     ).join('');
@@ -2799,7 +3297,8 @@
             const nfeJoined   = joinList(nfeList);
             const product     = (getProductName() || '---').toUpperCase();
             const client      = document.getElementById('varietyInput').value || '---';
-            const inspector   = getInspectorName() || '---';
+            const inspector        = getInspectorName() || '---';
+            const shipResponsible  = document.getElementById('shipResponsible').value || '---';
             const driverName  = document.getElementById('driverName').value || '---';
             const plate       = (document.getElementById('vehiclePlate').value || '---').toUpperCase();
             const depTime     = document.getElementById('departureTime').value || '---';
@@ -2820,24 +3319,31 @@
             // 1. Dados do Embarque
             sec('Dados do Embarque');
             doc.autoTable(tbl({ startY: y,
-                head: [['Cód. Embarque','NFe','Data','Produto','Cliente','Responsável']],
-                body: [[codigo, nfeJoined, displayDate, product, client, inspector]],
+                head: [['Cód. Embarque','NFe','Data','Produto','Cliente','Responsável Dados','Responsável Embarque']],
+                body: [[codigo, nfeJoined, displayDate, product, client, inspector, shipResponsible]],
                 columnStyles: { 0:{cellWidth:25}, 2:{cellWidth:22}, 3:{fontStyle:'bold'} },
             }));
             y = doc.lastAutoTable.finalY;
 
             // 2. Veículo / Logística
             y += 2; sec('Veículo / Logística');
+            const _isEmail = currentPdfMode === 'email';
             doc.autoTable(tbl({ startY: y,
-                head: [['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre']],
-                body: [[driverName, plate, depTime, sensor, lacre]],
-                columnStyles: { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'} },
+                head: [_isEmail
+                    ? ['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre','Total Cx/Unid.']
+                    : ['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre']],
+                body: [_isEmail
+                    ? [driverName, plate, depTime, sensor, lacre, totalQty ? totalQty+' cx' : '---']
+                    : [driverName, plate, depTime, sensor, lacre]],
+                columnStyles: _isEmail
+                    ? { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'}, 5:{fontStyle:'bold'} }
+                    : { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'} },
             }));
             y = doc.lastAutoTable.finalY;
 
             // 3. Pallets
             y += 2; sec('Pallets');
-            const palletRows = validPallets.map(pl => {
+            const palletData = validPallets.map(pl => {
                 const items = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
                 const temp  = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
                 const boxes = items.length
@@ -2849,30 +3355,44 @@
                     : '—';
                 return [pl.label, temp, boxes];
             });
-            if (palletRows.length) palletRows.push([
-                {content:'TOTAL',styles:{fontStyle:'bold'}},
-                {content:palletQty+' pallet(s)',styles:{fontStyle:'bold',halign:'center',fillColor:[254,243,199]}},
-                {content:'',styles:{fillColor:[254,243,199]}},
+            const palletRows = [];
+            for (let i = 0; i < palletData.length; i += 2) {
+                const l = palletData[i];
+                const r = palletData[i+1] || ['', '', ''];
+                palletRows.push([...l, ...r]);
+            }
+            if (palletData.length) palletRows.push([
+                {content:'TOTAL', colSpan:2, styles:{fontStyle:'bold'}},
+                {content:palletQty+' pallet(s)', styles:{fontStyle:'bold',halign:'center',fillColor:[254,243,199]}},
+                {content:'', colSpan:3, styles:{fillColor:[254,243,199]}},
             ]);
             doc.autoTable(tbl({ startY: y,
-                head: [['Pallet','Temperatura','Qtd. Caixas']],
-                body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','']],
-                columnStyles: { 0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber} },
+                head: [['Pallet','Temperatura','Qtd. Caixas','Pallet','Temperatura','Qtd. Caixas']],
+                body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','','','','']],
+                columnStyles: {
+                    0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber},
+                    3:{fontStyle:'bold'}, 4:{halign:'center',fontStyle:'bold',textColor:C.amber},
+                },
             }));
             y = doc.lastAutoTable.finalY;
 
             // 4. Resumo
             y += 2; sec('Resumo do Embarque');
             const maxD = validDiscards.length ? validDiscards.reduce((mx,d) => parseFloat(d.weight)>parseFloat(mx.weight)?d:mx, validDiscards[0]) : null;
+            const isEmailMode = currentPdfMode === 'email';
             doc.autoTable(tbl({ startY: y,
-                head: [['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
-                body: [[
-                    totalQty ? totalQty+' cx' : '---',
-                    String(validPartners.length || 0),
-                    {content:(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
-                    maxPartner ? getPartnerName(maxPartner) : '—',
-                    maxD ? (maxD.partnerSel==='Outro'?maxD.partner:maxD.partnerSel)||'—' : '—',
-                ]],
+                head: [isEmailMode
+                    ? ['Total Caixas/Unid.']
+                    : ['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
+                body: [isEmailMode
+                    ? [totalQty ? totalQty+' cx' : '---']
+                    : [
+                        totalQty ? totalQty+' cx' : '---',
+                        String(validPartners.length || 0),
+                        {content:(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
+                        maxPartner ? getPartnerName(maxPartner) : '—',
+                        maxD ? (maxD.partnerSel==='Outro'?maxD.partner:maxD.partnerSel)||'—' : '—',
+                    ]],
             }));
             y = doc.lastAutoTable.finalY;
 
@@ -2957,8 +3477,8 @@
             }
 
             // ── ANEXO FOTOGRÁFICO ──────────────────────────────────────────────
-            const PER_ROW  = 5;
-            const PS       = 34;   // photo size mm
+            const PER_ROW  = 2;
+            const PS       = 95;   // photo size mm
             const PG       = 3;    // gap mm
             const ROW_H    = PS + PG + 2;
 
@@ -2995,8 +3515,8 @@
                     groups.forEach(({ label, photos }) => {
                         if (label) {
                             checkPage(7);
-                            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(80,80,80);
-                            doc.text(label, M, y + 3); y += 5;
+                            doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(80,80,80);
+                            doc.text(label, M, y + 4); y += 7;
                         }
                         for (let i = 0; i < photos.length; i += PER_ROW) {
                             const chunk = photos.slice(i, i + PER_ROW);
