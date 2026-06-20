@@ -539,6 +539,29 @@
         </div>
     </div>
 
+    <!-- MODAL CONFIRMAÇÃO ANTES DE SALVAR -->
+    <div id="saveConfirmModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm border border-slate-200 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-xl bg-amber-100 mb-4 border border-amber-200">
+                <i data-lucide="eye" class="w-6 h-6 text-amber-600"></i>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight mb-1">Conferiu os dados?</h3>
+            <p class="text-xs text-slate-500 mb-5">Verifique se todas as informações estão corretas antes de enviar o relatório.</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="document.getElementById('saveConfirmModal').classList.add('hidden')" class="flex flex-col items-center gap-1.5 px-4 py-3 bg-slate-50 hover:bg-slate-100 border-2 border-slate-300 text-slate-700 font-black rounded-xl text-xs transition-all active:scale-95">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    Revisar
+                    <span class="text-[9px] font-semibold text-slate-400 normal-case">Voltar e verificar</span>
+                </button>
+                <button onclick="_confirmAndSave()" class="flex flex-col items-center gap-1.5 px-4 py-3 bg-sky-50 hover:bg-sky-100 border-2 border-sky-400 text-sky-700 font-black rounded-xl text-xs transition-all active:scale-95">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                    Enviar
+                    <span class="text-[9px] font-semibold text-sky-400 normal-case">Confirmar e salvar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL STATUS DO RELATÓRIO (master) -->
     <div id="saveStatusModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm border border-slate-200 text-center">
@@ -1124,12 +1147,20 @@
                 return;
             }
 
-            // Modo edição manual: salva direto como update (sem escolha de status)
+            // Modo edição manual: salva direto sem confirmação
             if (editModeTimestamp) {
                 _setSavingState(true);
                 try { await _doSaveToCloud(); } finally { _setSavingState(false); }
                 return;
             }
+
+            // Mostrar popup de confirmação antes de salvar
+            document.getElementById('saveConfirmModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function _confirmAndSave() {
+            document.getElementById('saveConfirmModal').classList.add('hidden');
 
             // Master: perguntar o status antes de salvar
             if (currentUser && currentUser.perfil === 'master') {
@@ -1384,6 +1415,10 @@
         function closeHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
             _embarqueHistoryMode = false;
+            const tabTodos = document.getElementById('tabTodos');
+            const tabRevisados = document.getElementById('tabRevisados');
+            if (tabTodos) tabTodos.style.display = '';
+            if (tabRevisados) tabRevisados.style.display = '';
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Histórico de Embarques';
         }
@@ -1396,6 +1431,10 @@
             _embarqueHistoryMode = true;
             _historyTab = 'pendentes';
             _updateHistoryTabUI();
+            const tabTodos = document.getElementById('tabTodos');
+            const tabRevisados = document.getElementById('tabRevisados');
+            if (tabTodos) tabTodos.style.display = 'none';
+            if (tabRevisados) tabRevisados.style.display = 'none';
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Carregar Embarque';
             document.getElementById('historyModal').classList.remove('hidden');
