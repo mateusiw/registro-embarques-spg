@@ -89,7 +89,6 @@
                 margin: 0 !important;
             }
             #preview-column { width: 100% !important; }
-            #preview-scroll-hint { display: none !important; }
             #preview-scroll-wrapper { overflow: visible !important; }
             #report-card {
                 width: 100% !important;
@@ -107,7 +106,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-[140px] xl:pb-20 select-none">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-[140px] xl:pb-20 select-none" style="overflow:hidden">
 
     <!-- ===== LOGIN OVERLAY ===== -->
     <div id="loginOverlay" class="fixed inset-0 z-[300] flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#064e3b 100%);">
@@ -2140,6 +2139,7 @@
                 if (saved) {
                     currentUser = JSON.parse(saved);
                     document.getElementById('loginOverlay').style.display = 'none';
+                    document.body.style.overflow = '';
                     await initApp();
                     return;
                 }
@@ -2223,6 +2223,7 @@
                         localStorage.removeItem('spg_persistent_session');
                     }
                     document.getElementById('loginOverlay').style.display = 'none';
+                    document.body.style.overflow = '';
                     await initApp();
                 } else {
                     errEl.textContent = result.error || 'Usuário ou senha incorretos.';
@@ -2245,6 +2246,7 @@
             document.getElementById('loginSenha').value = '';
             document.getElementById('loginError').classList.add('hidden');
             document.getElementById('loginOverlay').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
             lucide.createIcons();
         }
 
