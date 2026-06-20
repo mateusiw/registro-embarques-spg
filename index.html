@@ -1147,13 +1147,6 @@
                 return;
             }
 
-            // Modo edição manual: salva direto sem confirmação
-            if (editModeTimestamp) {
-                _setSavingState(true);
-                try { await _doSaveToCloud(); } finally { _setSavingState(false); }
-                return;
-            }
-
             // Mostrar popup de confirmação antes de salvar
             document.getElementById('saveConfirmModal').classList.remove('hidden');
             lucide.createIcons();
@@ -1161,6 +1154,13 @@
 
         async function _confirmAndSave() {
             document.getElementById('saveConfirmModal').classList.add('hidden');
+
+            // Modo edição (master editando ou embarque atualizando pendente): salva como update
+            if (editModeTimestamp) {
+                _setSavingState(true);
+                try { await _doSaveToCloud(); } finally { _setSavingState(false); }
+                return;
+            }
 
             // Master: perguntar o status antes de salvar
             if (currentUser && currentUser.perfil === 'master') {
@@ -1974,8 +1974,23 @@
                     if (type === 'edit') {
                         editHistoryReport(idx, password);
                     } else if (type === 'load') {
+                        const row = historyRowsFiltered[idx];
                         closeHistoryModal();
                         loadHistoryReport(idx);
+                        if (row && row.Timestamp) {
+                            editModeTimestamp = String(row.Timestamp);
+                            _editPassword = password;
+                            const codigo = row.Codigo || '—';
+                            const rawDate = row.Data ? String(row.Data) : '';
+                            const parts = rawDate.split('-');
+                            const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
+                            const banner = document.getElementById('editModeBanner');
+                            document.getElementById('editModeBannerText').textContent =
+                                `Carregado: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será atualizado.`;
+                            banner.classList.remove('hidden');
+                            switchMobileTab('form');
+                            lucide.createIcons();
+                        }
                     } else {
                         confirmDeleteHistoryReport(idx, password);
                     }
