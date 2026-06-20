@@ -607,9 +607,9 @@
             <div class="flex items-center justify-between gap-3 p-5 border-b border-slate-200 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center"><i data-lucide="history" class="w-5 h-5"></i></div>
-                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Histórico de Embarques</h3>
+                    <h3 id="historyModalTitle" class="text-base font-black text-slate-800 uppercase tracking-tight">Histórico de Embarques</h3>
                 </div>
-                <button onclick="document.getElementById('historyModal').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                <button onclick="closeHistoryModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -879,6 +879,11 @@
             <button type="button" id="mobileNavMenuGroup" onclick="toggleMobilePopup('Menu')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="more-horizontal" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Mais</span>
+            </button>
+
+            <button type="button" id="mobileNavCarregar" onclick="openEmbarqueCarregar()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="folder-open" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Carregar</span>
             </button>
 
             <button id="mobileNavLimpar" type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
@@ -1332,6 +1337,40 @@
         }
 
         let _historyTab = 'todos';
+        let _embarqueHistoryMode = false;
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+            _embarqueHistoryMode = false;
+            const titleEl = document.getElementById('historyModalTitle');
+            if (titleEl) titleEl.textContent = 'Histórico de Embarques';
+        }
+
+        async function openEmbarqueCarregar() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
+                return;
+            }
+            _embarqueHistoryMode = true;
+            _historyTab = 'todos';
+            _updateHistoryTabUI();
+            const titleEl = document.getElementById('historyModalTitle');
+            if (titleEl) titleEl.textContent = 'Carregar Embarque';
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historySearch').value = '';
+            document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
+            lucide.createIcons();
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error || 'Erro ao carregar.');
+                historyRows = result.rows || [];
+                historyRowsFiltered = [...historyRows];
+                filterHistory('');
+            } catch(err) {
+                document.getElementById('historyList').innerHTML = `<div class="text-center py-10 text-red-400 text-sm font-bold">Erro: ${err.message}</div>`;
+            }
+        }
 
         async function openHistory() {
             if (!APPS_SCRIPT_URL) {
@@ -1501,10 +1540,14 @@
                             <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
                         </div>
                         <div class="flex flex-col gap-1.5 shrink-0">
+                            ${_embarqueHistoryMode ? `
+                            <button onclick="requestPasswordFor('load', ${originalIdx})" class="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="folder-open" class="w-3 h-3"></i> Carregar</button>
+                            ` : `
                             <button onclick="loadHistoryReport(${originalIdx})" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all active:scale-95">Carregar</button>
                             ${statusBtn}
                             <button onclick="requestPasswordFor('edit', ${originalIdx})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="pencil" class="w-3 h-3"></i> Editar</button>
                             <button onclick="requestPasswordFor('delete', ${originalIdx})" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Apagar</button>
+                            `}
                         </div>
                     </div>
                 </div>`;
@@ -1759,9 +1802,7 @@
             renderPartners();
             renderDiscards();
             renderAdditionalInfo();
-
-            const photosHint = document.getElementById('photosHint');
-            if (photosHint) photosHint.style.display = '';
+            renderPhotos();
 
             updatePreview();
         }
@@ -1778,6 +1819,9 @@
             if (type === 'edit') {
                 if (titleEl) titleEl.textContent = 'Editar registro';
                 if (subEl)   subEl.textContent   = `Informe a senha para editar o embarque ${codigo}.`;
+            } else if (type === 'load') {
+                if (titleEl) titleEl.textContent = 'Carregar embarque';
+                if (subEl)   subEl.textContent   = `Informe a senha master para carregar o embarque ${codigo}.`;
             } else {
                 if (titleEl) titleEl.textContent = 'Apagar registro';
                 if (subEl)   subEl.textContent   = `Informe a senha para apagar permanentemente o embarque ${codigo}.`;
@@ -1848,6 +1892,9 @@
                     closePasswordModal();
                     if (type === 'edit') {
                         editHistoryReport(idx, password);
+                    } else if (type === 'load') {
+                        closeHistoryModal();
+                        loadHistoryReport(idx);
                     } else {
                         confirmDeleteHistoryReport(idx, password);
                     }
@@ -2173,9 +2220,13 @@
                 if (el) el.style.display = isEmbarque ? 'none' : '';
             });
 
-            // Embarque: só Salvar + Limpar na linha do nav
+            // Botão exclusivo do embarque
+            const carregarBtn = document.getElementById('mobileNavCarregar');
+            if (carregarBtn) carregarBtn.style.display = isEmbarque ? 'flex' : 'none';
+
+            // Embarque: Salvar | Carregar | Limpar (3 colunas)
             const row1 = document.getElementById('mobileNavRow1');
-            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(2,1fr)' : 'repeat(5,1fr)';
+            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(3,1fr)' : 'repeat(5,1fr)';
 
             // badge usuário desktop
             const badge = document.getElementById('userBadge');
@@ -3680,11 +3731,12 @@
                 ...discardsWP.flatMap(d => d.photos||[]),
                 ...tempsWP.flatMap(t => t.photos||[]),
                 ...palletsWP.flatMap(pl => pl.photos||[]),
+                ...photosData.map(p => p.dataUrl||p).filter(Boolean),
             ];
             const _photoCache = await _preloadPhotos(_allPhotoSrcs);
             const _photo = src => src in _photoCache ? _photoCache[src] : src;
 
-            if (discardsWP.length || tempsWP.length || palletsWP.length) {
+            if (discardsWP.length || tempsWP.length || palletsWP.length || photosData.length) {
                 if (!isScreen) { doc.addPage(); y = M; } else { y += 8; }
                 doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...C.black);
                 doc.text('ANEXO FOTOGRÁFICO', M, y + 5);
@@ -3726,6 +3778,9 @@
                     });
                     y += 3;
                 };
+
+                if (photosData.length) drawPhotos('Fotos do Embarque', C.gMed,
+                    [{ label: '', photos: photosData.map(p => p.dataUrl||p).filter(Boolean) }]);
 
                 if (discardsWP.length) drawPhotos('Comprovantes dos Descartes', C.red,
                     discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: d.photos })));
