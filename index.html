@@ -155,7 +155,7 @@
                     <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
                     <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Gerenciar Usuários</h3>
                 </div>
-                <button onclick="document.getElementById('usersModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <button onclick="document.getElementById('usersModal').classList.add('hidden');unlockScroll();" class="text-slate-400 hover:text-slate-600 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -216,45 +216,63 @@
         </div>
 
         <!-- Botões desktop -->
-        <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-2">
-            <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-white/10 rounded-xl border border-white/20"></div>
-            <button type="button" id="navBtnLimpar" onclick="clearForm()" class="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Limpar dados do formulário">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-1.5">
+
+            <!-- Usuário -->
+            <div id="userBadge" class="hidden items-center gap-2 px-3 py-2 bg-white/10 rounded-lg border border-white/15 text-sm"></div>
+
+            <div class="w-px h-6 bg-white/15 mx-1"></div>
+
+            <!-- Ferramentas -->
+            <button type="button" id="navBtnSettings" onclick="openSettings()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Configurações">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Gerenciar usuários">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            </button>
+
+            <div class="w-px h-6 bg-white/15 mx-1"></div>
+
+            <!-- Ações principais -->
+            <button type="button" id="navBtnLimpar" onclick="clearForm()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Limpar formulário">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 <span>Limpar</span>
             </button>
-            <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-sky-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Carregar embarque existente">
-                <i data-lucide="folder-open" class="w-4 h-4"></i>
+            <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Carregar embarque">
+                <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                 <span>Carregar</span>
             </button>
-            <button type="button" id="navBtnSettings" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
-                <i data-lucide="settings" class="w-4 h-4"></i>
-            </button>
-            <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Gerenciar usuários">
-                <i data-lucide="users" class="w-4 h-4"></i>
-            </button>
-            <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 transition-all active:scale-95" title="Salvar na nuvem">
-                <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+            <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-bold shadow shadow-black/30 transition-all active:scale-95" title="Salvar na nuvem">
+                <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
                 <span>Salvar</span>
             </button>
-            <button type="button" id="navBtnHistorico" onclick="openHistory()" class="relative flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Ver histórico de embarques">
-                <i data-lucide="history" class="w-4 h-4"></i>
+            <button type="button" id="navBtnHistorico" onclick="openHistory()" class="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Histórico">
+                <i data-lucide="history" class="w-3.5 h-3.5"></i>
                 <span>Histórico</span>
-                <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-amber-400 text-slate-900 text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
+                <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-orange-400 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
             </button>
-            <button type="button" id="navBtnAnalisar" onclick="runAIAnalysis()" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-900/30 transition-all active:scale-95">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
+
+            <div class="w-px h-6 bg-white/15 mx-1"></div>
+
+            <!-- Saídas -->
+            <button type="button" id="navBtnAnalisar" onclick="runAIAnalysis()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                 <span>Analisar</span>
             </button>
-            <button type="button" id="navBtnPdfInterno" onclick="confirmBeforeSend('interno')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF Interno (completo)">
-                <i data-lucide="file-text" class="w-4 h-4"></i>
+            <button type="button" id="navBtnPdfInterno" onclick="confirmBeforeSend('interno')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Interno">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                 <span>PDF Interno</span>
             </button>
-            <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 transition-all active:scale-95" title="PDF para Email (sem parceiros e descartes)">
-                <i data-lucide="mail" class="w-4 h-4"></i>
+            <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Email">
+                <i data-lucide="mail" class="w-3.5 h-3.5"></i>
                 <span>PDF Email</span>
             </button>
-            <button type="button" onclick="doLogout()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-rose-500/80 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Sair">
-                <i data-lucide="log-out" class="w-4 h-4"></i>
+
+            <div class="w-px h-6 bg-white/15 mx-1"></div>
+
+            <!-- Logout -->
+            <button type="button" onclick="doLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
+                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
             </button>
         </div>
     </div>
@@ -426,7 +444,7 @@
                             <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Pallets</h2>
                             <div id="palletQtyDisplay" class="w-6 h-6 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center shrink-0">0</div>
                         </div>
-                        <button type="button" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                        <button type="button" id="addPalletBtn" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
                     </div>
                     <div id="palletsContainer" class="space-y-2"></div>
                 </div>
@@ -455,20 +473,6 @@
                     </div>
 
                     <div id="customTempsContainer" class="mt-1 space-y-2"></div>
-                </div>
-
-                <!-- PARCEIROS / QUANTIDADES -->
-                <div id="section-parceiros" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                                <i data-lucide="users" class="w-5 h-5"></i>
-                            </div>
-                            <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Parceiros / Quantidades</h2>
-                        </div>
-                        <button type="button" onclick="addPartner()" class="text-emerald-600 hover:text-emerald-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
-                    </div>
-                    <div id="partnersContainer" class="space-y-2"></div>
                 </div>
 
                 <!-- DESCARTES -->
@@ -636,7 +640,7 @@
                         <div class="text-xs text-emerald-600 mt-0.5">Dividido em páginas A4 para impressão</div>
                     </div>
                 </button>
-                <button onclick="document.getElementById('layoutModal').classList.add('hidden')" class="mt-1 text-xs text-slate-400 hover:text-slate-600 text-center py-1 transition-colors">Cancelar</button>
+                <button onclick="document.getElementById('layoutModal').classList.add('hidden');unlockScroll();" class="mt-1 text-xs text-slate-400 hover:text-slate-600 text-center py-1 transition-colors">Cancelar</button>
             </div>
         </div>
     </div>
@@ -1098,11 +1102,13 @@
 
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            lockScroll();
             lucide.createIcons();
 
             const close = () => {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+                unlockScroll();
                 okBtn.onclick     = null;
                 cancelBtn.onclick = null;
             };
@@ -1353,6 +1359,59 @@
             m.classList.remove('flex');
         }
 
+        function _computeEditDiff(current, snapshot) {
+            const changed = {};
+            const str = (v) => String(v || '');
+            const ser = (v) => JSON.stringify(v || []);
+
+            if (str(current.reportDate) !== str(snapshot.reportDate))
+                changed['Data'] = str(current.reportDate);
+            if (str(current.embarqueCodigo) !== str(snapshot.embarqueCodigo))
+                changed['Codigo'] = str(current.embarqueCodigo);
+
+            const curProd = current.productSelect === 'Outro' ? str(current.customProductName) : str(current.productSelect);
+            const snpProd = snapshot.productSelect === 'Outro' ? str(snapshot.customProductName) : str(snapshot.productSelect);
+            if (curProd !== snpProd) changed['Produto'] = curProd;
+
+            if (str(current.varietyInput) !== str(snapshot.varietyInput))
+                changed['Cliente'] = str(current.varietyInput);
+
+            const curInsp = current.inspectorSelect === 'Outro' ? str(current.customInspectorName) : str(current.inspectorSelect);
+            const snpInsp = snapshot.inspectorSelect === 'Outro' ? str(snapshot.customInspectorName) : str(snapshot.inspectorSelect);
+            if (curInsp !== snpInsp) changed['Responsavel'] = curInsp;
+
+            const curNfes = (current.nfeList || []).filter(n => n.trim()).join(', ');
+            const snpNfes = (snapshot.nfeList || []).filter(n => n.trim()).join(', ');
+            if (curNfes !== snpNfes) changed['NFes'] = curNfes;
+
+            if (str(current.sensorNumber) !== str(snapshot.sensorNumber))   changed['Sensor'] = str(current.sensorNumber);
+            if (str(current.lacreNumber) !== str(snapshot.lacreNumber))     changed['Lacre'] = str(current.lacreNumber);
+            if (str(current.driverName) !== str(snapshot.driverName))       changed['Motorista'] = str(current.driverName);
+            if (str(current.vehiclePlate) !== str(snapshot.vehiclePlate))   changed['Placa'] = str(current.vehiclePlate);
+            if (str(current.departureTime) !== str(snapshot.departureTime)) changed['HorarioSaida'] = str(current.departureTime);
+            if (str(current.thermostatValue) !== str(snapshot.thermostatValue)) changed['Termostato'] = str(current.thermostatValue);
+            if (str(current.thermostatMode) !== str(snapshot.thermostatMode))   changed['ModoTermostato'] = str(current.thermostatMode);
+
+            if (ser(current.partnersData) !== ser(snapshot.partnersData))         changed['Parceiros'] = ser(current.partnersData);
+            if (ser(current.discardsData) !== ser(snapshot.discardsData))         changed['Descartes'] = ser(current.discardsData);
+            if (ser(current.customTempsData) !== ser(snapshot.customTempsData))   changed['Temperaturas'] = ser(current.customTempsData);
+            if (ser(current.palletsData) !== ser(snapshot.palletsData))           changed['Pallets'] = ser(current.palletsData);
+            if (ser(current.additionalInfoData) !== ser(snapshot.additionalInfoData)) changed['InfoAdicionais'] = ser(current.additionalInfoData);
+            if (ser(current.photosData) !== ser(snapshot.photosData))             changed['Fotos'] = ser(current.photosData);
+
+            if (str(current.aiSummary) !== str(snapshot.aiSummary))
+                changed['AISummary'] = str(current.aiSummary);
+
+            const curShip = current.shipResponsible === 'Outro' ? str(current.customShipResponsible) : str(current.shipResponsible);
+            const snpShip = snapshot.shipResponsible === 'Outro' ? str(snapshot.customShipResponsible) : str(snapshot.shipResponsible);
+            if (curShip !== snpShip) changed['RespEmbarque'] = curShip;
+
+            if (str(current.statusRegistro) !== str(snapshot.statusRegistro))
+                changed['StatusRegistro'] = str(current.statusRegistro);
+
+            return changed;
+        }
+
         async function _doSaveToCloud() {
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
@@ -1361,15 +1420,34 @@
 
             showSaveLoadingModal();
 
-            const data = collectFormData();
             const isEdit = !!editModeTimestamp;
-            if (isEdit) {
-                data.action = 'update';
-                data.originalTimestamp = editModeTimestamp;
-                data.password = _editPassword;
-            }
+            let body;
 
-            const body = JSON.stringify(data);
+            if (isEdit && _editSnapshot) {
+                const current = collectFormData();
+                const changedColumns = _computeEditDiff(current, _editSnapshot);
+                if (Object.keys(changedColumns).length === 0) {
+                    hideSaveLoadingModal();
+                    showMessageModal('Sem alterações', 'Nenhum campo foi modificado.', 'info');
+                    return;
+                }
+                body = JSON.stringify({
+                    action: 'updateFields',
+                    originalTimestamp: editModeTimestamp,
+                    password: _editPassword,
+                    embarqueCodigo: current.embarqueCodigo || '',
+                    reportDate: current.reportDate || '',
+                    changedColumns
+                });
+            } else {
+                const data = collectFormData();
+                if (isEdit) {
+                    data.action = 'update';
+                    data.originalTimestamp = editModeTimestamp;
+                    data.password = _editPassword;
+                }
+                body = JSON.stringify(data);
+            }
 
             setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
             let serverPct = 10;
@@ -1395,11 +1473,20 @@
                     return;
                 }
                 if (result.success) {
-                    const d = result.data;
-                    if (d.photosData)      photosData = d.photosData;
-                    if (d.discardsData)    discardsData = d.discardsData;
-                    if (d.customTempsData) customTempsData = d.customTempsData;
-                    if (d.palletsData)     palletsData = d.palletsData;
+                    if (result.changedColumns) {
+                        const cc = result.changedColumns;
+                        const parseJson = (v) => { try { return JSON.parse(v); } catch(_) { return []; } };
+                        if (cc['Fotos'])        photosData = parseJson(cc['Fotos']);
+                        if (cc['Descartes'])    discardsData = parseJson(cc['Descartes']);
+                        if (cc['Temperaturas']) customTempsData = parseJson(cc['Temperaturas']);
+                        if (cc['Pallets'])      palletsData = parseJson(cc['Pallets']);
+                    } else if (result.data) {
+                        const d = result.data;
+                        if (d.photosData)      photosData = d.photosData;
+                        if (d.discardsData)    discardsData = d.discardsData;
+                        if (d.customTempsData) customTempsData = d.customTempsData;
+                        if (d.palletsData)     palletsData = d.palletsData;
+                    }
                     saveToLocalStorage();
                     if (isEdit) {
                         clearEditMode();
@@ -1422,6 +1509,7 @@
 
         function closeHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
+            unlockScroll();
             _embarqueHistoryMode = false;
             const tabTodos = document.getElementById('tabTodos');
             const tabRevisados = document.getElementById('tabRevisados');
@@ -1446,6 +1534,7 @@
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Carregar Embarque';
             document.getElementById('historyModal').classList.remove('hidden');
+            lockScroll();
             document.getElementById('historySearch').value = '';
             document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
@@ -1469,6 +1558,7 @@
             _historyTab = 'todos';
             _updateHistoryTabUI();
             document.getElementById('historyModal').classList.remove('hidden');
+            lockScroll();
             document.getElementById('historySearch').value = '';
             document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
@@ -1604,7 +1694,7 @@
                 const isPending  = status === 'pendente';
                 const isReviewed = status === 'revisado';
                 const statusBadge = isPending
-                    ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</span>`
+                    ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</span>`
                     : isReviewed
                     ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Revisado</span>`
                     : '';
@@ -1612,10 +1702,10 @@
                     ? isPending
                         ? `<button onclick="markReviewed(${originalIdx})" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Revisado</button>`
                         : isReviewed
-                        ? `<button onclick="markPending(${originalIdx})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Pendente</button>`
+                        ? `<button onclick="markPending(${originalIdx})" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Pendente</button>`
                         : `<button onclick="markPending(${originalIdx})" class="px-3 py-1.5 bg-slate-400 hover:bg-slate-500 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</button>`
                     : '';
-                const cardBorder = isPending ? 'border-amber-300 bg-amber-50' : isReviewed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200';
+                const cardBorder = isPending ? 'border-orange-300 bg-orange-50' : isReviewed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200';
                 return `
                 <div class="border ${cardBorder} rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
                     <div class="flex items-start justify-between gap-3">
@@ -1632,7 +1722,6 @@
                             ${_embarqueHistoryMode ? `
                             <button onclick="requestPasswordFor('load', ${originalIdx})" class="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="folder-open" class="w-3 h-3"></i> Carregar</button>
                             ` : `
-                            <button onclick="loadHistoryReport(${originalIdx})" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-all active:scale-95">Carregar</button>
                             ${statusBtn}
                             <button onclick="requestPasswordFor('edit', ${originalIdx})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="pencil" class="w-3 h-3"></i> Editar</button>
                             <button onclick="requestPasswordFor('delete', ${originalIdx})" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Apagar</button>
@@ -1765,12 +1854,28 @@
                 }
 
                 customTempsData = parse(row.Temperaturas);
-                partnersData    = parse(row.Parceiros);
                 discardsData    = parse(row.Descartes);
                 additionalInfoData = parse(row.InfoAdicionais);
                 photosData      = parse(row.Fotos);
                 palletsData     = parse(row.Pallets);
                 aiSummary       = row.AISummary && String(row.AISummary).trim() ? String(row.AISummary) : null;
+
+                // Migração automática: move dados antigos de Parceiros para dentro do Pallet 1
+                const oldPartners = parse(row.Parceiros);
+                if (oldPartners.length > 0) {
+                    const newPartners = oldPartners.map(p => ({
+                        name: p.name || '', nameCustom: p.nameCustom || '',
+                        qty: p.qty || '', harvestDate: p.harvestDate || ''
+                    }));
+                    if (palletsData.length === 0) {
+                        palletsData = [{ label: 'Pallet 1', temp: '', partnerGroups: [], photos: [], partners: newPartners }];
+                    } else {
+                        if (!palletsData[0].partners) palletsData[0].partners = [];
+                        palletsData[0].partners = palletsData[0].partners.concat(newPartners);
+                    }
+                    _collapsedPallets = palletsData.map(() => false); // expande todos para mostrar os parceiros
+                }
+                partnersData = [];
 
                 renderNfeInputs();
                 renderPartners();
@@ -1790,9 +1895,11 @@
         }
 
         let _editPassword = null;
+        let _editSnapshot = null;
 
         function editHistoryReport(idx, password) {
             loadHistoryReport(idx);
+            _editSnapshot = collectFormData();
             const row = historyRowsFiltered[idx];
             if (!row) return;
 
@@ -1817,6 +1924,7 @@
         function clearEditMode() {
             editModeTimestamp = null;
             _editPassword = null;
+            _editSnapshot = null;
             document.getElementById('editModeBanner').classList.add('hidden');
         }
 
@@ -1919,12 +2027,14 @@
             document.getElementById('passwordError').classList.add('hidden');
             document.getElementById('passwordModal').classList.remove('hidden');
             document.getElementById('passwordModal').classList.add('flex');
+            lockScroll();
             setTimeout(() => document.getElementById('passwordInput').focus(), 100);
             lucide.createIcons();
         }
 
         function closePasswordModal() {
             document.getElementById('passwordModal').classList.add('hidden');
+            unlockScroll();
             document.getElementById('passwordModal').classList.remove('flex');
             _pendingPasswordAction = null;
         }
@@ -1985,6 +2095,7 @@
                         const row = historyRowsFiltered[idx];
                         closeHistoryModal();
                         loadHistoryReport(idx);
+                        _editSnapshot = collectFormData();
                         if (row && row.Timestamp) {
                             editModeTimestamp = String(row.Timestamp);
                             _editPassword = password;
@@ -2318,7 +2429,7 @@
             const isEmbarque = currentUser.perfil === 'embarque';
             const masterOnly = [
                 'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
-                'section-veiculo', 'section-parceiros', 'section-descartes',
+                'section-veiculo', 'section-descartes',
                 'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
                 'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                 'tab-preview-btn'
@@ -2337,6 +2448,21 @@
             // Embarque: Salvar | Carregar | Limpar (3 colunas)
             const row1 = document.getElementById('mobileNavRow1');
             if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(3,1fr)' : 'repeat(5,1fr)';
+
+            // Data e código do embarque: somente leitura para embarque
+            ['reportDate', 'embarqueCodigo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (isEmbarque) {
+                    el.setAttribute('disabled', 'disabled');
+                    el.style.opacity = '0.6';
+                    el.style.cursor = 'not-allowed';
+                } else {
+                    el.removeAttribute('disabled');
+                    el.style.opacity = '';
+                    el.style.cursor = '';
+                }
+            });
 
             // badge usuário desktop
             const badge = document.getElementById('userBadge');
@@ -2357,6 +2483,7 @@
         // ===== GERENCIAR USUÁRIOS =====
         async function openUsersModal() {
             document.getElementById('usersModal').classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
             await loadUsersList();
         }
@@ -2569,7 +2696,7 @@
 
         // ---------- Parceiros ----------
         const UNIT_PRESETS = ['Brócolis Filetado', 'Brócolis Inteiro'];
-        const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','P.Q Oásis','P.Q Parceiros','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá'];
+        const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','P.Q Oásis','P.Q Parceiros','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá','Raimundo','Nelinho'];
         function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) {
@@ -2665,6 +2792,7 @@
         }
         function renderPartners() {
             const container = document.getElementById('partnersContainer');
+            if (!container) return;
 
             // Normaliza dados antigos
             partnersData.forEach(p => {
@@ -2729,18 +2857,47 @@
             return partnersData.filter(p => getPartnerName(p).trim() !== '' && p.qty !== '' && !isNaN(parseFloat(p.qty)));
         }
         function getGroupedPartners() {
-            const valid = getValidPartners();
             const map = new Map();
+
+            // Parceiros dentro de cada pallet (novo formato)
+            palletsData.forEach(pl => {
+                (pl.partners || []).forEach(p => {
+                    const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
+                    if (!name || p.qty === '' || isNaN(parseFloat(p.qty))) return;
+                    const key = 'plt|' + name;
+                    if (map.has(key)) {
+                        map.get(key).qty = String(parseFloat(map.get(key).qty) + parseFloat(p.qty));
+                    } else {
+                        map.set(key, { name: p.name === 'Outro' ? 'Outro' : name, nameCustom: p.name === 'Outro' ? name : '', qty: String(parseFloat(p.qty)), unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' });
+                    }
+                });
+            });
+
+            // Parceiros da seção standalone (retrocompatibilidade com registros antigos)
+            const valid = getValidPartners();
             valid.forEach(p => {
-                const key = getPartnerName(p).trim() + '|' + getPartnerUnit(p) + '|' + (p.harvestDate || '');
+                const key = 'std|' + getPartnerName(p).trim() + '|' + getPartnerUnit(p) + '|' + (p.harvestDate || '');
                 if (map.has(key)) {
-                    const existing = map.get(key);
-                    existing.qty = (parseFloat(existing.qty) + parseFloat(p.qty)).toString();
+                    map.get(key).qty = String(parseFloat(map.get(key).qty) + parseFloat(p.qty));
                 } else {
                     map.set(key, Object.assign({}, p, { qty: parseFloat(p.qty).toString() }));
                 }
             });
+
             return Array.from(map.values());
+        }
+        function getPalletPartnerRows() {
+            const rows = [];
+            palletsData.forEach(pl => {
+                (pl.partners || []).forEach(p => {
+                    const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
+                    if (!name || p.qty === '' || isNaN(parseFloat(p.qty))) return;
+                    rows.push({ name: p.name === 'Outro' ? 'Outro' : name, nameCustom: p.name === 'Outro' ? name : '', qty: String(parseFloat(p.qty)), unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '', palletLabel: (pl.label || '').trim() });
+                });
+            });
+            const valid = getValidPartners();
+            valid.forEach(p => rows.push(Object.assign({}, p, { qty: String(parseFloat(p.qty)), palletLabel: '' })));
+            return rows;
         }
         function getMaxPartner() {
             const grouped = getGroupedPartners();
@@ -2753,20 +2910,71 @@
             const labels = new Set(palletsData.map(pl => (pl.label || '').trim().toLowerCase()).filter(Boolean));
             return labels.size;
         }
-        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', items: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
+        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
-        function addPalletItem(idx) { if (!palletsData[idx].items) palletsData[idx].items = []; palletsData[idx].items.push({ product: '', productCustom: '', boxType: '', boxes: '' }); renderPallets(); }
-        function removePalletItem(idx, iidx) { palletsData[idx].items.splice(iidx, 1); renderPallets(); updatePreview(); }
-        function updatePalletItem(idx, iidx, field, value) {
-            palletsData[idx].items[iidx][field] = value;
+        // --- Grupos de parceiro dentro do pallet ---
+        function addPalletPartnerGroup(pIdx) {
+            if (!palletsData[pIdx].partnerGroups) palletsData[pIdx].partnerGroups = [];
+            palletsData[pIdx].partnerGroups.push({ name: '', nameCustom: '', collapsed: false, lots: [] });
+            renderPallets();
+        }
+        function removePalletPartnerGroup(pIdx, gIdx) { palletsData[pIdx].partnerGroups.splice(gIdx, 1); renderPallets(); updatePreview(); }
+        function togglePalletPartnerGroup(pIdx, gIdx) { const g = palletsData[pIdx].partnerGroups[gIdx]; g.collapsed = !g.collapsed; renderPallets(); }
+        function updatePalletPartnerGroupName(pIdx, gIdx, value) {
+            palletsData[pIdx].partnerGroups[gIdx].name = value;
+            if (value !== 'Outro') palletsData[pIdx].partnerGroups[gIdx].nameCustom = '';
+            renderPallets();
+        }
+        function updatePalletLotGroupField(pIdx, gIdx, field, value) { palletsData[pIdx].partnerGroups[gIdx][field] = value; updatePreview(); }
+        function clearPalletPartnerGroupName(pIdx, gIdx) { palletsData[pIdx].partnerGroups[gIdx].name = ''; palletsData[pIdx].partnerGroups[gIdx].nameCustom = ''; renderPallets(); }
+        // --- Lotes dentro de um grupo ---
+        function addPalletLot(pIdx, gIdx) {
+            if (!palletsData[pIdx].partnerGroups[gIdx].lots) palletsData[pIdx].partnerGroups[gIdx].lots = [];
+            palletsData[pIdx].partnerGroups[gIdx].lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: '', harvestDate: '' });
+            renderPallets();
+        }
+        function removePalletLot(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots.splice(lIdx, 1); renderPallets(); updatePreview(); }
+        function updatePalletLot(pIdx, gIdx, lIdx, field, value) {
+            palletsData[pIdx].partnerGroups[gIdx].lots[lIdx][field] = value;
             if (field === 'boxes') {
-                const total = (palletsData[idx].items || []).reduce((s, item) => s + (parseFloat(item.boxes) || 0), 0);
-                const el = document.getElementById('pallet-total-' + idx);
+                const total = (palletsData[pIdx].partnerGroups || []).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0);
+                const el = document.getElementById('pallet-total-' + pIdx);
                 if (el) el.textContent = total + ' cx';
             }
             updatePreview();
+        }
+        function handlePalletLotProductChange(pIdx, gIdx, lIdx, sel) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = sel.value; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); updatePreview(); }
+        function clearPalletLotProduct(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); }
+        function handlePalletLotBoxTypeChange(pIdx, gIdx, lIdx, sel) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxType = sel.value; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxTypeCustom = ''; renderPallets(); updatePreview(); }
+        function clearPalletLotBoxType(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxType = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxTypeCustom = ''; renderPallets(); }
+
+        function _renderPalletGroups(idx, pl) {
+            const groups = pl.partnerGroups || [];
+            const addBtn = `<button type="button" onclick="addPalletPartnerGroup(${idx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold transition-colors"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar parceiro<\/button>`;
+            if (groups.length === 0) return addBtn;
+            const groupsHtml = groups.map((g, gIdx) => {
+                const total = (g.lots||[]).reduce((s, lot) => s + (parseFloat(lot.boxes)||0), 0);
+                const collapsed = g.collapsed === true;
+                const nameSel = g.name || '';
+                const nameEl = nameSel === 'Outro'
+                    ? `<div class="relative flex-1 min-w-0"><input type="text" value="${(g.nameCustom||'').replace(/"/g,'&quot;')}" placeholder="Nome parceiro" oninput="updatePalletLotGroupField(${idx}, ${gIdx}, 'nameCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-emerald-400 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><button type="button" onclick="event.stopPropagation(); clearPalletPartnerGroupName(${idx}, ${gIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
+                    : `<select onchange="updatePalletPartnerGroupName(${idx}, ${gIdx}, this.value)" onclick="event.stopPropagation()" class="flex-1 p-1.5 rounded-lg border border-emerald-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><option value="">Parceiro<\/option>${PARTNER_PRESETS.map(n => `<option value="${n}" ${nameSel===n?'selected':''}>${n}<\/option>`).join('')}<option value="Outro" ${nameSel==='Outro'?'selected':''}>Outro...<\/option><\/select>`;
+                const lotsHtml = (g.lots||[]).length === 0
+                    ? `<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-emerald-300 text-emerald-500 hover:bg-emerald-50 text-[11px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button>`
+                    : `<div class="space-y-1.5">${(g.lots||[]).map((lot, lIdx) => {
+                        const prodEl = lot.product === 'Outro'
+                            ? `<div class="relative"><input type="text" value="${(lot.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><button type="button" onclick="clearPalletLotProduct(${idx}, ${gIdx}, ${lIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
+                            : `<select onchange="handlePalletLotProductChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Produto<\/option><option value="Brócolis" ${lot.product==='Brócolis'?'selected':''}>Brócolis<\/option><option value="Couve-Flor" ${lot.product==='Couve-Flor'?'selected':''}>Couve-Flor<\/option><option value="Tomatitos" ${lot.product==='Tomatitos'?'selected':''}>Tomatitos<\/option><option value="Pepinitos" ${lot.product==='Pepinitos'?'selected':''}>Pepinitos<\/option><option value="Outro">Outro...<\/option><\/select>`;
+                        const boxEl = lot.boxType === 'Outro'
+                            ? `<div class="relative"><input type="text" value="${(lot.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><button type="button" onclick="clearPalletLotBoxType(${idx}, ${gIdx}, ${lIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
+                            : `<select onchange="handlePalletLotBoxTypeChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Tipo caixa<\/option><option value="Plástica" ${lot.boxType==='Plástica'?'selected':''}>Plástica<\/option><option value="Papelão" ${lot.boxType==='Papelão'?'selected':''}>Papelão<\/option><option value="Outro">Outro...<\/option><\/select>`;
+                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><div class="w-28">${boxEl}<\/div><input type="number" min="0" value="${lot.boxes||''}" placeholder="Cx" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
+                    }).join('')}<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-1 text-emerald-500 hover:text-emerald-700 text-[10px] font-bold mt-1"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button><\/div>`;
+                return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-0"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 ml-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${total} cx<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
+            }).join('');
+            return `${groupsHtml}<button type="button" onclick="addPalletPartnerGroup(${idx})" class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold mt-1 transition-colors"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar parceiro<\/button>`;
         }
         function handlePalletPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
@@ -2785,13 +2993,41 @@
             });
         }
         function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
+
+        function addPalletPartner(pIdx) {
+            if (!palletsData[pIdx].partners) palletsData[pIdx].partners = [];
+            palletsData[pIdx].partners.push({ name: '', nameCustom: '', qty: '', harvestDate: '' });
+            renderPallets();
+        }
+        function removePalletPartner(pIdx, pidx) { palletsData[pIdx].partners.splice(pidx, 1); renderPallets(); updatePreview(); }
+        function updatePalletPartner(pIdx, pidx, field, value) {
+            palletsData[pIdx].partners[pidx][field] = value;
+            if (field === 'name' && value !== 'Outro') { palletsData[pIdx].partners[pidx].nameCustom = ''; renderPallets(); }
+            updatePreview();
+        }
+        function clearPalletPartnerName(pIdx, pidx) { palletsData[pIdx].partners[pidx].name = ''; palletsData[pIdx].partners[pidx].nameCustom = ''; renderPallets(); }
+
+        function _renderPalletPartners(pIdx, pl) {
+            const partners = pl.partners || [];
+            const rows = partners.map((partner, pidx) => {
+                const nameSel = partner.name || '';
+                const nameCustom = partner.nameCustom || '';
+                const nameInput = nameSel === 'Outro'
+                    ? `<div class="relative flex-1"><input type="text" value="${nameCustom.replace(/"/g,'&quot;')}" placeholder="Nome parceiro" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'nameCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-emerald-400 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><button type="button" onclick="clearPalletPartnerName(${pIdx}, ${pidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
+                    : `<select onchange="updatePalletPartner(${pIdx}, ${pidx}, 'name', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><option value="">Parceiro<\/option>${PARTNER_PRESETS.map(n => `<option value="${n}" ${nameSel===n?'selected':''}>${n}<\/option>`).join('')}<option value="Outro" ${nameSel==='Outro'?'selected':''}>Outro...<\/option><\/select>`;
+                return `<div class="flex flex-col gap-1"><div class="flex gap-1.5 items-center">${nameInput}<input type="number" min="0" value="${partner.qty||''}" placeholder="Cx" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'qty', this.value)" class="w-14 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center"><span class="text-[11px] text-emerald-700 font-bold shrink-0">cx<\/span><button type="button" onclick="removePalletPartner(${pIdx}, ${pidx})" class="px-1 text-rose-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${partner.harvestDate||''}" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
+            }).join('');
+            return `<div class="border-t border-amber-100 pt-2 mt-1"><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3"><\/i> Parceiros<\/span><button type="button" onclick="event.stopPropagation(); addPalletPartner(${pIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-200 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Adicionar<\/button><\/div>${partners.length === 0 ? `<p class="text-[10px] text-slate-400 italic text-center py-0.5">Nenhum parceiro neste pallet<\/p>` : `<div class="space-y-1">${rows}<\/div>`}<\/div>`;
+        }
+
         function renderPallets() {
             const container = document.getElementById('palletsContainer');
+            const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
             while (_collapsedPallets.length < palletsData.length) _collapsedPallets.push(true);
             container.innerHTML = palletsData.map((pl, idx) => {
                 const photos = pl.photos || [];
                 const collapsed = !!_collapsedPallets[idx];
-                const totalBoxes = (pl.items||[]).reduce((s, item) => s + (parseFloat(item.boxes)||0), 0);
+                const totalBoxes = (pl.partnerGroups||[]).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0) + (pl.items||[]).reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
                 return `
                 <div class="rounded-xl border border-amber-200 overflow-hidden">
                     <div class="flex items-center justify-between bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
@@ -2810,53 +3046,8 @@
                     </div>
                     ${collapsed ? '' : `
                     <div class="p-2 bg-amber-50 border-t border-amber-100 space-y-2">
-                        ${(pl.items||[]).length === 0 ? `
-                        <button type="button" onclick="addPalletItem(${idx})" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold transition-colors">
-                            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
-                        </button>` : `
-                        <div class="space-y-1.5">
-                            ${(pl.items||[]).map((item, iidx) => `
-                            <div class="flex gap-1.5 items-start">
-                                <div class="flex-1">
-                                    ${item.product === 'Outro' ? `
-                                    <div class="relative">
-                                        <input type="text" value="${(item.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                        <button type="button" onclick="clearPalletProduct(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>` : `
-                                    <select onchange="handlePalletProductChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                        <option value="">Produto</option>
-                                        <option value="Brócolis" ${item.product==='Brócolis'?'selected':''}>Brócolis</option>
-                                        <option value="Couve-Flor" ${item.product==='Couve-Flor'?'selected':''}>Couve-Flor</option>
-                                        <option value="Tomatitos" ${item.product==='Tomatitos'?'selected':''}>Tomatitos</option>
-                                        <option value="Pepinitos" ${item.product==='Pepinitos'?'selected':''}>Pepinitos</option>
-                                        <option value="Outro">Outro...</option>
-                                    </select>`}
-                                </div>
-                                <div class="w-28">
-                                    ${item.boxType === 'Outro' ? `
-                                    <div class="relative">
-                                        <input type="text" value="${(item.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletItem(${idx}, ${iidx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                        <button type="button" onclick="clearPalletBoxType(${idx}, ${iidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                                            <i data-lucide="x-circle" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>` : `
-                                    <select onchange="handlePalletBoxTypeChange(${idx}, ${iidx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
-                                        <option value="">Tipo caixa</option>
-                                        <option value="Plástica" ${item.boxType==='Plástica'?'selected':''}>Plástica</option>
-                                        <option value="Papelão" ${item.boxType==='Papelão'?'selected':''}>Papelão</option>
-                                        <option value="Outro">Outro...</option>
-                                    </select>`}
-                                </div>
-                                <input type="number" min="0" value="${item.boxes||''}" placeholder="Cx" oninput="updatePalletItem(${idx}, ${iidx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center">
-                                <span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx</span>
-                                <button type="button" onclick="removePalletItem(${idx}, ${iidx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-                            </div>`).join('')}
-                            <button type="button" onclick="addPalletItem(${idx})" class="flex items-center gap-1 text-amber-500 hover:text-amber-700 text-[10px] font-bold">
-                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar produto
-                            </button>
-                        </div>`}
+                        ${isEmbarquePerfil ? '' : _renderPalletGroups(idx, pl)}
+                        ${isEmbarquePerfil ? '' : _renderPalletPartners(idx, pl)}
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${photos.map((src, pidx) => `
                                 <div class="relative group">
@@ -2880,7 +3071,25 @@
         }
 
         // ---------- Descartes ----------
-        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
+        const DISCARD_CULTURA_PRESETS = ['Brócolis', 'Pepino', 'Tomate', 'Couve-Flor'];
+        const DISCARD_REASON_PRESETS = [
+            'Abaixo do peso e velho',
+            'Amarelado',
+            'Amarelado e Passado',
+            'Danificado',
+            'Estragado',
+            'Fungos',
+            'Furado',
+            'Maduro Demais',
+            'Manchas Escuras e Amarelado',
+            'Manchas Escuras, Amarelado e Passado',
+            'Manchas Escuras e Passado',
+            'Passado',
+            'Rachado',
+            'Rachado e Estragado',
+            'Talo com Fungo e Passado'
+        ];
+        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
         function updateDiscardPartnerName(idx, value) {
             discardsData[idx].partnerSel = value;
             if (value !== 'Outro') discardsData[idx].partner = value;
@@ -2888,6 +3097,16 @@
             updatePreview();
         }
         function clearDiscardPartner(idx) { discardsData[idx].partnerSel = ''; discardsData[idx].partner = ''; renderDiscards(); updatePreview(); }
+        function handleDiscardReasonChange(idx, value) {
+            if (value === 'Outro') { discardsData[idx].reasonSel = 'Outro'; discardsData[idx].reason = ''; renderDiscards(); }
+            else { discardsData[idx].reasonSel = value; discardsData[idx].reason = value; updatePreview(); }
+        }
+        function clearDiscardReason(idx) { discardsData[idx].reasonSel = ''; discardsData[idx].reason = ''; renderDiscards(); }
+        function handleDiscardCulturaChange(idx, value) {
+            if (value === 'Outro') { discardsData[idx].cultSel = 'Outro'; discardsData[idx].cultura = ''; renderDiscards(); }
+            else { discardsData[idx].cultSel = value; discardsData[idx].cultura = value; updatePreview(); }
+        }
+        function clearDiscardCultura(idx) { discardsData[idx].cultSel = ''; discardsData[idx].cultura = ''; renderDiscards(); }
         function removeDiscard(idx) { discardsData.splice(idx, 1); _collapsedDiscards.splice(idx, 1); renderDiscards(); updatePreview(); }
         function toggleDiscard(idx) { _collapsedDiscards[idx] = !_collapsedDiscards[idx]; renderDiscards(); }
         function updateDiscard(idx, field, value) {
@@ -2930,8 +3149,28 @@
                     else if (d.partner) { d.partnerSel = 'Outro'; }
                     else { d.partnerSel = ''; }
                 }
+                if (d.reasonSel === undefined) {
+                    if (DISCARD_REASON_PRESETS.includes(d.reason)) d.reasonSel = d.reason;
+                    else if (d.reason) d.reasonSel = 'Outro';
+                    else d.reasonSel = '';
+                }
+                if (d.cultSel === undefined) {
+                    if (DISCARD_CULTURA_PRESETS.includes(d.cultura)) d.cultSel = d.cultura;
+                    else if (d.cultura) d.cultSel = 'Outro';
+                    else d.cultSel = '';
+                }
                 const pSel = d.partnerSel;
                 const pCustom = (pSel === 'Outro' ? d.partner : '').replace(/"/g, '&quot;');
+                const rSel = d.reasonSel;
+                const rCustom = (rSel === 'Outro' ? d.reason : '').replace(/"/g, '&quot;');
+                const cSel = d.cultSel;
+                const cCustom = (cSel === 'Outro' ? d.cultura : '').replace(/"/g, '&quot;');
+                const reasonHtml = rSel === 'Outro'
+                    ? `<div class="relative"><input type="text" value="${rCustom}" placeholder="Qual?" oninput="updateDiscard(${idx}, 'reason', this.value)" class="w-full p-2 pr-8 rounded-lg border border-rose-400 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none"><button type="button" onclick="clearDiscardReason(${idx})" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button></div>`
+                    : `<select onchange="handleDiscardReasonChange(${idx}, this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none"><option value="">Motivo do descarte...</option>${DISCARD_REASON_PRESETS.map(r => `<option value="${r}" ${rSel === r ? 'selected' : ''}>${r}</option>`).join('')}<option value="Outro">Outro...</option></select>`;
+                const culturaHtml = cSel === 'Outro'
+                    ? `<div class="relative"><input type="text" value="${cCustom}" placeholder="Qual?" oninput="updateDiscard(${idx}, 'cultura', this.value)" class="w-full p-2 pr-8 rounded-lg border border-rose-400 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none"><button type="button" onclick="clearDiscardCultura(${idx})" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button></div>`
+                    : `<select onchange="handleDiscardCulturaChange(${idx}, this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none"><option value="">Cultura...</option>${DISCARD_CULTURA_PRESETS.map(c => `<option value="${c}" ${cSel === c ? 'selected' : ''}>${c}</option>`).join('')}<option value="Outro">Outro...</option></select>`;
                 return `
                 <div class="rounded-xl border border-rose-200 overflow-hidden">
                     <div class="flex items-center justify-between bg-rose-50 px-3 py-2 cursor-pointer select-none" onclick="toggleDiscard(${idx})">
@@ -2954,7 +3193,8 @@
                     ${collapsed ? '' : `
                     <div class="p-2 bg-rose-50 border-t border-rose-100 space-y-2">
                         <input type="number" step="0.1" value="${d.weight}" placeholder="Kg" oninput="updateDiscard(${idx}, 'weight', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                        <input type="text" value="${d.reason}" placeholder="Motivo do descarte..." oninput="updateDiscard(${idx}, 'reason', this.value)" class="w-full p-2 rounded-lg border border-rose-200 text-sm bg-white focus:ring-2 focus:ring-rose-400 outline-none">
+                        <div>${culturaHtml}</div>
+                        <div>${reasonHtml}</div>
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${photos.map((src, pidx) => `
                                 <div class="relative group">
@@ -3117,6 +3357,7 @@
             _viewerIdx = idx || 0;
             _updateViewer();
             document.getElementById('photoViewerModal').classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
         }
         function _updateViewer() {
@@ -3129,7 +3370,7 @@
         }
         function viewerPrev() { _viewerIdx = (_viewerIdx - 1 + _viewerPhotos.length) % _viewerPhotos.length; _updateViewer(); }
         function viewerNext() { _viewerIdx = (_viewerIdx + 1) % _viewerPhotos.length; _updateViewer(); }
-        function closePhotoViewer() { document.getElementById('photoViewerModal').classList.add('hidden'); _viewerPhotos = []; }
+        function closePhotoViewer() { document.getElementById('photoViewerModal').classList.add('hidden'); unlockScroll(); _viewerPhotos = []; }
 
         function renderPhotos() {
             const container = document.getElementById('photosContainer');
@@ -3287,12 +3528,21 @@
             <!-- 3. PALLETS -->
             ${rpSH(rn(),'Pallets')}
             ${rpTable((() => {
-                const palletCell = (pl, i) => {
+                const palletCell = (pl) => {
                     if (!pl) return `${rpTD('','','')}${rpTD('','','')}${rpTD('','','')}`;
                     const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
-                    const validItems = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
-                    const boxesHtml = validItems.length
-                        ? validItems.map(it => { const prodLabel = it.product==='Outro'?(it.productCustom||'Outro'):it.product; const boxLabel = it.boxType==='Outro'?(it.boxTypeCustom||'Outro'):it.boxType; const extras=[prodLabel,boxLabel].filter(Boolean).join(' · '); return `<span style="display:block;">${it.boxes} cx${extras?' <span style="color:#92400e;font-weight:600;">('+extras+')</span>':''}</span>`; }).join('')
+                    const palletGroups = (pl.partnerGroups||[]);
+                    const legacyItems  = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
+                    const boxesHtml = (palletGroups.length || legacyItems.length)
+                        ? [
+                            ...palletGroups.flatMap(g =>
+                                (g.lots||[]).filter(l => l.boxes!=='' && l.boxes!=null).map(l => {
+                                    const boxLabel = l.boxType==='Outro'?(l.boxTypeCustom||''):l.boxType;
+                                    return `<span style="display:block;">${l.boxes} cx${boxLabel?' <span style="color:#92400e;font-weight:600;">('+boxLabel+')</span>':''}</span>`;
+                                })
+                            ),
+                            ...legacyItems.map(it => { const boxLabel=it.boxType==='Outro'?(it.boxTypeCustom||''):it.boxType; return `<span style="display:block;">${it.boxes} cx${boxLabel?' <span style="color:#92400e;font-weight:600;">('+boxLabel+')</span>':''}</span>`; })
+                          ].join('')
                         : (pl.boxes ? pl.boxes+' cx' : '—');
                     return `${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}`;
                 };
@@ -3332,13 +3582,13 @@
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
-            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Peso (kg)',90)}${rpTH('Motivo')}${rpTH('% do Total',80)}</tr>
+            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Cultura')}${rpTH('Peso (kg)',90)}${rpTH('Motivo')}${rpTH('% do Total',80)}</tr>
             ${validDiscards.length ? validDiscards.map((d,i)=>{
                 const pct = totalDiscard>0 ? (parseFloat(d.weight)/totalDiscard*100).toFixed(1)+'%' : '—';
                 const bg = i%2===0?'':'background:#fff5f5;';
-                return `<tr style="${bg}">${rpTD(d.partner)}${rpTD(d.weight+' kg','font-weight:700;color:#b91c1c;text-align:right;')}${rpTD(d.reason||'—')}${rpTD(pct,'text-align:right;')}</tr>`;
-            }).join('') : `<tr><td colspan="4" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum descarte registrado.</td></tr>`}
-            ${validDiscards.length?`<tr style="background:#fee2e2;">${rpTH('TOTAL DESCARTE')}${rpTD(totalDiscard+' kg','font-weight:900;color:#b91c1c;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+                return `<tr style="${bg}">${rpTD(d.partner)}${rpTD(d.cultura||'—')}${rpTD(d.weight+' kg','font-weight:700;color:#b91c1c;text-align:right;')}${rpTD(d.reason||'—')}${rpTD(pct,'text-align:right;')}</tr>`;
+            }).join('') : `<tr><td colspan="5" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum descarte registrado.</td></tr>`}
+            ${validDiscards.length?`<tr style="background:#fee2e2;">${rpTH('TOTAL DESCARTE')}${rpTD('')}${rpTD(totalDiscard+' kg','font-weight:900;color:#b91c1c;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
             ` : ''}
 
             ${showInternalSections && aiSummary ? `
@@ -3422,7 +3672,7 @@
                     ${discardsWithPhotos.length ? annexSection('Comprovantes dos Descartes','#b91c1c',
                         discardsWithPhotos.map(d=>`
                         <div style="margin-bottom:10px;">
-                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
+                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner}${d.cultura ? ' · '+d.cultura : ''} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
                             ${photoRowDiv(d.photos||[], '#e3b8b8', null)}
                         </div>`).join('')) : ''}
 
@@ -3457,13 +3707,15 @@
                 ? 'Verifique se os dados estão corretos.<br><br><span style="font-weight:700;color:#0f766e;">Este PDF <u>não incluirá</u> parceiros/quantidades e descartes.</span>'
                 : 'Verifique se todos os dados estão corretos.<br><br><span style="font-weight:700;">Este PDF incluirá todas as seções (uso interno).</span>';
             document.getElementById('confirmModal').classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
         }
 
-        function hideConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); }
+        function hideConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); unlockScroll(); }
         function executeSend() {
             hideConfirmModal();
             document.getElementById('layoutModal').classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
         }
         function chooseLayout(layout) {
@@ -3696,12 +3948,23 @@
             const palletData = validPallets.map(pl => {
                 const items = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
                 const temp  = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
-                const boxes = items.length
-                    ? items.map(it => {
-                        const prod = it.product==='Outro'?(it.productCustom||'Outro'):it.product;
-                        const bx   = it.boxType==='Outro'?(it.boxTypeCustom||'Outro'):it.boxType;
-                        return `${it.boxes} cx${[prod,bx].filter(Boolean).length ? ' ('+[prod,bx].filter(Boolean).join(' · ')+')' : ''}`;
-                      }).join('\n')
+                const palGrps = (pl.partnerGroups||[]);
+                const legItems = (pl.items||[]).filter(it => it.boxes!=='' && it.boxes!=null);
+                const boxes = (palGrps.length || legItems.length)
+                    ? [
+                        ...palGrps.flatMap(g => {
+                            const pName = g.name==='Outro'?(g.nameCustom||''):(g.name||'');
+                            return (g.lots||[]).filter(l => l.boxes!=='' && l.boxes!=null).map(l => {
+                                const prod = l.product==='Outro'?(l.productCustom||''):l.product;
+                                const bx   = l.boxType==='Outro'?(l.boxTypeCustom||''):l.boxType;
+                                const hd   = l.harvestDate?(()=>{const d=l.harvestDate.split('-');return d[2]+'/'+d[1];})():'';
+                                const main = [prod,bx].filter(Boolean).join(' · ');
+                                const sub  = [pName, hd?'Col. '+hd:''].filter(Boolean).join(' · ');
+                                return `${l.boxes} cx${main?' ('+main+')':''}${sub?' ['+sub+']':''}`;
+                            });
+                        }),
+                        ...legItems.map(it => { const prod=it.product==='Outro'?(it.productCustom||''):it.product; const bx=it.boxType==='Outro'?(it.boxTypeCustom||''):it.boxType; const main=[prod,bx].filter(Boolean).join(' · '); return `${it.boxes} cx${main?' ('+main+')':''}`; })
+                      ].join('\n')
                     : '—';
                 return [pl.label, temp, boxes];
             });
@@ -3782,16 +4045,17 @@
                 const dRows = validDiscards.map(d => {
                     const pct = totalDiscard>0 ? ((parseFloat(d.weight)/totalDiscard)*100).toFixed(1)+'%' : '—';
                     const nm  = d.partnerSel==='Outro' ? d.partner : (d.partnerSel||d.partner||'—');
-                    return [nm, {content:parseFloat(d.weight)+' kg',styles:{halign:'right'}}, d.reason||'—', {content:pct,styles:{halign:'right'}}];
+                    return [nm, d.cultura||'—', {content:parseFloat(d.weight)+' kg',styles:{halign:'right'}}, d.reason||'—', {content:pct,styles:{halign:'right'}}];
                 });
                 if (dRows.length) dRows.push([
                     {content:'TOTAL DESCARTE',styles:{fontStyle:'bold'}},
+                    '',
                     {content:totalDiscard+' kg',styles:{fontStyle:'bold',halign:'right',textColor:C.red}},
                     '',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
                 ]);
                 doc.autoTable(tbl({ startY: y,
-                    head: [['Parceiro','Peso (kg)','Motivo','% do Total']],
-                    body: dRows.length ? dRows : [['Nenhum descarte registrado.','','','']],
+                    head: [['Parceiro','Cultura','Peso (kg)','Motivo','% do Total']],
+                    body: dRows.length ? dRows : [['Nenhum descarte registrado.','','','','']],
                 }));
                 y = doc.lastAutoTable.finalY;
             }
@@ -3893,7 +4157,7 @@
                     [{ label: '', photos: photosData.map(p => p.dataUrl||p).filter(Boolean) }]);
 
                 if (discardsWP.length) drawPhotos('Comprovantes dos Descartes', C.red,
-                    discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: d.photos })));
+                    discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner}${d.cultura?' · '+d.cultura:''} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: d.photos })));
 
                 if (tempsWP.length) drawPhotos('Comprovantes das Temperaturas', [154,52,18],
                     tempsWP.map(t => ({ label: `${t.label}${t.value!==''?' — '+t.value+'°C':''}`, photos: t.photos })));
@@ -3951,6 +4215,10 @@
 
         function downloadFile(uri, name) { const link = document.createElement('a'); link.href = uri; link.download = name; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
+        let _modalCount = 0;
+        function lockScroll()   { _modalCount++; document.body.style.overflow = 'hidden'; }
+        function unlockScroll() { _modalCount = Math.max(0, _modalCount - 1); if (_modalCount === 0) document.body.style.overflow = ''; }
+
         function showMessageModal(title, message, type) {
             const modal = document.getElementById('messageModal');
             const iconContainer = document.getElementById('msgIconContainer');
@@ -3968,19 +4236,22 @@
                 }
             }
             modal.classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
         }
 
-        function hideMessageModal() { document.getElementById('messageModal').classList.add('hidden'); }
+        function hideMessageModal() { document.getElementById('messageModal').classList.add('hidden'); unlockScroll(); }
 
         // ---------- Configurações / API Key ----------
         function openSettings() {
             document.getElementById('apiKeyInput').value = localStorage.getItem('spg_groq_key') || '';
             document.getElementById('settingsModal').classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
         }
         function closeSettings() {
             document.getElementById('settingsModal').classList.add('hidden');
+            unlockScroll();
             document.getElementById('apiTestResult').classList.add('hidden');
         }
         async function testApiKey() {
@@ -4111,7 +4382,7 @@ Total: ${totalQty} unidades/caixas
 Maior envio: ${maxPartner ? getPartnerName(maxPartner) + ' (' + maxPartner.qty + ' cx - ' + getPartnerUnit(maxPartner) + ')' : '---'}
 
 --- DESCARTES ---
-${validDiscards.length ? validDiscards.map(d => `${d.partner}: ${d.weight} kg — ${d.reason || 'motivo não informado'}`).join('\n') : 'Nenhum descarte registrado.'}
+${validDiscards.length ? validDiscards.map(d => `${d.partner}${d.cultura ? ' ('+d.cultura+')' : ''}: ${d.weight} kg — ${d.reason || 'motivo não informado'}`).join('\n') : 'Nenhum descarte registrado.'}
 Total de descarte: ${totalDiscard} kg
 Maior descarte: ${maxDiscard ? maxDiscard.partner + ' (' + maxDiscard.total + ' kg)' : '---'}
 
