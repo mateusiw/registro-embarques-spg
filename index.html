@@ -223,6 +223,10 @@
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                 <span>Limpar</span>
             </button>
+            <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-sky-500/80 text-white rounded-xl text-xs font-bold border border-white/20 transition-all active:scale-95" title="Carregar embarque existente">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                <span>Carregar</span>
+            </button>
             <button type="button" id="navBtnSettings" onclick="openSettings()" class="flex items-center justify-center w-9 h-9 bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition-all active:scale-95" title="Configurar chave de API">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
@@ -533,6 +537,30 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL STATUS DO RELATÓRIO (master) -->
+    <div id="saveStatusModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm border border-slate-200 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-xl bg-sky-100 mb-4 border border-sky-200">
+                <i data-lucide="save" class="w-6 h-6 text-sky-600"></i>
+            </div>
+            <h3 class="text-lg font-black text-slate-800 uppercase tracking-tight mb-1">Salvar Relatório</h3>
+            <p class="text-xs text-slate-500 mb-5">Informe o status deste relatório para que o perfil Embarque possa identificá-lo.</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="confirmSaveWithStatus('pendente')" class="flex flex-col items-center gap-1.5 px-4 py-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-700 font-black rounded-xl text-xs transition-all active:scale-95">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                    Pendente
+                    <span class="text-[9px] font-semibold text-amber-500 normal-case">Aguardando conclusão</span>
+                </button>
+                <button onclick="confirmSaveWithStatus('revisado')" class="flex flex-col items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 text-emerald-700 font-black rounded-xl text-xs transition-all active:scale-95">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    Revisado
+                    <span class="text-[9px] font-semibold text-emerald-500 normal-case">Relatório concluído</span>
+                </button>
+            </div>
+            <button onclick="document.getElementById('saveStatusModal').classList.add('hidden')" class="mt-3 w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-colors">Cancelar</button>
         </div>
     </div>
 
@@ -941,6 +969,7 @@
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
 
         let currentUser = null; // { nome, perfil }
+        let _masterSaveStatus = 'revisado';
         let _isSaving = false;
         let currentReportId = "------";
         let currentPdfMode = 'interno';
@@ -1082,6 +1111,12 @@
             });
         }
 
+        function confirmSaveWithStatus(status) {
+            document.getElementById('saveStatusModal').classList.add('hidden');
+            _masterSaveStatus = status;
+            _doSaveToCloud();
+        }
+
         async function saveToCloud() {
             if (_isSaving) return;
 
@@ -1090,14 +1125,22 @@
                 return;
             }
 
+            // Modo edição manual: salva direto como update (sem escolha de status)
+            if (editModeTimestamp) {
+                _setSavingState(true);
+                try { await _doSaveToCloud(); } finally { _setSavingState(false); }
+                return;
+            }
+
+            // Master: perguntar o status antes de salvar
+            if (currentUser && currentUser.perfil === 'master') {
+                document.getElementById('saveStatusModal').classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
             _setSavingState(true);
             try {
-                // Modo edição manual: salva direto como update
-                if (editModeTimestamp) {
-                    await _doSaveToCloud();
-                    return;
-                }
-
                 const codigo = document.getElementById('embarqueCodigo').value.trim();
                 const currentNfes = nfeList.filter(n => n.trim());
                 const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
@@ -1240,7 +1283,7 @@
                 palletsData,
                 sensorNumber: document.getElementById('sensorNumber').value,
                 lacreNumber: document.getElementById('lacreNumber').value,
-                statusRegistro: (currentUser && currentUser.perfil === 'embarque') ? 'pendente' : 'revisado'
+                statusRegistro: (currentUser && currentUser.perfil === 'embarque') ? 'pendente' : _masterSaveStatus
             };
         }
 
@@ -1352,7 +1395,7 @@
                 return;
             }
             _embarqueHistoryMode = true;
-            _historyTab = 'todos';
+            _historyTab = 'pendentes';
             _updateHistoryTabUI();
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Carregar Embarque';
@@ -2211,18 +2254,21 @@
             const isEmbarque = currentUser.perfil === 'embarque';
             const masterOnly = [
                 'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
-                'section-veiculo', 'section-parceiros', 'section-descartes', 'section-adicional', 'section-fotos',
+                'section-veiculo', 'section-parceiros', 'section-descartes',
                 'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
-                'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup'
+                'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
+                'tab-preview-btn'
             ];
             masterOnly.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = isEmbarque ? 'none' : '';
             });
 
-            // Botão exclusivo do embarque
-            const carregarBtn = document.getElementById('mobileNavCarregar');
-            if (carregarBtn) carregarBtn.style.display = isEmbarque ? 'flex' : 'none';
+            // Botões exclusivos do embarque
+            [['mobileNavCarregar','flex'],['navBtnCarregar','flex']].forEach(([id, displayVal]) => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = isEmbarque ? displayVal : 'none';
+            });
 
             // Embarque: Salvar | Carregar | Limpar (3 colunas)
             const row1 = document.getElementById('mobileNavRow1');
