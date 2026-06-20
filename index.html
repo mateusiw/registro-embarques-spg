@@ -1208,6 +1208,14 @@
                     if (fetchOk) {
                         const existingByCodigo = rows.find(row => String(row.Codigo || '').trim() === codigo);
                         if (existingByCodigo) {
+                            if (String(existingByCodigo.statusRegistro || '') === 'pendente') {
+                                editModeTimestamp = String(existingByCodigo.Timestamp);
+                                _editPassword = 'spg@2024';
+                                await _doSaveToCloud();
+                                editModeTimestamp = null;
+                                _editPassword = null;
+                                return;
+                            }
                             showMessageModal('Embarque já enviado', `O embarque Nº ${codigo} já foi registrado e não pode ser reenviado. Caso precise corrigir, solicite ao responsável.`, 'error');
                             return;
                         }
@@ -1981,7 +1989,7 @@
                             editModeTimestamp = String(row.Timestamp);
                             _editPassword = password;
                             const codigo = row.Codigo || '—';
-                            const rawDate = row.Data ? String(row.Data) : '';
+                            const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
                             const parts = rawDate.split('-');
                             const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
                             const banner = document.getElementById('editModeBanner');
