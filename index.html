@@ -905,6 +905,7 @@
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
 
         let currentUser = null; // { nome, perfil }
+        let _isSaving = false;
         let currentReportId = "------";
         let currentPdfMode = 'interno';
         let currentPdfLayout = 'print';
@@ -1025,55 +1026,95 @@
 
         // ===== SALVAR NA NUVEM (com verificação automática de duplicata) =====
 
+        function _setSavingState(saving) {
+            _isSaving = saving;
+            const btns = [
+                document.getElementById('saveCloudBtn'),
+                document.getElementById('saveCloudBtnMobile')
+            ];
+            btns.forEach(btn => {
+                if (!btn) return;
+                if (saving) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.style.pointerEvents = 'none';
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '';
+                    btn.style.pointerEvents = '';
+                }
+            });
+        }
+
         async function saveToCloud() {
+            if (_isSaving) return;
+
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
                 return;
             }
 
-            // Modo edição manual: salva direto como update
-            if (editModeTimestamp) {
+            _setSavingState(true);
+            try {
+                // Modo edição manual: salva direto como update
+                if (editModeTimestamp) {
+                    await _doSaveToCloud();
+                    return;
+                }
+
+                const codigo = document.getElementById('embarqueCodigo').value.trim();
+                const currentNfes = nfeList.filter(n => n.trim());
+
+                // Se não tem código nem NFe, salva como novo direto
+                if (!codigo && !currentNfes.length) {
+                    await _doSaveToCloud();
+                    return;
+                }
+
+                // Garante historyRows carregado para checar duplicata
+                let rows = historyRows;
+                if (!rows.length) {
+                    try {
+                        const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                        const result = await resp.json();
+                        if (result.success) { rows = result.rows || []; historyRows = rows; }
+                    } catch(e) {}
+                }
+
+                const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
+
+                // Para perfil embarque: bloqueia reenvio se o código já existe no servidor
+                if (isEmbarquePerfil && codigo) {
+                    const existingByCodigo = rows.find(row => String(row.Codigo || '').trim() === codigo);
+                    if (existingByCodigo) {
+                        showMessageModal('Embarque já enviado', `O embarque Nº ${codigo} já foi registrado e não pode ser reenviado. Caso precise corrigir, solicite ao responsável.`, 'error');
+                        return;
+                    }
+                }
+
+                // Para perfil master: procura registro com mesmo código de embarque E mesma NFe para atualizar
+                if (!isEmbarquePerfil) {
+                    const match = rows.find(row => {
+                        const rowCodigo = String(row.Codigo || '').trim();
+                        const rowNfes   = String(row.NFes   || '').split(',').map(n => n.trim()).filter(Boolean);
+                        const codigoOk  = codigo && rowCodigo === codigo;
+                        const nfeOk     = currentNfes.length && currentNfes.some(n => rowNfes.includes(n.trim()));
+                        return codigoOk && nfeOk;
+                    });
+
+                    if (match) {
+                        editModeTimestamp = String(match.Timestamp);
+                        _editPassword = 'spg@2024';
+                        await _doSaveToCloud();
+                        editModeTimestamp = null;
+                        _editPassword = null;
+                        return;
+                    }
+                }
+
                 await _doSaveToCloud();
-                return;
-            }
-
-            const codigo = document.getElementById('embarqueCodigo').value.trim();
-            const currentNfes = nfeList.filter(n => n.trim());
-
-            // Se não tem código nem NFe, salva como novo direto
-            if (!codigo && !currentNfes.length) {
-                await _doSaveToCloud();
-                return;
-            }
-
-            // Garante historyRows carregado para checar duplicata
-            let rows = historyRows;
-            if (!rows.length) {
-                try {
-                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                    const result = await resp.json();
-                    if (result.success) { rows = result.rows || []; historyRows = rows; }
-                } catch(e) {}
-            }
-
-            // Procura registro com mesmo código de embarque E mesma NFe
-            const match = rows.find(row => {
-                const rowCodigo = String(row.Codigo || '').trim();
-                const rowNfes   = String(row.NFes   || '').split(',').map(n => n.trim()).filter(Boolean);
-                const codigoOk  = codigo && rowCodigo === codigo;
-                const nfeOk     = currentNfes.length && currentNfes.some(n => rowNfes.includes(n.trim()));
-                return codigoOk && nfeOk;
-            });
-
-            if (match) {
-                // Substitui o registro existente automaticamente
-                editModeTimestamp = String(match.Timestamp);
-                _editPassword = 'spg@2024';
-                await _doSaveToCloud();
-                editModeTimestamp = null;
-                _editPassword = null;
-            } else {
-                await _doSaveToCloud();
+            } finally {
+                _setSavingState(false);
             }
         }
 
