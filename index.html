@@ -611,11 +611,15 @@
             </div>
             <div class="px-4 pt-3 pb-0 border-b border-slate-100 shrink-0 space-y-2">
                 <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
-                <div class="flex gap-2 pb-3">
+                <div class="flex gap-2 pb-3 flex-wrap">
                     <button id="tabTodos" onclick="setHistoryTab('todos')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all">Todos</button>
                     <button id="tabPendentes" onclick="setHistoryTab('pendentes')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5">
                         Pendentes
                         <span id="tabPendentesBadge" class="hidden min-w-[18px] h-[18px] bg-amber-400 text-slate-900 text-[10px] font-black rounded-full inline-flex items-center justify-center px-1"></span>
+                    </button>
+                    <button id="tabRevisados" onclick="setHistoryTab('revisados')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5">
+                        Revisados
+                        <span id="tabRevisadosBadge" class="hidden min-w-[18px] h-[18px] bg-emerald-400 text-white text-[10px] font-black rounded-full inline-flex items-center justify-center px-1"></span>
                     </button>
                 </div>
             </div>
@@ -1268,26 +1272,27 @@
         function _updateHistoryTabUI() {
             const todos = document.getElementById('tabTodos');
             const pend  = document.getElementById('tabPendentes');
+            const rev   = document.getElementById('tabRevisados');
             if (!todos || !pend) return;
-            if (_historyTab === 'pendentes') {
-                todos.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
-                pend.className  = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-white transition-all flex items-center gap-1.5';
-            } else {
-                todos.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all';
-                pend.className  = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5';
-            }
+            const base   = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all';
+            const baseFL = base + ' flex items-center gap-1.5';
+            todos.className = _historyTab === 'todos'      ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all'    : base;
+            pend.className  = _historyTab === 'pendentes'  ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 text-white transition-all flex items-center gap-1.5'   : baseFL;
+            if (rev) rev.className = _historyTab === 'revisados' ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white transition-all flex items-center gap-1.5' : baseFL;
         }
 
         function _updatePendingUI() {
-            const pendentes = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
-            const count = pendentes.length;
+            const pendentes  = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
+            const revisados  = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'revisado');
+            const countPend  = pendentes.length;
+            const countRev   = revisados.length;
 
             // banner
             const banner = document.getElementById('pendingBanner');
             if (banner) {
-                if (count > 0 && currentUser && currentUser.perfil === 'master') {
+                if (countPend > 0 && currentUser && currentUser.perfil === 'master') {
                     banner.classList.remove('hidden');
-                    document.getElementById('pendingCount').textContent = count;
+                    document.getElementById('pendingCount').textContent = countPend;
                 } else {
                     banner.classList.add('hidden');
                 }
@@ -1295,9 +1300,9 @@
             // badge botão histórico
             const badge = document.getElementById('histPendingBadge');
             if (badge) {
-                if (count > 0 && currentUser && currentUser.perfil === 'master') {
+                if (countPend > 0 && currentUser && currentUser.perfil === 'master') {
                     badge.classList.remove('hidden');
-                    badge.textContent = count;
+                    badge.textContent = countPend;
                 } else {
                     badge.classList.add('hidden');
                 }
@@ -1305,8 +1310,14 @@
             // badge tab pendentes
             const tabBadge = document.getElementById('tabPendentesBadge');
             if (tabBadge) {
-                if (count > 0) { tabBadge.classList.remove('hidden'); tabBadge.textContent = count; }
+                if (countPend > 0) { tabBadge.classList.remove('hidden'); tabBadge.textContent = countPend; }
                 else tabBadge.classList.add('hidden');
+            }
+            // badge tab revisados
+            const tabRevBadge = document.getElementById('tabRevisadosBadge');
+            if (tabRevBadge) {
+                if (countRev > 0) { tabRevBadge.classList.remove('hidden'); tabRevBadge.textContent = countRev; }
+                else tabRevBadge.classList.add('hidden');
             }
         }
 
@@ -1333,6 +1344,8 @@
                 : [...historyRows];
             if (_historyTab === 'pendentes') {
                 base = base.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
+            } else if (_historyTab === 'revisados') {
+                base = base.filter(r => (r.StatusRegistro || '').toLowerCase() === 'revisado');
             }
             historyRowsFiltered = base;
             renderHistoryList(historyRowsFiltered);
@@ -1341,7 +1354,7 @@
         function renderHistoryList(rows) {
             const container = document.getElementById('historyList');
             if (!rows.length) {
-                const msg = _historyTab === 'pendentes' ? 'Nenhum embarque pendente.' : 'Nenhum registro encontrado.';
+                const msg = _historyTab === 'pendentes' ? 'Nenhum embarque pendente.' : _historyTab === 'revisados' ? 'Nenhum embarque revisado.' : 'Nenhum registro encontrado.';
                 container.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">${msg}</div>`;
                 return;
             }
@@ -1357,21 +1370,26 @@
                 const product = row.Produto || '—';
                 const inspector = row.Responsavel || '—';
                 const client = row.Cliente || '';
-                const isPending = (row.StatusRegistro || '').toLowerCase() === 'pendente';
-                const pendingBadge = isPending
+                const status = (row.StatusRegistro || '').toLowerCase();
+                const isPending  = status === 'pendente';
+                const isReviewed = status === 'revisado';
+                const statusBadge = isPending
                     ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</span>`
+                    : isReviewed
+                    ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Revisado</span>`
                     : '';
                 const reviewBtn = (isPending && isMaster)
                     ? `<button onclick="markReviewed(${originalIdx})" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Revisado</button>`
                     : '';
+                const cardBorder = isPending ? 'border-amber-300 bg-amber-50' : isReviewed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200';
                 return `
-                <div class="border ${isPending ? 'border-amber-300 bg-amber-50' : 'border-slate-200'} rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
+                <div class="border ${cardBorder} rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="text-xs font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">${code}</span>
                                 <span class="text-xs text-slate-400">${dateDisplay}</span>
-                                ${pendingBadge}
+                                ${statusBadge}
                             </div>
                             <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
                             <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
