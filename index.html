@@ -403,26 +403,27 @@
                         <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
                             <i data-lucide="car" class="w-5 h-5"></i>
                         </div>
-                        <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Veículo / Logística</h2>
+                        <h2 id="section-veiculo-title" class="text-sm font-black text-slate-800 uppercase tracking-wide">Veículo / Logística</h2>
                     </div>
 
-                    <div class="mb-3">
+                    <div id="field-driverName" class="mb-3">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nome do Motorista</label>
                         <input type="text" id="driverName" placeholder="Ex: João Silva" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
+                        <div id="field-vehiclePlate">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Placa do Veículo</label>
                             <input type="text" id="vehiclePlate" placeholder="Ex: ABC-1234" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
                         </div>
-                        <div>
+                        <div id="field-departureTime">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Horário da Saída</label>
                             <input type="time" id="departureTime" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                            <p class="text-[9px] text-slate-400 mt-1 leading-tight">Horário em que o motorista saiu da empresa.</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div id="field-sensorLacre" class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nº do Sensor</label>
                             <input type="text" id="sensorNumber" placeholder="Ex: S-042" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
@@ -1880,6 +1881,7 @@
         let _editSnapshot = null;
 
         function editHistoryReport(idx, password) {
+            closeHistoryModal();
             loadHistoryReport(idx);
             _editSnapshot = collectFormData();
             const row = historyRowsFiltered[idx];
@@ -2411,7 +2413,7 @@
             const isEmbarque = currentUser.perfil === 'embarque';
             const masterOnly = [
                 'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
-                'section-veiculo', 'section-descartes',
+                'section-descartes',
                 'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
                 'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                 'tab-preview-btn'
@@ -2420,6 +2422,16 @@
                 const el = document.getElementById(id);
                 if (el) el.style.display = isEmbarque ? 'none' : '';
             });
+
+            // Seção Veículo/Logística: o embarque informa apenas o Horário da Saída
+            // (é quem acompanha o caminhão deixando a empresa). Os demais campos
+            // do veículo continuam exclusivos do master.
+            ['field-driverName', 'field-vehiclePlate', 'field-sensorLacre'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = isEmbarque ? 'none' : '';
+            });
+            const veiculoTitle = document.getElementById('section-veiculo-title');
+            if (veiculoTitle) veiculoTitle.textContent = isEmbarque ? 'Horário da Saída' : 'Veículo / Logística';
 
             // Botões exclusivos do embarque
             [['mobileNavCarregar','flex'],['navBtnCarregar','flex']].forEach(([id, displayVal]) => {
