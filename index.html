@@ -1423,31 +1423,13 @@
             const isEdit = !!editModeTimestamp;
             let body;
 
-            if (isEdit && _editSnapshot) {
-                const current = collectFormData();
-                const changedColumns = _computeEditDiff(current, _editSnapshot);
-                if (Object.keys(changedColumns).length === 0) {
-                    hideSaveLoadingModal();
-                    showMessageModal('Sem alterações', 'Nenhum campo foi modificado.', 'info');
-                    return;
-                }
-                body = JSON.stringify({
-                    action: 'updateFields',
-                    originalTimestamp: editModeTimestamp,
-                    password: _editPassword,
-                    embarqueCodigo: current.embarqueCodigo || '',
-                    reportDate: current.reportDate || '',
-                    changedColumns
-                });
-            } else {
-                const data = collectFormData();
-                if (isEdit) {
-                    data.action = 'update';
-                    data.originalTimestamp = editModeTimestamp;
-                    data.password = _editPassword;
-                }
-                body = JSON.stringify(data);
+            const data = collectFormData();
+            if (isEdit) {
+                data.action = 'update';
+                data.originalTimestamp = editModeTimestamp;
+                data.password = _editPassword;
             }
+            body = JSON.stringify(data);
 
             setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
             let serverPct = 10;
