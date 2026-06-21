@@ -1164,6 +1164,13 @@
 
             // Modo edição (master editando ou embarque atualizando pendente): salva como update
             if (editModeTimestamp) {
+                // Master deve escolher qual status manter ao editar (não assumir "revisado").
+                // O perfil embarque permanece sempre "pendente", sem perguntar.
+                if (currentUser && currentUser.perfil === 'master') {
+                    document.getElementById('saveStatusModal').classList.remove('hidden');
+                    lucide.createIcons();
+                    return;
+                }
                 _setSavingState(true);
                 try { await _doSaveToCloud(); } finally { _setSavingState(false); }
                 return;
@@ -1473,9 +1480,13 @@
                     saveToLocalStorage();
                     if (isEdit) {
                         clearEditMode();
-                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                        // Limpa o formulário após o envio para evitar reenvio acidental do mesmo registro
+                        executeClearForm();
+                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha. O formulário foi limpo.', 'success');
                     } else {
-                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
+                        // Limpa o formulário após o envio para evitar reenvio acidental do mesmo registro
+                        executeClearForm();
+                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive. O formulário foi limpo.', 'success');
                     }
                 } else {
                     showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
@@ -1860,6 +1871,12 @@
                 }
                 partnersData = [];
 
+                // Converte parceiros legados (pl.partners) para grupos editáveis (Parceiro + Lote)
+                _migratePalletPartnersToGroups();
+                // Parceiros vêm recolhidos para a lista não ficar longa
+                palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => { g.collapsed = true; }));
+                if (palletsData.length) _collapsedPallets = palletsData.map(() => false);
+
                 renderNfeInputs();
                 renderPartners();
                 renderDiscards();
@@ -1891,14 +1908,12 @@
             _editPassword = password || null;
 
             const codigo = row.Codigo || '—';
-            const rawDate = row.Data ? String(row.Data) : '';
-            const parts = rawDate.split('-');
-            const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
+            const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
 
             const banner = document.getElementById('editModeBanner');
-            document.getElementById('editModeBannerText').textContent =
-                `Editando: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será substituído.`;
+            document.getElementById('editModeBannerText').textContent = _buildEditBannerText('edit', codigo, rawDate);
             banner.classList.remove('hidden');
+            _persistEditMode('edit', codigo, rawDate);
 
             // Vai para aba formulário no mobile
             switchMobileTab('form');
@@ -1910,6 +1925,56 @@
             _editPassword = null;
             _editSnapshot = null;
             document.getElementById('editModeBanner').classList.add('hidden');
+            try { sessionStorage.removeItem('spg_edit_mode'); } catch(e) {}
+        }
+
+        // Converte uma data (ISO do Sheets ou YYYY-MM-DD) para DD/MM/AAAA.
+        function _formatDateBR(value) {
+            const d = String(value || '').substring(0, 10).split('-');
+            return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : String(value || '');
+        }
+
+        // Monta o texto do banner de modo edição sempre com a data formatada.
+        function _buildEditBannerText(mode, codigo, rawDate) {
+            const dateDisplay = _formatDateBR(rawDate);
+            if (mode === 'load') {
+                return `Carregado: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será atualizado.`;
+            }
+            return `Editando: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será substituído.`;
+        }
+
+        // Persiste o modo edição para sobreviver a um F5/refresh da página.
+        // Sem isso, ao atualizar a página o app perde o editModeTimestamp e
+        // passa a salvar como registro novo em vez de atualizar o existente.
+        // Guardamos os dados crus (não o texto pronto) para o banner ser
+        // sempre remontado com a formatação atual.
+        function _persistEditMode(mode, codigo, rawDate) {
+            try {
+                sessionStorage.setItem('spg_edit_mode', JSON.stringify({
+                    timestamp: editModeTimestamp,
+                    password: _editPassword,
+                    mode: mode || 'edit',
+                    codigo: codigo || '—',
+                    rawDate: rawDate || ''
+                }));
+            } catch(e) {}
+        }
+
+        function _restoreEditMode() {
+            let saved;
+            try { saved = JSON.parse(sessionStorage.getItem('spg_edit_mode') || 'null'); }
+            catch(e) { return; }
+            if (!saved || !saved.timestamp) return;
+            editModeTimestamp = saved.timestamp;
+            _editPassword = saved.password || null;
+            _editSnapshot = collectFormData();
+            const banner = document.getElementById('editModeBanner');
+            if (banner) {
+                document.getElementById('editModeBannerText').textContent =
+                    _buildEditBannerText(saved.mode, saved.codigo, saved.rawDate);
+                banner.classList.remove('hidden');
+            }
+            lucide.createIcons();
         }
 
         function toggleMobilePopup(name) {
@@ -2085,12 +2150,10 @@
                             _editPassword = password;
                             const codigo = row.Codigo || '—';
                             const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
-                            const parts = rawDate.split('-');
-                            const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : rawDate;
                             const banner = document.getElementById('editModeBanner');
-                            document.getElementById('editModeBannerText').textContent =
-                                `Carregado: Embarque ${codigo} · ${dateDisplay}. Ao salvar, o registro original será atualizado.`;
+                            document.getElementById('editModeBannerText').textContent = _buildEditBannerText('load', codigo, rawDate);
                             banner.classList.remove('hidden');
+                            _persistEditMode('load', codigo, rawDate);
                             switchMobileTab('form');
                             lucide.createIcons();
                         }
@@ -2275,6 +2338,10 @@
                 const fields = ['driverName','vehiclePlate','departureTime','sensorNumber','lacreNumber'];
                 fields.forEach(f => { if (data[f] !== undefined) document.getElementById(f).value = data[f]; });
                 if (data.palletsData && data.palletsData.length) palletsData = data.palletsData;
+                // Converte parceiros legados (pl.partners) para grupos editáveis (Parceiro + Lote)
+                _migratePalletPartnersToGroups();
+                // Parceiros vêm recolhidos por padrão para a lista não ficar longa
+                palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => { g.collapsed = true; }));
                 return true;
             } catch(e) { return false; }
         }
@@ -2329,6 +2396,7 @@
             renderPhotos();
             updatePreview();
             applyProfileRestrictions();
+            _restoreEditMode();
             checkPendingNotifications();
         }
 
@@ -2850,53 +2918,120 @@
         function getValidPartners() {
             return partnersData.filter(p => getPartnerName(p).trim() !== '' && p.qty !== '' && !isNaN(parseFloat(p.qty)));
         }
+        // Achata os grupos de parceiro de cada pallet (partnerGroups) em uma linha
+        // por parceiro/pallet, com a quantidade = soma das caixas dos lotes.
+        function _flattenPalletPartnerGroups() {
+            const rows = [];
+            palletsData.forEach(pl => {
+                const plLabel = (pl.label || '').trim();
+                (pl.partnerGroups || []).forEach(g => {
+                    const name = (g.name === 'Outro' ? (g.nameCustom || '') : (g.name || '')).trim();
+                    if (!name) return;
+                    const lots = g.lots || [];
+                    const qty = lots.reduce((s, l) => s + (parseFloat(l.boxes) || 0), 0);
+                    if (qty <= 0) return;
+                    const products = Array.from(new Set(lots
+                        .map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim())
+                        .filter(Boolean)));
+                    const dates = Array.from(new Set(lots.map(l => l.harvestDate).filter(Boolean)));
+                    rows.push({
+                        name, qty, palletLabel: plLabel,
+                        unit: products.join(', '),
+                        harvestDate: dates.length === 1 ? dates[0] : ''
+                    });
+                });
+            });
+            return rows;
+        }
+
         function getGroupedPartners() {
             const map = new Map();
 
-            // Parceiros dentro de cada pallet (novo formato)
-            palletsData.forEach(pl => {
-                (pl.partners || []).forEach(p => {
-                    const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
-                    if (!name || p.qty === '' || isNaN(parseFloat(p.qty))) return;
-                    const key = 'plt|' + name;
-                    if (map.has(key)) {
-                        map.get(key).qty = String(parseFloat(map.get(key).qty) + parseFloat(p.qty));
-                    } else {
-                        map.set(key, { name: p.name === 'Outro' ? 'Outro' : name, nameCustom: p.name === 'Outro' ? name : '', qty: String(parseFloat(p.qty)), unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' });
-                    }
-                });
-            });
-
-            // Parceiros da seção standalone (retrocompatibilidade com registros antigos)
-            const valid = getValidPartners();
-            valid.forEach(p => {
-                const key = 'std|' + getPartnerName(p).trim() + '|' + getPartnerUnit(p) + '|' + (p.harvestDate || '');
+            const add = (name, qty, palletLabel, unit, harvestDate) => {
+                if (!name || !(qty > 0)) return;
+                const key = name.trim().toLowerCase();
                 if (map.has(key)) {
-                    map.get(key).qty = String(parseFloat(map.get(key).qty) + parseFloat(p.qty));
+                    const e = map.get(key);
+                    e.qtyNum += qty;
+                    if (palletLabel) e._pallets.add(palletLabel);
+                    if (unit) unit.split(', ').filter(Boolean).forEach(u => e._units.add(u));
+                    if (harvestDate) e._dates.add(harvestDate);
                 } else {
-                    map.set(key, Object.assign({}, p, { qty: parseFloat(p.qty).toString() }));
+                    map.set(key, {
+                        name: name.trim(), nameCustom: '', qtyNum: qty,
+                        _pallets: new Set(palletLabel ? [palletLabel] : []),
+                        _units: new Set(unit ? unit.split(', ').filter(Boolean) : []),
+                        _dates: new Set(harvestDate ? [harvestDate] : [])
+                    });
                 }
-            });
+            };
 
-            return Array.from(map.values());
-        }
-        function getPalletPartnerRows() {
-            const rows = [];
+            // Fonte primária: grupos de parceiro dentro dos pallets (com lotes)
+            _flattenPalletPartnerGroups().forEach(r => add(r.name, r.qty, r.palletLabel, r.unit, r.harvestDate));
+
+            // Retrocompatibilidade: registros antigos guardavam parceiros em pl.partners
             palletsData.forEach(pl => {
+                const plLabel = (pl.label || '').trim();
                 (pl.partners || []).forEach(p => {
                     const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
-                    if (!name || p.qty === '' || isNaN(parseFloat(p.qty))) return;
-                    rows.push({ name: p.name === 'Outro' ? 'Outro' : name, nameCustom: p.name === 'Outro' ? name : '', qty: String(parseFloat(p.qty)), unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '', palletLabel: (pl.label || '').trim() });
+                    const qty = parseFloat(p.qty);
+                    if (!name || isNaN(qty)) return;
+                    add(name, qty, plLabel, 'Brócolis Inteiro', p.harvestDate || '');
                 });
             });
-            const valid = getValidPartners();
-            valid.forEach(p => rows.push(Object.assign({}, p, { qty: String(parseFloat(p.qty)), palletLabel: '' })));
-            return rows;
+
+            // Retrocompatibilidade: seção avulsa de parceiros (formato muito antigo)
+            getValidPartners().forEach(p => add(getPartnerName(p).trim(), parseFloat(p.qty), '', getPartnerUnit(p), p.harvestDate || ''));
+
+            return Array.from(map.values()).map(e => {
+                const labels = Array.from(e._pallets).sort((a, b) => {
+                    const na = parseInt(String(a).replace(/\D/g, ''), 10);
+                    const nb = parseInt(String(b).replace(/\D/g, ''), 10);
+                    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+                    return String(a).localeCompare(String(b), 'pt-BR');
+                });
+                const dates = Array.from(e._dates);
+                return {
+                    name: e.name, nameCustom: '',
+                    qty: String(e.qtyNum),
+                    unit: Array.from(e._units).join(', '), unitCustom: '',
+                    harvestDate: dates.length === 1 ? dates[0] : '',
+                    palletLabel: labels.join(', ')
+                };
+            });
         }
         function getMaxPartner() {
             const grouped = getGroupedPartners();
             if (grouped.length === 0) return null;
             return grouped.reduce((max, p) => parseFloat(p.qty) > parseFloat(max.qty) ? p : max, grouped[0]);
+        }
+
+        // Converte parceiros no formato legado (pl.partners) para o sistema atual
+        // "Parceiro + Lote" (pl.partnerGroups), para que possam ser editados.
+        // Cada parceiro vira um grupo com um lote contendo as caixas informadas.
+        function _migratePalletPartnersToGroups() {
+            (palletsData || []).forEach(pl => {
+                if (!Array.isArray(pl.partners) || pl.partners.length === 0) return;
+                if (!Array.isArray(pl.partnerGroups)) pl.partnerGroups = [];
+                pl.partners.forEach(p => {
+                    const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
+                    const qty = parseFloat(p.qty);
+                    if (!name && isNaN(qty)) return;
+                    // Reaproveita um grupo já existente com o mesmo nome, se houver
+                    let g = pl.partnerGroups.find(gr => {
+                        const gn = (gr.name === 'Outro' ? (gr.nameCustom || '') : (gr.name || '')).trim().toLowerCase();
+                        return gn === name.toLowerCase();
+                    });
+                    if (!g) {
+                        const isPreset = PARTNER_PRESETS.includes(name);
+                        g = { name: isPreset ? name : (name ? 'Outro' : ''), nameCustom: isPreset ? '' : name, collapsed: true, lots: [] };
+                        pl.partnerGroups.push(g);
+                    }
+                    if (!Array.isArray(g.lots)) g.lots = [];
+                    g.lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: isNaN(qty) ? '' : String(qty), harvestDate: p.harvestDate || '' });
+                });
+                pl.partners = []; // já migrado
+            });
         }
 
         // ---------- Pallets ----------
@@ -2927,6 +3062,7 @@
         function addPalletLot(pIdx, gIdx) {
             if (!palletsData[pIdx].partnerGroups[gIdx].lots) palletsData[pIdx].partnerGroups[gIdx].lots = [];
             palletsData[pIdx].partnerGroups[gIdx].lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: '', harvestDate: '' });
+            palletsData[pIdx].partnerGroups[gIdx].collapsed = false; // abre o grupo para mostrar o novo lote
             renderPallets();
         }
         function removePalletLot(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots.splice(lIdx, 1); renderPallets(); updatePreview(); }
@@ -2950,6 +3086,7 @@
             if (groups.length === 0) return addBtn;
             const groupsHtml = groups.map((g, gIdx) => {
                 const total = (g.lots||[]).reduce((s, lot) => s + (parseFloat(lot.boxes)||0), 0);
+                if (g.collapsed === undefined) g.collapsed = true; // padrão: recolhido
                 const collapsed = g.collapsed === true;
                 const nameSel = g.name || '';
                 const nameEl = nameSel === 'Outro'
@@ -3041,7 +3178,6 @@
                     ${collapsed ? '' : `
                     <div class="p-2 bg-amber-50 border-t border-amber-100 space-y-2">
                         ${isEmbarquePerfil ? '' : _renderPalletGroups(idx, pl)}
-                        ${isEmbarquePerfil ? '' : _renderPalletPartners(idx, pl)}
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${photos.map((src, pidx) => `
                                 <div class="relative group">
@@ -3527,18 +3663,12 @@
                     const temp = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
                     const palletGroups = (pl.partnerGroups||[]);
                     const legacyItems  = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
+                    const totalBoxes = palletGroups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0)
+                                     + legacyItems.reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
                     const boxesHtml = (palletGroups.length || legacyItems.length)
-                        ? [
-                            ...palletGroups.flatMap(g =>
-                                (g.lots||[]).filter(l => l.boxes!=='' && l.boxes!=null).map(l => {
-                                    const boxLabel = l.boxType==='Outro'?(l.boxTypeCustom||''):l.boxType;
-                                    return `<span style="display:block;">${l.boxes} cx${boxLabel?' <span style="color:#92400e;font-weight:600;">('+boxLabel+')</span>':''}</span>`;
-                                })
-                            ),
-                            ...legacyItems.map(it => { const boxLabel=it.boxType==='Outro'?(it.boxTypeCustom||''):it.boxType; return `<span style="display:block;">${it.boxes} cx${boxLabel?' <span style="color:#92400e;font-weight:600;">('+boxLabel+')</span>':''}</span>`; })
-                          ].join('')
+                        ? totalBoxes + ' cx'
                         : (pl.boxes ? pl.boxes+' cx' : '—');
-                    return `${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;')}`;
+                    return `${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;text-align:center;')}`;
                 };
                 let rows = `<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}</tr>`;
                 if (!validPallets.length) {
@@ -3564,15 +3694,15 @@
             ${showInternalSections ? `
             <!-- 6. PARCEIROS / QUANTIDADES -->
             ${rpSH(rn(),'Parceiros / Quantidades')}
-            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Quantidade',80)}${rpTH('Unidade',75)}${rpTH('Data Colheita',85)}${rpTH('% do Total',75)}</tr>
+            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Pallet',70)}${rpTH('Quantidade',80)}${rpTH('Unidade',75)}${rpTH('Data Colheita',85)}${rpTH('% do Total',75)}</tr>
             ${validPartners.length ? validPartners.map((p,i)=>{
                 const pct = totalQty>0 ? (parseFloat(p.qty)/totalQty*100).toFixed(1)+'%' : '—';
                 const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p)+'|'+(p.harvestDate||'') === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner)+'|'+(maxPartner.harvestDate||'');
                 const bg = i%2===0?'':'background:#f0f6ff;';
                 const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
-                return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
-            }).join('') : `<tr><td colspan="5" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+                return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
+            }).join('') : `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
+            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
@@ -3944,22 +4074,9 @@
                 const temp  = pl.temp !== '' && pl.temp != null ? pl.temp+'°C' : '—';
                 const palGrps = (pl.partnerGroups||[]);
                 const legItems = (pl.items||[]).filter(it => it.boxes!=='' && it.boxes!=null);
-                const boxes = (palGrps.length || legItems.length)
-                    ? [
-                        ...palGrps.flatMap(g => {
-                            const pName = g.name==='Outro'?(g.nameCustom||''):(g.name||'');
-                            return (g.lots||[]).filter(l => l.boxes!=='' && l.boxes!=null).map(l => {
-                                const prod = l.product==='Outro'?(l.productCustom||''):l.product;
-                                const bx   = l.boxType==='Outro'?(l.boxTypeCustom||''):l.boxType;
-                                const hd   = l.harvestDate?(()=>{const d=l.harvestDate.split('-');return d[2]+'/'+d[1];})():'';
-                                const main = [prod,bx].filter(Boolean).join(' · ');
-                                const sub  = [pName, hd?'Col. '+hd:''].filter(Boolean).join(' · ');
-                                return `${l.boxes} cx${main?' ('+main+')':''}${sub?' ['+sub+']':''}`;
-                            });
-                        }),
-                        ...legItems.map(it => { const prod=it.product==='Outro'?(it.productCustom||''):it.product; const bx=it.boxType==='Outro'?(it.boxTypeCustom||''):it.boxType; const main=[prod,bx].filter(Boolean).join(' · '); return `${it.boxes} cx${main?' ('+main+')':''}`; })
-                      ].join('\n')
-                    : '—';
+                const totalBoxes = palGrps.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0)
+                                 + legItems.reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
+                const boxes = (palGrps.length || legItems.length) ? (totalBoxes + ' cx') : '—';
                 return [pl.label, temp, boxes];
             });
             const palletRows = [];
@@ -3977,8 +4094,8 @@
                 head: [['Pallet','Temperatura','Qtd. Caixas','Pallet','Temperatura','Qtd. Caixas']],
                 body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','','','','']],
                 columnStyles: {
-                    0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber},
-                    3:{fontStyle:'bold'}, 4:{halign:'center',fontStyle:'bold',textColor:C.amber},
+                    0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber}, 2:{halign:'center',fontStyle:'bold'},
+                    3:{fontStyle:'bold'}, 4:{halign:'center',fontStyle:'bold',textColor:C.amber}, 5:{halign:'center',fontStyle:'bold'},
                 },
             }));
             y = doc.lastAutoTable.finalY;
@@ -4020,17 +4137,18 @@
                     const hd   = p.harvestDate ? (hd=>{const pp=hd.split('-');return `${pp[2]}/${pp[1]}/${pp[0]}`;}) (p.harvestDate) : '—';
                     const nm   = getPartnerName(p);
                     const star = maxPartner && getPartnerName(maxPartner)===nm;
-                    return [{content:(star?'★ ':'')+nm, styles:{fontStyle:star?'bold':'normal'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
+                    return [{content:(star?'★ ':'')+nm, styles:{fontStyle:star?'bold':'normal'}}, {content:p.palletLabel||'—',styles:{halign:'center',fontStyle:'bold'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
                 });
                 if (pRows.length) pRows.push([
                     {content:'TOTAL',styles:{fontStyle:'bold'}},
+                    '',
                     {content:totalQty+' cx',styles:{fontStyle:'bold',halign:'right'}},
                     '','',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
                 ]);
                 doc.autoTable(tbl({ startY: y,
-                    head: [['Parceiro','Quantidade','Unidade','Data Colheita','% do Total']],
-                    body: pRows.length ? pRows : [['Nenhum parceiro.','','','','']],
-                    columnStyles: { 1:{halign:'right'}, 4:{halign:'right'} },
+                    head: [['Parceiro','Pallet','Quantidade','Unidade','Data Colheita','% do Total']],
+                    body: pRows.length ? pRows : [['Nenhum parceiro.','','','','','']],
+                    columnStyles: { 2:{halign:'right'}, 5:{halign:'right'} },
                 }));
                 y = doc.lastAutoTable.finalY;
 
@@ -4371,7 +4489,7 @@ Termostato: ${thermoMode} em ${thermoValue}°C
 ${validCustomTemps.length ? validCustomTemps.map(t => `${t.label}: ${t.value !== '' ? t.value + '°C' : 'não informado'}`).join('\n') : 'Nenhuma temperatura registrada.'}
 
 --- PARCEIROS / QUANTIDADES ---
-${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}: ${p.qty} cx (${getPartnerUnit(p)})`).join('\n') : 'Nenhum parceiro informado.'}
+${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}${p.palletLabel ? ' ['+p.palletLabel+']' : ''}: ${p.qty} cx (${getPartnerUnit(p)})`).join('\n') : 'Nenhum parceiro informado.'}
 Total: ${totalQty} unidades/caixas
 Maior envio: ${maxPartner ? getPartnerName(maxPartner) + ' (' + maxPartner.qty + ' cx - ' + getPartnerUnit(maxPartner) + ')' : '---'}
 
