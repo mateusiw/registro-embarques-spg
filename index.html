@@ -3278,8 +3278,6 @@
         }
         function handlePalletLotProductChange(pIdx, gIdx, lIdx, sel) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = sel.value; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); updatePreview(); }
         function clearPalletLotProduct(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); }
-        function handlePalletLotBoxTypeChange(pIdx, gIdx, lIdx, sel) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxType = sel.value; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxTypeCustom = ''; renderPallets(); updatePreview(); }
-        function clearPalletLotBoxType(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxType = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].boxTypeCustom = ''; renderPallets(); }
 
         function _renderPalletGroups(idx, pl) {
             const groups = pl.partnerGroups || [];
@@ -3299,10 +3297,7 @@
                         const prodEl = lot.product === 'Outro'
                             ? `<div class="relative"><input type="text" value="${(lot.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><button type="button" onclick="clearPalletLotProduct(${idx}, ${gIdx}, ${lIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
                             : `<select onchange="handlePalletLotProductChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Produto<\/option><option value="Brócolis" ${lot.product==='Brócolis'?'selected':''}>Brócolis<\/option><option value="Couve-Flor" ${lot.product==='Couve-Flor'?'selected':''}>Couve-Flor<\/option><option value="Tomatitos" ${lot.product==='Tomatitos'?'selected':''}>Tomatitos<\/option><option value="Pepinitos" ${lot.product==='Pepinitos'?'selected':''}>Pepinitos<\/option><option value="Outro">Outro...<\/option><\/select>`;
-                        const boxEl = lot.boxType === 'Outro'
-                            ? `<div class="relative"><input type="text" value="${(lot.boxTypeCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxTypeCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><button type="button" onclick="clearPalletLotBoxType(${idx}, ${gIdx}, ${lIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
-                            : `<select onchange="handlePalletLotBoxTypeChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Tipo caixa<\/option><option value="Plástica" ${lot.boxType==='Plástica'?'selected':''}>Plástica<\/option><option value="Papelão" ${lot.boxType==='Papelão'?'selected':''}>Papelão<\/option><option value="Outro">Outro...<\/option><\/select>`;
-                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><div class="w-28">${boxEl}<\/div><input type="number" min="0" value="${lot.boxes||''}" placeholder="Cx" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
+                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" value="${lot.boxes||''}" placeholder="Cx" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
                     }).join('')}<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-1 text-emerald-500 hover:text-emerald-700 text-[10px] font-bold mt-1"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button><\/div>`;
                 return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-0"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 ml-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${total} cx<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
             }).join('');
@@ -4028,6 +4023,7 @@
         }
         function chooseLayout(layout) {
             document.getElementById('layoutModal').classList.add('hidden');
+            unlockScroll(); // libera o scroll travado pelo lockScroll() do executeSend()
             currentPdfLayout = layout;
             downloadAndShare();
         }
@@ -4094,9 +4090,9 @@
                 setSaveProgress(30, 'Gerando PDF', 'Calculando layout do documento...');
                 const measuredY = await _buildPDF(4000, false);
                 setSaveProgress(70, 'Gerando PDF', 'Montando páginas e imagens...');
-                // A altura nunca pode ser menor que a largura (210mm): com orientation 'portrait'
+                // A altura nunca pode ser menor que a largura (280mm): com orientation 'portrait'
                 // o jsPDF inverteria largura/altura e cortaria o conteúdo (acontecia no PDF email curto).
-                await _buildPDF(Math.max(measuredY + 12, 211), true);
+                await _buildPDF(Math.max(measuredY + 12, 281), true);
             } else {
                 setSaveProgress(50, 'Gerando PDF', 'Montando páginas e imagens...');
                 await _buildPDF(297, true);
@@ -4107,8 +4103,13 @@
         async function _buildPDF(pageHeight, doSave) {
             const { jsPDF } = window.jspdf;
             const isScreen = currentPdfLayout === 'screen';
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [210, pageHeight] });
-            const PW = 210, PH = pageHeight, M = 3, CW = PW - 2 * M;
+            const PW = 280; // largura ampliada (antes 210/A4) para o texto não quebrar de linha
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PW, pageHeight] });
+            const PH = pageHeight, M = 3, CW = PW - 2 * M;
+            // As larguras de coluna abaixo foram definidas para um conteúdo de 204mm.
+            // K reescala tudo proporcionalmente para a nova largura útil (CW).
+            const K = CW / 204;
+            const cw = n => +(n * K).toFixed(2);
             let y = 0, secNum = 0;
 
             const C = {
@@ -4236,8 +4237,8 @@
                 body: [[codigo, nfeJoined, displayDate, product, client, inspector, shipResponsible]],
                 styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2, overflow: 'linebreak' },
                 columnStyles: {
-                    0:{cellWidth:22}, 1:{cellWidth:18}, 2:{cellWidth:20},
-                    3:{cellWidth:40, fontStyle:'bold'}, 4:{cellWidth:36}, 5:{cellWidth:34}, 6:{cellWidth:34},
+                    0:{cellWidth:cw(22)}, 1:{cellWidth:cw(18)}, 2:{cellWidth:cw(20)},
+                    3:{cellWidth:cw(40), fontStyle:'bold'}, 4:{cellWidth:cw(36)}, 5:{cellWidth:cw(34)}, 6:{cellWidth:cw(34)},
                 },
             }));
             y = doc.lastAutoTable.finalY;
@@ -4254,8 +4255,8 @@
                     : [driverName, plate, depTime, sensor, lacre]],
                 styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2, overflow: 'linebreak' },
                 columnStyles: _isEmail
-                    ? { 0:{cellWidth:44}, 1:{cellWidth:28,fontStyle:'bold'}, 2:{cellWidth:30,fontStyle:'bold'}, 3:{cellWidth:34}, 4:{cellWidth:34}, 5:{cellWidth:34,fontStyle:'bold'} }
-                    : { 0:{cellWidth:54}, 1:{cellWidth:36,fontStyle:'bold'}, 2:{cellWidth:36,fontStyle:'bold'}, 3:{cellWidth:39}, 4:{cellWidth:39} },
+                    ? { 0:{cellWidth:cw(44)}, 1:{cellWidth:cw(28),fontStyle:'bold'}, 2:{cellWidth:cw(30),fontStyle:'bold'}, 3:{cellWidth:cw(34)}, 4:{cellWidth:cw(34)}, 5:{cellWidth:cw(34),fontStyle:'bold'} }
+                    : { 0:{cellWidth:cw(54)}, 1:{cellWidth:cw(36),fontStyle:'bold'}, 2:{cellWidth:cw(36),fontStyle:'bold'}, 3:{cellWidth:cw(39)}, 4:{cellWidth:cw(39)} },
             }));
             y = doc.lastAutoTable.finalY;
 
@@ -4286,31 +4287,28 @@
                 head: [['Pallet','Temperatura','Qtd. Caixas','Pallet','Temperatura','Qtd. Caixas']],
                 body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','','','','']],
                 columnStyles: {
-                    0:{cellWidth:44,fontStyle:'bold'}, 1:{cellWidth:24,halign:'center',fontStyle:'bold',textColor:C.amber}, 2:{cellWidth:34,halign:'center',fontStyle:'bold'},
-                    3:{cellWidth:44,fontStyle:'bold'}, 4:{cellWidth:24,halign:'center',fontStyle:'bold',textColor:C.amber}, 5:{cellWidth:34,halign:'center',fontStyle:'bold'},
+                    0:{cellWidth:cw(44),fontStyle:'bold'}, 1:{cellWidth:cw(24),halign:'center',fontStyle:'bold',textColor:C.amber}, 2:{cellWidth:cw(34),halign:'center',fontStyle:'bold'},
+                    3:{cellWidth:cw(44),fontStyle:'bold'}, 4:{cellWidth:cw(24),halign:'center',fontStyle:'bold',textColor:C.amber}, 5:{cellWidth:cw(34),halign:'center',fontStyle:'bold'},
                 },
             }));
             y = doc.lastAutoTable.finalY;
 
-            // 4. Resumo
-            y += 2; sec('Resumo do Embarque');
-            const maxD = validDiscards.length ? validDiscards.reduce((mx,d) => parseFloat(d.weight)>parseFloat(mx.weight)?d:mx, validDiscards[0]) : null;
-            const isEmailMode = currentPdfMode === 'email';
-            doc.autoTable(tbl({ startY: y,
-                head: [isEmailMode
-                    ? ['Total Caixas/Unid.']
-                    : ['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
-                body: [isEmailMode
-                    ? [totalQty ? totalQty+' cx' : '---']
-                    : [
+            // 4. Resumo — omitido no PDF email (o total de caixas já consta em Veículo/Logística)
+            if (currentPdfMode !== 'email') {
+                y += 2; sec('Resumo do Embarque');
+                const maxD = validDiscards.length ? validDiscards.reduce((mx,d) => parseFloat(d.weight)>parseFloat(mx.weight)?d:mx, validDiscards[0]) : null;
+                doc.autoTable(tbl({ startY: y,
+                    head: [['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
+                    body: [[
                         totalQty ? totalQty+' cx' : '---',
                         String(validPartners.length || 0),
                         {content:(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
                         maxPartner ? getPartnerName(maxPartner) : '—',
                         maxD ? (maxD.partnerSel==='Outro'?maxD.partner:maxD.partnerSel)||'—' : '—',
                     ]],
-            }));
-            y = doc.lastAutoTable.finalY;
+                }));
+                y = doc.lastAutoTable.finalY;
+            }
 
             // 5. Temperaturas
             y += 2; sec('Temperaturas');
@@ -4525,9 +4523,23 @@
 
         function downloadFile(uri, name) { const link = document.createElement('a'); link.href = uri; link.download = name; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 
-        let _modalCount = 0;
-        function lockScroll()   { _modalCount++; document.body.style.overflow = 'hidden'; }
-        function unlockScroll() { _modalCount = Math.max(0, _modalCount - 1); if (_modalCount === 0) document.body.style.overflow = ''; }
+        // Trava de scroll robusta: em vez de contar locks/unlocks (frágil — um
+        // unlockScroll esquecido travava a página), o estado é derivado dos modais
+        // realmente visíveis. unlockScroll só libera quando nenhum modal está aberto.
+        const _MODAL_IDS = [
+            'usersModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
+            'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
+            'photoSourceModal','genericConfirmModal','conflictModal','passwordModal',
+            'saveLoadingModal','analysisModal'
+        ];
+        function _anyModalOpen() {
+            return _MODAL_IDS.some(id => {
+                const el = document.getElementById(id);
+                return el && !el.classList.contains('hidden');
+            });
+        }
+        function lockScroll()   { document.body.style.overflow = 'hidden'; }
+        function unlockScroll() { if (!_anyModalOpen()) document.body.style.overflow = ''; }
 
         function showMessageModal(title, message, type) {
             const modal = document.getElementById('messageModal');
@@ -4602,7 +4614,7 @@
             closeSettings();
             showMessageModal('CONFIGURAÇÕES SALVAS', 'As configurações foram salvas no seu dispositivo.', 'info');
         }
-        function closeAnalysis() { document.getElementById('analysisModal').classList.add('hidden'); }
+        function closeAnalysis() { document.getElementById('analysisModal').classList.add('hidden'); unlockScroll(); }
 
         // ---------- Análise IA ----------
         async function runAIAnalysis() {
@@ -4727,6 +4739,7 @@ Seja objetivo mas completo. Responda em português.`;
                 <p class="text-slate-500 text-sm font-bold uppercase tracking-widest">Analisando dados...</p>
             </div>`;
             modal.classList.remove('hidden');
+            lockScroll();
             lucide.createIcons();
 
             try {
