@@ -1987,16 +1987,10 @@
                     }
                 }
 
-                // HorarioSaida pode vir como ISO timestamp do Sheets (ex: 1899-12-30T17:30:00.000Z)
-                const rawTime = row.HorarioSaida ? String(row.HorarioSaida) : '';
-                if (rawTime) {
-                    let timeValue = rawTime;
-                    if (rawTime.includes('T')) {
-                        const timePart = rawTime.split('T')[1] || '';
-                        timeValue = timePart.substring(0, 5); // extrai HH:MM
-                    }
-                    document.getElementById('departureTime').value = timeValue;
-                }
+                // HorarioSaida pode vir como ISO em UTC do Sheets (ex: 1899-12-30T20:30:00.000Z,
+                // que equivale a 17:30 no fuso local). Convertendo para o horário local
+                // recuperamos exatamente o valor que foi digitado, sem somar o offset do fuso.
+                document.getElementById('departureTime').value = _parseHorarioSaida(row.HorarioSaida);
 
                 customTempsData = parse(row.Temperaturas);
                 discardsData    = parse(row.Descartes);
@@ -2088,6 +2082,23 @@
         function _formatDateBR(value) {
             const d = String(value || '').substring(0, 10).split('-');
             return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : String(value || '');
+        }
+
+        // Converte o HorarioSaida vindo da planilha para HH:MM no fuso local.
+        // O Sheets devolve horários como Date serializado em UTC (ex: ...T20:30:00Z = 17:30 local);
+        // usar getHours/getMinutes locais recupera o horário originalmente digitado.
+        // Se já vier como "HH:MM" (texto puro), retorna como está.
+        function _parseHorarioSaida(value) {
+            const raw = value ? String(value) : '';
+            if (!raw) return '';
+            if (raw.includes('T')) {
+                const d = new Date(raw);
+                if (!isNaN(d.getTime())) {
+                    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                }
+                return (raw.split('T')[1] || '').substring(0, 5);
+            }
+            return raw.substring(0, 5);
         }
 
         // Monta o texto do banner de modo edição sempre com a data formatada.
