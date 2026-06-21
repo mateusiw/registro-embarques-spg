@@ -1157,10 +1157,11 @@
             });
         }
 
-        function confirmSaveWithStatus(status) {
+        async function confirmSaveWithStatus(status) {
             document.getElementById('saveStatusModal').classList.add('hidden');
             _masterSaveStatus = status;
-            _doSaveToCloud();
+            _setSavingState(true);
+            try { await _doSaveToCloud(); } finally { _setSavingState(false); }
         }
 
         async function saveToCloud() {
@@ -1239,7 +1240,7 @@
                     if (fetchOk) {
                         const existingByCodigo = rows.find(row => String(row.Codigo || '').trim() === codigo);
                         if (existingByCodigo) {
-                            if (String(existingByCodigo.statusRegistro || '') === 'pendente') {
+                            if (String(existingByCodigo.StatusRegistro || '').toLowerCase() === 'pendente') {
                                 editModeTimestamp = String(existingByCodigo.Timestamp);
                                 _editPassword = 'spg@2024';
                                 await _doSaveToCloud();
@@ -2123,6 +2124,14 @@
             editModeTimestamp = saved.timestamp;
             _editPassword = saved.password || null;
             _editSnapshot = collectFormData();
+            // Após um F5, _editOriginalRow não sobrevive. Rebusca a linha original da
+            // planilha (por Timestamp) para que a detecção de conflito volte a funcionar.
+            if (APPS_SCRIPT_URL) {
+                _fetchHistoryRows().then(rows => {
+                    const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
+                    if (row) _editOriginalRow = JSON.parse(JSON.stringify(row));
+                }).catch(() => {});
+            }
             const banner = document.getElementById('editModeBanner');
             if (banner) {
                 document.getElementById('editModeBannerText').textContent =
@@ -2884,26 +2893,6 @@
             }
             return parts.join(', ');
         }
-        function handlePalletBoxTypeChange(idx, iidx, sel) {
-            palletsData[idx].items[iidx].boxType = sel.value;
-            palletsData[idx].items[iidx].boxTypeCustom = '';
-            renderPallets(); updatePreview();
-        }
-        function clearPalletBoxType(idx, iidx) {
-            palletsData[idx].items[iidx].boxType = '';
-            palletsData[idx].items[iidx].boxTypeCustom = '';
-            renderPallets(); updatePreview();
-        }
-        function handlePalletProductChange(idx, iidx, sel) {
-            palletsData[idx].items[iidx].product = sel.value;
-            palletsData[idx].items[iidx].productCustom = '';
-            renderPallets(); updatePreview();
-        }
-        function clearPalletProduct(idx, iidx) {
-            palletsData[idx].items[iidx].product = '';
-            palletsData[idx].items[iidx].productCustom = '';
-            renderPallets(); updatePreview();
-        }
         function handleInspectorChange() {
             const sel = document.getElementById('inspectorSelect');
             const container = document.getElementById('customInspectorContainer');
@@ -2988,6 +2977,11 @@
         }
         function getPartnerName(p) {
             return p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '');
+        }
+        // Normaliza o nome do parceiro para agrupamento: ignora maiúsculas/minúsculas,
+        // espaços extras e acentos (ex: "Fazenda Oásis" == "Fazenda Oasis").
+        function _normalizePartnerKey(name) {
+            return String(name || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
         }
         let _partnerGroups = [];
         let _collapsedGroupNames = new Set();
@@ -3145,7 +3139,7 @@
 
             const add = (name, qty, palletLabel, unit, harvestDate) => {
                 if (!name || !(qty > 0)) return;
-                const key = name.trim().toLowerCase();
+                const key = _normalizePartnerKey(name);
                 if (map.has(key)) {
                     const e = map.get(key);
                     e.qtyNum += qty;
@@ -3320,32 +3314,6 @@
             });
         }
         function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
-
-        function addPalletPartner(pIdx) {
-            if (!palletsData[pIdx].partners) palletsData[pIdx].partners = [];
-            palletsData[pIdx].partners.push({ name: '', nameCustom: '', qty: '', harvestDate: '' });
-            renderPallets();
-        }
-        function removePalletPartner(pIdx, pidx) { palletsData[pIdx].partners.splice(pidx, 1); renderPallets(); updatePreview(); }
-        function updatePalletPartner(pIdx, pidx, field, value) {
-            palletsData[pIdx].partners[pidx][field] = value;
-            if (field === 'name' && value !== 'Outro') { palletsData[pIdx].partners[pidx].nameCustom = ''; renderPallets(); }
-            updatePreview();
-        }
-        function clearPalletPartnerName(pIdx, pidx) { palletsData[pIdx].partners[pidx].name = ''; palletsData[pIdx].partners[pidx].nameCustom = ''; renderPallets(); }
-
-        function _renderPalletPartners(pIdx, pl) {
-            const partners = pl.partners || [];
-            const rows = partners.map((partner, pidx) => {
-                const nameSel = partner.name || '';
-                const nameCustom = partner.nameCustom || '';
-                const nameInput = nameSel === 'Outro'
-                    ? `<div class="relative flex-1"><input type="text" value="${nameCustom.replace(/"/g,'&quot;')}" placeholder="Nome parceiro" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'nameCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-emerald-400 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><button type="button" onclick="clearPalletPartnerName(${pIdx}, ${pidx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
-                    : `<select onchange="updatePalletPartner(${pIdx}, ${pidx}, 'name', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><option value="">Parceiro<\/option>${PARTNER_PRESETS.map(n => `<option value="${n}" ${nameSel===n?'selected':''}>${n}<\/option>`).join('')}<option value="Outro" ${nameSel==='Outro'?'selected':''}>Outro...<\/option><\/select>`;
-                return `<div class="flex flex-col gap-1"><div class="flex gap-1.5 items-center">${nameInput}<input type="number" min="0" value="${partner.qty||''}" placeholder="Cx" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'qty', this.value)" class="w-14 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center"><span class="text-[11px] text-emerald-700 font-bold shrink-0">cx<\/span><button type="button" onclick="removePalletPartner(${pIdx}, ${pidx})" class="px-1 text-rose-400 hover:text-rose-600"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${partner.harvestDate||''}" oninput="updatePalletPartner(${pIdx}, ${pidx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
-            }).join('');
-            return `<div class="border-t border-amber-100 pt-2 mt-1"><div class="flex items-center justify-between mb-1.5"><span class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5"><i data-lucide="users" class="w-3 h-3"><\/i> Parceiros<\/span><button type="button" onclick="event.stopPropagation(); addPalletPartner(${pIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-200 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Adicionar<\/button><\/div>${partners.length === 0 ? `<p class="text-[10px] text-slate-400 italic text-center py-0.5">Nenhum parceiro neste pallet<\/p>` : `<div class="space-y-1">${rows}<\/div>`}<\/div>`;
-        }
 
         function renderPallets() {
             const container = document.getElementById('palletsContainer');
@@ -3905,7 +3873,7 @@
                 const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p)+'|'+(p.harvestDate||'') === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner)+'|'+(maxPartner.harvestDate||'');
                 const bg = i%2===0?'':'background:#f0f6ff;';
                 const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
-                return `<tr style="${bg}">${rpTD((isMax?'★ ':'')+getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
+                return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
             ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
@@ -4350,7 +4318,7 @@
                     const hd   = p.harvestDate ? (hd=>{const pp=hd.split('-');return `${pp[2]}/${pp[1]}/${pp[0]}`;}) (p.harvestDate) : '—';
                     const nm   = getPartnerName(p);
                     const star = maxPartner && getPartnerName(maxPartner)===nm;
-                    return [{content:(star?'★ ':'')+nm, styles:{fontStyle:star?'bold':'normal'}}, {content:p.palletLabel||'—',styles:{halign:'center',fontStyle:'bold'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
+                    return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:p.palletLabel||'—',styles:{halign:'center',fontStyle:'bold'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
                 });
                 if (pRows.length) pRows.push([
                     {content:'TOTAL',styles:{fontStyle:'bold'}},
