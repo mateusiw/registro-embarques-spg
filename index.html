@@ -657,9 +657,15 @@
                     <div class="w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center"><i data-lucide="history" class="w-5 h-5"></i></div>
                     <h3 id="historyModalTitle" class="text-base font-black text-slate-800 uppercase tracking-tight">Histórico de Embarques</h3>
                 </div>
-                <button onclick="closeHistoryModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="historyRefreshBtn" onclick="refreshHistory()" class="h-8 px-3 flex items-center gap-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 text-xs font-bold transition-colors">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        <span>Atualizar</span>
+                    </button>
+                    <button onclick="closeHistoryModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
             <div class="px-4 pt-3 pb-0 border-b border-slate-100 shrink-0 space-y-2">
                 <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
@@ -777,6 +783,24 @@
             <div class="grid grid-cols-2 gap-3">
                 <button type="button" id="genericConfirmCancel" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
                 <button type="button" id="genericConfirmOk" class="py-3 font-bold rounded-xl text-xs uppercase tracking-wider text-white transition-all"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFLITO DE EDIÇÃO -->
+    <div id="conflictModal" class="fixed inset-0 bg-black/80 z-[96] hidden flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-6 flex flex-col gap-5">
+            <div class="flex flex-col items-center text-center gap-3">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-amber-100 text-amber-600"><i data-lucide="git-merge" class="w-6 h-6"></i></div>
+                <div>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Versão mais nova encontrada</h3>
+                    <p class="text-sm text-slate-500 mt-1 leading-relaxed">O perfil embarque enviou uma atualização deste embarque enquanto você editava. Como deseja prosseguir?</p>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2.5">
+                <button type="button" id="conflictKeepMine" class="py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Manter e enviar minhas alterações</button>
+                <button type="button" id="conflictTakeTheirs" class="py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Descartar e ver a versão nova</button>
+                <button type="button" id="conflictCancel" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
             </div>
         </div>
     </div>
@@ -1570,6 +1594,149 @@
             openHistory().then(() => { _historyTab = 'pendentes'; _updateHistoryTabUI(); filterHistory(document.getElementById('historySearch').value); });
         }
 
+        // Liga/desliga o estado de carregando do botão Atualizar.
+        function _setRefreshBtnLoading(on) {
+            const btn = document.getElementById('historyRefreshBtn');
+            if (!btn) return;
+            const icon = btn.querySelector('[data-lucide], svg');
+            const label = btn.querySelector('span');
+            btn.disabled = on;
+            if (icon) icon.classList.toggle('animate-spin', on);
+            if (label) label.textContent = on ? 'Atualizando...' : 'Atualizar';
+        }
+
+        // Busca a lista atual na planilha (sem mexer na UI). Lança erro em caso de falha.
+        async function _fetchHistoryRows() {
+            const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+            const result = await resp.json();
+            if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
+            return result.rows || [];
+        }
+
+        // Aplica as linhas recebidas na tela, preservando aba ativa e busca atuais.
+        function _applyHistoryRows(rows) {
+            historyRows = rows;
+            _updatePendingUI();
+            filterHistory(document.getElementById('historySearch').value);
+        }
+
+        // Re-busca a lista na planilha e re-renderiza.
+        async function _fetchAndRenderHistory() {
+            _setRefreshBtnLoading(true);
+            try {
+                _applyHistoryRows(await _fetchHistoryRows());
+            } catch (err) {
+                showMessageModal('Erro ao atualizar', err.message, 'error');
+            } finally {
+                _setRefreshBtnLoading(false);
+            }
+        }
+
+        // Compara o conteúdo de duas linhas da planilha (ignorando Timestamp e StatusRegistro).
+        // Serve para saber se o registro mudou na planilha desde que o master o abriu.
+        function _rowsDiffer(a, b) {
+            const cols = ['Data','Codigo','Produto','Cliente','Responsavel','NFes','Sensor','Lacre',
+                'Motorista','Placa','TipoCaixa','HorarioSaida','QtdPallets','Termostato','ModoTermostato',
+                'Parceiros','Descartes','Temperaturas','Pallets','InfoAdicionais','Fotos','AISummary','RespEmbarque'];
+            const norm = (v) => (v === undefined || v === null) ? '' : String(v);
+            return cols.some(c => norm(a[c]) !== norm(b[c]));
+        }
+
+        // Salva as alterações do master como update (preservando o status atual) e re-renderiza.
+        async function _saveEditAndRefresh(latestStatus) {
+            _masterSaveStatus = latestStatus || 'revisado';
+            // _doSaveToCloud envia como update (modo edição) e limpa o modo de edição ao concluir.
+            await _doSaveToCloud();
+            await _fetchAndRenderHistory();
+        }
+
+        async function refreshHistory() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
+                return;
+            }
+
+            // O master está editando um registro e tem alterações ainda não enviadas?
+            const hasUnsavedEdit = !!(
+                editModeTimestamp && _editSnapshot &&
+                Object.keys(_computeEditDiff(collectFormData(), _editSnapshot)).length > 0
+            );
+
+            // Sem edição pendente: apenas puxa os dados mais recentes.
+            if (!hasUnsavedEdit) {
+                await _fetchAndRenderHistory();
+                return;
+            }
+
+            // Há edição pendente: busca a versão atual da planilha para checar conflito
+            // (o perfil embarque pode ter reenviado o mesmo embarque enquanto o master editava).
+            _setRefreshBtnLoading(true);
+            let freshRows;
+            try {
+                freshRows = await _fetchHistoryRows();
+            } catch (err) {
+                _setRefreshBtnLoading(false);
+                showMessageModal('Erro ao atualizar', err.message, 'error');
+                return;
+            }
+            _setRefreshBtnLoading(false);
+
+            const latest = freshRows.find(r => String(r.Timestamp) === String(editModeTimestamp));
+            const latestStatus = latest && latest.StatusRegistro ? latest.StatusRegistro : 'revisado';
+            const conflict = !!(latest && _editOriginalRow && _rowsDiffer(_editOriginalRow, latest));
+
+            if (conflict) {
+                // O registro mudou na planilha desde que o master o abriu: deixa o master decidir.
+                showConflictModal({
+                    onKeepMine: async () => {
+                        historyRows = freshRows;
+                        await _saveEditAndRefresh(latestStatus);
+                    },
+                    onTakeTheirs: () => {
+                        clearEditMode();
+                        executeClearForm();
+                        _applyHistoryRows(freshRows);
+                        showMessageModal('Versão atualizada', 'Suas alterações foram descartadas. A versão mais recente enviada pelo perfil embarque está agora no histórico.', 'success');
+                    },
+                    onCancel: () => { /* mantém a edição em aberto, sem atualizar */ }
+                });
+                return;
+            }
+
+            // Sem conflito, mas o master tem alterações não enviadas: oferece enviar antes de atualizar.
+            showConfirmModal({
+                title: 'Alterações não salvas',
+                text: 'Você fez alterações neste embarque que ainda não foram enviadas. Deseja enviá-las à planilha antes de atualizar com os dados mais recentes?',
+                confirmLabel: 'Enviar e atualizar',
+                type: 'warning',
+                onConfirm: async () => {
+                    historyRows = freshRows;
+                    await _saveEditAndRefresh(latestStatus);
+                },
+                onCancel: () => { _applyHistoryRows(freshRows); }
+            });
+        }
+
+        function showConflictModal({ onKeepMine, onTakeTheirs, onCancel }) {
+            const modal  = document.getElementById('conflictModal');
+            const keep   = document.getElementById('conflictKeepMine');
+            const take   = document.getElementById('conflictTakeTheirs');
+            const cancel = document.getElementById('conflictCancel');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lockScroll();
+            lucide.createIcons();
+            const close = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                unlockScroll();
+                keep.onclick = take.onclick = cancel.onclick = null;
+            };
+            keep.onclick   = () => { close(); if (onKeepMine)   onKeepMine();   };
+            take.onclick   = () => { close(); if (onTakeTheirs) onTakeTheirs(); };
+            cancel.onclick = () => { close(); if (onCancel)     onCancel();     };
+        }
+
         function setHistoryTab(tab) {
             _historyTab = tab;
             _updateHistoryTabUI();
@@ -1879,6 +2046,9 @@
 
         let _editPassword = null;
         let _editSnapshot = null;
+        // Cópia crua da linha da planilha no momento em que o master abriu para edição.
+        // Usada para detectar se o perfil embarque enviou uma versão mais nova enquanto editava.
+        let _editOriginalRow = null;
 
         function editHistoryReport(idx, password) {
             closeHistoryModal();
@@ -1889,6 +2059,7 @@
 
             editModeTimestamp = String(row.Timestamp || '');
             _editPassword = password || null;
+            _editOriginalRow = JSON.parse(JSON.stringify(row));
 
             const codigo = row.Codigo || '—';
             const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
@@ -1907,6 +2078,7 @@
             editModeTimestamp = null;
             _editPassword = null;
             _editSnapshot = null;
+            _editOriginalRow = null;
             document.getElementById('editModeBanner').classList.add('hidden');
             try { sessionStorage.removeItem('spg_edit_mode'); } catch(e) {}
         }
@@ -2131,6 +2303,7 @@
                         if (row && row.Timestamp) {
                             editModeTimestamp = String(row.Timestamp);
                             _editPassword = password;
+                            _editOriginalRow = JSON.parse(JSON.stringify(row));
                             const codigo = row.Codigo || '—';
                             const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
                             const banner = document.getElementById('editModeBanner');
