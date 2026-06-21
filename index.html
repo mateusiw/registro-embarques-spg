@@ -345,18 +345,11 @@
 
                     <div id="section-produto-cliente" class="grid grid-cols-1 gap-3 mb-3">
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Produto</label>
-                            <select id="productSelect" onchange="handleProductChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
-                                <option value="">Selecione</option>
-                                <option value="Brócolis">Brócolis</option>
-                                <option value="Couve-Flor">Couve-Flor</option>
-                                <option value="Tomate Cereja">Tomate Cereja</option>
-                                <option value="Pepino">Pepino</option>
-                                <option value="Outro">Outro...</option>
-                            </select>
-                            <div id="customProductContainer" class="hidden relative">
-                                <input type="text" id="customProductName" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
-                                <button type="button" onclick="clearProductSelect()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Produto <span class="text-slate-400 normal-case font-semibold">(pode marcar mais de um)</span></label>
+                            <div id="productCheckboxes" class="flex flex-wrap gap-1.5"></div>
+                            <div id="customProductContainer" class="hidden relative mt-2">
+                                <input type="text" id="customProductName" placeholder="Qual? (separe por vírgula)" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
+                                <button type="button" onclick="clearProductOutro()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
                             </div>
                         </div>
                         <div>
@@ -1314,7 +1307,7 @@
                 reportDate: document.getElementById('reportDate').value,
                 embarqueCodigo: document.getElementById('embarqueCodigo').value,
                 nfeList,
-                productSelect: document.getElementById('productSelect').value,
+                productSelect: getProductName(),
                 customProductName: document.getElementById('customProductName').value,
                 varietyInput: document.getElementById('varietyInput').value,
                 inspectorSelect: document.getElementById('inspectorSelect').value,
@@ -1564,9 +1557,9 @@
                 const result = await resp.json();
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
                 historyRows = result.rows || [];
-                historyRowsFiltered = [...historyRows];
                 _updatePendingUI();
-                renderHistoryList(historyRowsFiltered);
+                // Respeita a aba ativa (caso o usuário tenha trocado de aba durante o carregamento)
+                filterHistory(document.getElementById('historySearch').value);
             } catch (err) {
                 document.getElementById('historyList').innerHTML = `<div class="text-center py-10 text-red-400 text-sm font-bold">Erro ao carregar histórico:<br>${err.message}</div>`;
             }
@@ -1784,17 +1777,7 @@
                 nfeList = nfesRaw.trim() ? nfesRaw.split(', ').filter(Boolean) : [''];
                 if (!nfeList.length) nfeList = [''];
 
-                const prodSel = document.getElementById('productSelect');
-                const knownProds = Array.from(prodSel.options).map(o => o.value);
-                const produto = String(row.Produto || '');
-                if (knownProds.includes(produto)) {
-                    prodSel.value = produto;
-                    document.getElementById('customProductContainer').classList.add('hidden');
-                } else if (produto) {
-                    prodSel.value = 'Outro';
-                    document.getElementById('customProductContainer').classList.remove('hidden');
-                    document.getElementById('customProductName').value = produto;
-                }
+                _setProductFromString(String(row.Produto || ''));
 
                 document.getElementById('varietyInput').value = String(row.Cliente || '');
 
@@ -2016,10 +1999,10 @@
                 if (el) el.value = '';
             });
 
-            // Selects
-            const productSelect = document.getElementById('productSelect');
-            if (productSelect) productSelect.value = '';
-            document.getElementById('customProductContainer')?.classList.add('hidden');
+            // Produto (seleção múltipla)
+            _productSelected.clear();
+            _productOutro = false;
+            renderProductCheckboxes();
 
             const inspectorSelect = document.getElementById('inspectorSelect');
             if (inspectorSelect) inspectorSelect.value = '';
@@ -2258,7 +2241,7 @@
                 reportDate: document.getElementById('reportDate').value,
                 embarqueCodigo: document.getElementById('embarqueCodigo').value,
                 nfeList,
-                productSelect: document.getElementById('productSelect').value,
+                productSelect: getProductName(),
                 customProductName: document.getElementById('customProductName').value,
                 varietyInput: document.getElementById('varietyInput').value,
                 inspectorSelect: document.getElementById('inspectorSelect').value,
@@ -2301,13 +2284,8 @@
                 if (data.reportDate) document.getElementById('reportDate').value = data.reportDate;
                 if (data.embarqueCodigo) document.getElementById('embarqueCodigo').value = data.embarqueCodigo;
                 if (data.nfeList) nfeList = data.nfeList;
-                if (data.productSelect) {
-                    document.getElementById('productSelect').value = data.productSelect;
-                    if (data.productSelect === 'Outro') {
-                        document.getElementById('customProductContainer').classList.remove('hidden');
-                        document.getElementById('customProductName').value = data.customProductName || '';
-                    }
-                }
+                // Compatível com formato antigo (productSelect='Outro' + customProductName) e novo (string combinada)
+                _setProductFromString(data.productSelect === 'Outro' ? (data.customProductName || '') : (data.productSelect || ''));
                 if (data.varietyInput) document.getElementById('varietyInput').value = data.varietyInput;
                 if (data.inspectorSelect) {
                     document.getElementById('inspectorSelect').value = data.inspectorSelect;
@@ -2387,6 +2365,7 @@
                 addDiscard();
             }
 
+            renderProductCheckboxes();
             renderNfeInputs();
             renderPartners();
             renderDiscards();
@@ -2663,30 +2642,74 @@
         }
 
         // ---------- Produto / Inspetor ----------
-        function handleProductChange() {
-            const sel = document.getElementById('productSelect');
-            const container = document.getElementById('customProductContainer');
-            if (sel.value === 'Outro') {
-                sel.classList.add('hidden');
-                container.classList.remove('hidden');
-                setTimeout(() => document.getElementById('customProductName').focus(), 50);
-            } else {
-                sel.classList.remove('hidden');
-                container.classList.add('hidden');
-            }
+        const PRODUCT_PRESETS = ['Brócolis', 'Couve-Flor', 'Tomate Cereja', 'Pepino'];
+        let _productSelected = new Set(); // produtos preset marcados
+        let _productOutro = false;        // "Outro" marcado (usa o campo de texto)
+
+        function renderProductCheckboxes() {
+            const container = document.getElementById('productCheckboxes');
+            if (!container) return;
+            const pill = (label, active, onclick) =>
+                `<button type="button" onclick="${onclick}" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all active:scale-95 ${active ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}">${label}</button>`;
+            let html = PRODUCT_PRESETS.map(p => pill(p, _productSelected.has(p), `toggleProduct('${p.replace(/'/g, "\\'")}')`)).join('');
+            html += pill('Outro...', _productOutro, 'toggleProductOutro()');
+            container.innerHTML = html;
+            const custom = document.getElementById('customProductContainer');
+            if (custom) custom.classList.toggle('hidden', !_productOutro);
+            lucide.createIcons();
+        }
+        function toggleProduct(name) {
+            if (_productSelected.has(name)) _productSelected.delete(name);
+            else _productSelected.add(name);
+            renderProductCheckboxes();
+            updatePreview();
+        }
+        function toggleProductOutro() {
+            _productOutro = !_productOutro;
+            renderProductCheckboxes();
+            if (_productOutro) setTimeout(() => document.getElementById('customProductName')?.focus(), 50);
+            updatePreview();
+        }
+        function clearProductOutro() {
+            _productOutro = false;
+            document.getElementById('customProductName').value = '';
+            renderProductCheckboxes();
             updatePreview();
         }
         function clearProductSelect() {
-            document.getElementById('productSelect').value = '';
-            document.getElementById('productSelect').classList.remove('hidden');
-            document.getElementById('customProductContainer').classList.add('hidden');
+            _productSelected.clear();
+            _productOutro = false;
             document.getElementById('customProductName').value = '';
+            renderProductCheckboxes();
             updatePreview();
         }
+        // Restaura o estado a partir de uma string de produto (ex: "Brócolis, Couve-Flor, Repolho")
+        function _setProductFromString(str) {
+            _productSelected = new Set();
+            _productOutro = false;
+            const customs = [];
+            String(str || '').split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
+                const match = PRODUCT_PRESETS.find(pp => pp.toLowerCase() === p.toLowerCase());
+                if (match) _productSelected.add(match);
+                else customs.push(p);
+            });
+            const customInput = document.getElementById('customProductName');
+            if (customs.length) {
+                _productOutro = true;
+                if (customInput) customInput.value = customs.join(', ');
+            } else if (customInput) {
+                customInput.value = '';
+            }
+            renderProductCheckboxes();
+        }
         function getProductName() {
-            const sel = document.getElementById('productSelect').value;
-            if (sel === 'Outro') return document.getElementById('customProductName').value;
-            return sel;
+            const parts = PRODUCT_PRESETS.filter(p => _productSelected.has(p));
+            if (_productOutro) {
+                (document.getElementById('customProductName').value || '')
+                    .split(',').map(s => s.trim()).filter(Boolean)
+                    .forEach(c => parts.push(c));
+            }
+            return parts.join(', ');
         }
         function handlePalletBoxTypeChange(idx, iidx, sel) {
             palletsData[idx].items[iidx].boxType = sel.value;
@@ -3578,6 +3601,15 @@
         function rpTable(inner) {
             return `<table style="width:100%;border-collapse:collapse;border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;margin-bottom:0;">${inner}</table>`;
         }
+        // Remove emojis/símbolos que a fonte padrão do jsPDF não consegue desenhar
+        // (apareciam como "Ø=ÜÉ" no PDF baixado). O preview HTML não precisa disso.
+        function _stripEmoji(str) {
+            return String(str || '')
+                .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}\u{2190}-\u{21FF}\u{200D}]/gu, '')
+                .replace(/[ \t]{2,}/g, ' ')
+                .replace(/^[ \t.\-–—]+/, '')
+                .trim();
+        }
 
         // ---------- Preview ----------
         function updatePreview() {
@@ -3615,7 +3647,7 @@
             const validCustomTemps = getValidCustomTemps();
             let _rn = 0; const rn = () => ++_rn;
 
-            const hasAnyData = document.getElementById('productSelect').value || codigo !== '---';
+            const hasAnyData = getProductName() || codigo !== '---';
             const previewContent = document.getElementById('previewContent');
 
             if (!hasAnyData) {
@@ -3910,7 +3942,9 @@
                 setSaveProgress(30, 'Gerando PDF', 'Calculando layout do documento...');
                 const measuredY = await _buildPDF(4000, false);
                 setSaveProgress(70, 'Gerando PDF', 'Montando páginas e imagens...');
-                await _buildPDF(measuredY + 12, true);
+                // A altura nunca pode ser menor que a largura (210mm): com orientation 'portrait'
+                // o jsPDF inverteria largura/altura e cortaria o conteúdo (acontecia no PDF email curto).
+                await _buildPDF(Math.max(measuredY + 12, 211), true);
             } else {
                 setSaveProgress(50, 'Gerando PDF', 'Montando páginas e imagens...');
                 await _buildPDF(297, true);
@@ -4008,6 +4042,7 @@
 
             const tbl = (extra = {}) => ({
                 theme: 'plain',
+                tableWidth: CW, // ocupa toda a largura útil (evita tabelas estreitas no PDF email, ex: 1 coluna)
                 styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2 },
                 headStyles: { fillColor: C.gray, textColor: C.grayTxt, fontStyle: 'bold', fontSize: 7 },
                 margin: { left: M, right: M },
@@ -4047,7 +4082,11 @@
             doc.autoTable(tbl({ startY: y,
                 head: [['Cód. Embarque','NFe','Data','Produto','Cliente','Responsável Dados','Responsável Embarque']],
                 body: [[codigo, nfeJoined, displayDate, product, client, inspector, shipResponsible]],
-                columnStyles: { 0:{cellWidth:25}, 2:{cellWidth:22}, 3:{fontStyle:'bold'} },
+                styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2, overflow: 'linebreak' },
+                columnStyles: {
+                    0:{cellWidth:22}, 1:{cellWidth:18}, 2:{cellWidth:20},
+                    3:{cellWidth:40, fontStyle:'bold'}, 4:{cellWidth:36}, 5:{cellWidth:34}, 6:{cellWidth:34},
+                },
             }));
             y = doc.lastAutoTable.finalY;
 
@@ -4061,9 +4100,10 @@
                 body: [_isEmail
                     ? [driverName, plate, depTime, sensor, lacre, totalQty ? totalQty+' cx' : '---']
                     : [driverName, plate, depTime, sensor, lacre]],
+                styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2, overflow: 'linebreak' },
                 columnStyles: _isEmail
-                    ? { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'}, 5:{fontStyle:'bold'} }
-                    : { 1:{fontStyle:'bold'}, 2:{fontStyle:'bold'} },
+                    ? { 0:{cellWidth:44}, 1:{cellWidth:28,fontStyle:'bold'}, 2:{cellWidth:30,fontStyle:'bold'}, 3:{cellWidth:34}, 4:{cellWidth:34}, 5:{cellWidth:34,fontStyle:'bold'} }
+                    : { 0:{cellWidth:54}, 1:{cellWidth:36,fontStyle:'bold'}, 2:{cellWidth:36,fontStyle:'bold'}, 3:{cellWidth:39}, 4:{cellWidth:39} },
             }));
             y = doc.lastAutoTable.finalY;
 
@@ -4094,8 +4134,8 @@
                 head: [['Pallet','Temperatura','Qtd. Caixas','Pallet','Temperatura','Qtd. Caixas']],
                 body: palletRows.length ? palletRows : [['Nenhum pallet registrado.','','','','','']],
                 columnStyles: {
-                    0:{fontStyle:'bold'}, 1:{halign:'center',fontStyle:'bold',textColor:C.amber}, 2:{halign:'center',fontStyle:'bold'},
-                    3:{fontStyle:'bold'}, 4:{halign:'center',fontStyle:'bold',textColor:C.amber}, 5:{halign:'center',fontStyle:'bold'},
+                    0:{cellWidth:44,fontStyle:'bold'}, 1:{cellWidth:24,halign:'center',fontStyle:'bold',textColor:C.amber}, 2:{cellWidth:34,halign:'center',fontStyle:'bold'},
+                    3:{cellWidth:44,fontStyle:'bold'}, 4:{cellWidth:24,halign:'center',fontStyle:'bold',textColor:C.amber}, 5:{cellWidth:34,halign:'center',fontStyle:'bold'},
                 },
             }));
             y = doc.lastAutoTable.finalY;
@@ -4175,7 +4215,7 @@
             // 8. Análise IA (só interno)
             if (currentPdfMode !== 'email' && aiSummary) {
                 y += 2; sec('Análise IA — Problemas e Recomendações');
-                const aiLines = aiSummary.split('\n').filter(l => l.trim()).map(l => l.replace(/^[•\-\*]\s*/, ''));
+                const aiLines = aiSummary.split('\n').map(l => _stripEmoji(l.replace(/^[•\-\*]\s*/, ''))).filter(l => l.trim());
                 doc.autoTable(tbl({ startY: y,
                     body: aiLines.map(l => [{
                         content: l,
@@ -4298,31 +4338,37 @@
 
             if (doSave) {
                 const clientSlug = client.replace(/[^a-zA-Z0-9À-ÿ]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-                doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}${clientSlug ? '_'+clientSlug : ''}.pdf`);
+                const modeLabel   = currentPdfMode === 'email' ? 'Email' : 'Interno';
+                const layoutLabel = currentPdfLayout === 'screen' ? 'PC' : 'A4';
+                doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}${clientSlug ? '_'+clientSlug : ''}_${modeLabel}_${layoutLabel}.pdf`);
             }
             return y;
         }
 
         let isProcessingShare = false;
-        function downloadAndShare() {
+        async function downloadAndShare() {
             if (isProcessingShare) return;
             isProcessingShare = true;
-            setSaveProgress(10, 'Gerando PDF', 'Aguarde, o documento está sendo gerado...');
+            // Mostra o popup primeiro e só depois ajusta o texto (showSaveLoadingModal reseta o conteúdo)
             showSaveLoadingModal();
-            generatePDFWithJsPDF()
-                .then(() => { currentReportId = generateReportId(); })
-                .catch(err => {
-                    console.error(err);
-                    showMessageModal('ERRO DE SISTEMA', 'Falha ao gerar PDF: ' + (err.message || err), 'error');
-                })
-                .finally(() => {
-                    isProcessingShare = false;
-                    hideSaveLoadingModal();
-                    if (currentPdfMode !== 'interno') {
-                        currentPdfMode = 'interno';
-                        updatePreview();
-                    }
-                });
+            setSaveProgress(10, 'Gerando PDF', 'Aguarde, o documento está sendo gerado...');
+            // Dá um respiro para o navegador pintar o modal antes da geração pesada travar a thread
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await new Promise(r => setTimeout(r, 50));
+            try {
+                await generatePDFWithJsPDF();
+                currentReportId = generateReportId();
+            } catch (err) {
+                console.error(err);
+                showMessageModal('ERRO DE SISTEMA', 'Falha ao gerar PDF: ' + (err.message || err), 'error');
+            } finally {
+                isProcessingShare = false;
+                hideSaveLoadingModal();
+                if (currentPdfMode !== 'interno') {
+                    currentPdfMode = 'interno';
+                    updatePreview();
+                }
+            }
         }
 
         function downloadFile(uri, name) { const link = document.createElement('a'); link.href = uri; link.download = name; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
@@ -4489,7 +4535,7 @@ Termostato: ${thermoMode} em ${thermoValue}°C
 ${validCustomTemps.length ? validCustomTemps.map(t => `${t.label}: ${t.value !== '' ? t.value + '°C' : 'não informado'}`).join('\n') : 'Nenhuma temperatura registrada.'}
 
 --- PARCEIROS / QUANTIDADES ---
-${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}${p.palletLabel ? ' ['+p.palletLabel+']' : ''}: ${p.qty} cx (${getPartnerUnit(p)})`).join('\n') : 'Nenhum parceiro informado.'}
+${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}${p.palletLabel ? ' ['+p.palletLabel+']' : ''}: ${p.qty} cx — Cultura: ${getPartnerUnit(p) || 'não informada'}`).join('\n') : 'Nenhum parceiro informado.'}
 Total: ${totalQty} unidades/caixas
 Maior envio: ${maxPartner ? getPartnerName(maxPartner) + ' (' + maxPartner.qty + ' cx - ' + getPartnerUnit(maxPartner) + ')' : '---'}
 
@@ -4505,8 +4551,8 @@ Estruture sua resposta EXATAMENTE neste formato, com as tags:
 
 [RESUMO]
 Com base nos dados do embarque e no conhecimento técnico do produto informado, responda com bullets curtos (•) e diretos:
-1. Quais problemas ocorreram neste embarque? (cruce motivos de descarte, temperaturas e volumes para identificar os problemas típicos do produto: amarelamento, manchas, murcha, podridão, etc.)
-2. Quem foi o principal causador? (parceiro com maior descarte e qual problema predominou nele)
+1. Quais problemas ocorreram neste embarque? (cruce motivos de descarte, temperaturas, volumes e a CULTURA de cada parceiro para identificar os problemas típicos daquele produto: amarelamento, manchas, murcha, podridão, etc.)
+2. Quem foi o principal causador? (parceiro com maior descarte, qual a cultura dele e qual problema predominou nela)
 3. Com base nos problemas identificados, dê 1 ou 2 recomendações práticas e específicas para evitar a repetição nos próximos embarques (ex: temperatura ideal, ponto de colheita, tempo máximo pós-colheita, sinais de rejeição no campo)
 4. Se os dados não indicarem problemas relevantes, informe que o embarque ocorreu dentro do padrão esperado.
 Máximo 5 bullets. Seja técnico, objetivo e útil.
@@ -4515,7 +4561,7 @@ Máximo 5 bullets. Seja técnico, objetivo e útil.
 [ANÁLISE]
 1. 📋 Resumo geral do embarque
 2. 🌡️ Análise das temperaturas (se estão adequadas para o produto, riscos, pontos de atenção)
-3. 📦 Análise da distribuição entre parceiros (quem enviou mais, concentração, equilíbrio)
+3. 📦 Análise da distribuição entre parceiros (quem enviou mais, concentração, equilíbrio e a cultura de cada parceiro)
 4. 🗑️ Análise dos descartes (volume, motivos, parceiro com maior descarte e o que isso pode indicar)
 5. ✅ Conclusão e recomendações para os próximos embarques
 [/ANÁLISE]
@@ -4555,11 +4601,18 @@ Seja objetivo mas completo. Responda em português.`;
                 const resumoText = resumoMatch ? resumoMatch[1].trim() : null;
                 const analiseText = analiseMatch ? analiseMatch[1].trim() : text;
 
-                if (resumoText) {
-                    aiSummary = resumoText;
-                    saveToLocalStorage();
-                    updatePreview();
-                }
+                // O resumo alimenta o PDF. Se a IA não retornou a tag [RESUMO],
+                // usamos a análise (ou o texto completo, sem as tags) como fallback,
+                // para que a última análise SEMPRE entre no PDF automaticamente.
+                const summaryForPdf = (resumoText
+                    || analiseText
+                    || text || '')
+                    .replace(/\[\/?RESUMO\]/g, '')
+                    .replace(/\[\/?ANÁLISE\]/g, '')
+                    .trim();
+                aiSummary = summaryForPdf || null;
+                saveToLocalStorage();
+                updatePreview();
 
                 content.innerHTML = `<div class="prose prose-sm max-w-none">${analiseText.replace(/\n/g, '<br>')}</div>`;
             } catch (err) {
