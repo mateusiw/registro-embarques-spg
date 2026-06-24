@@ -263,6 +263,10 @@
                 <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                 <span>PDF Interno</span>
             </button>
+            <button type="button" id="navBtnPdfParceiros" onclick="confirmBeforeSend('parceiros')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Parceiros e Quantidades">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                <span>Parceiros</span>
+            </button>
             <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Email">
                 <i data-lucide="mail" class="w-3.5 h-3.5"></i>
                 <span>PDF Email</span>
@@ -901,10 +905,14 @@
             <div style="padding:7px 14px;border-bottom:1px solid #334155;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Gerar PDF</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
                 <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                     <i data-lucide="file-text" style="width:18px;height:18px;flex-shrink:0;"></i>
                     <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Interno</span>
+                </button>
+                <button id="mobileNavPdfParceiros" type="button" onclick="confirmBeforeSend('parceiros');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="users" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Parceiros</span>
                 </button>
                 <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                     <i data-lucide="mail" style="width:18px;height:18px;flex-shrink:0;"></i>
@@ -4005,9 +4013,12 @@
             if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
             currentPdfMode = mode || 'interno';
             const isEmail = currentPdfMode === 'email';
-            document.getElementById('confirmModalTitle').textContent = isEmail ? 'Gerar PDF para Email?' : 'Confirmar PDF Interno?';
+            const isParceiros = currentPdfMode === 'parceiros';
+            document.getElementById('confirmModalTitle').textContent = isEmail ? 'Gerar PDF para Email?' : isParceiros ? 'Gerar PDF Parceiros?' : 'Confirmar PDF Interno?';
             document.getElementById('confirmModalText').innerHTML = isEmail
                 ? 'Verifique se os dados estão corretos.<br><br><span style="font-weight:700;color:#0f766e;">Este PDF <u>não incluirá</u> parceiros/quantidades e descartes.</span>'
+                : isParceiros
+                ? 'Verifique se os dados estão corretos.<br><br><span style="font-weight:700;color:#0f766e;">Este PDF incluirá <u>somente</u> a tabela de Parceiros e Quantidades.</span>'
                 : 'Verifique se todos os dados estão corretos.<br><br><span style="font-weight:700;">Este PDF incluirá todas as seções (uso interno).</span>';
             document.getElementById('confirmModal').classList.remove('hidden');
             lockScroll();
@@ -4177,32 +4188,6 @@
             doc.text(`${emDate} às ${emTime}`, PW - M, HDR_H/2 + 3.5, { align:'right' });
             y = HDR_H + 2;
 
-            // ── SEÇÃO ──────────────────────────────────────────────────────────
-            const sec = (title) => {
-                secNum++;
-                checkPage(9);
-                doc.setFillColor(...C.gLight); doc.rect(M, y, CW, 7, 'F');
-                doc.setDrawColor(...C.gBord); doc.setLineWidth(0.4);
-                doc.line(M, y, M + CW, y);
-                doc.setFillColor(...C.gMed);
-                doc.roundedRect(M + 1.5, y + 1, 6, 5, 0.8, 0.8, 'F');
-                doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...C.white);
-                doc.text(String(secNum), M + 4.5, y + 4.3, { align:'center' });
-                doc.setTextColor(...C.gText); doc.setFontSize(7.5);
-                doc.text(title.toUpperCase(), M + 10, y + 4.3);
-                y += 7;
-            };
-
-            const tbl = (extra = {}) => ({
-                theme: 'plain',
-                tableWidth: CW, // ocupa toda a largura útil (evita tabelas estreitas no PDF email, ex: 1 coluna)
-                styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2 },
-                headStyles: { fillColor: C.gray, textColor: C.grayTxt, fontStyle: 'bold', fontSize: 7 },
-                margin: { left: M, right: M },
-                tableLineColor: [208,216,228], tableLineWidth: 0.2,
-                ...extra,
-            });
-
             // ── DADOS ──────────────────────────────────────────────────────────
             const dateVal = document.getElementById('reportDate').value;
             let displayDate = '--/--/----';
@@ -4229,6 +4214,65 @@
             const totalQty         = validPartners.reduce((s,p) => s + parseFloat(p.qty||0), 0);
             const totalDiscard     = validDiscards.reduce((s,d) => s + parseFloat(d.weight||0), 0);
             const maxPartner       = getMaxPartner();
+
+            // ── SEÇÃO ──────────────────────────────────────────────────────────
+            const sec = (title) => {
+                secNum++;
+                checkPage(9);
+                doc.setFillColor(...C.gLight); doc.rect(M, y, CW, 7, 'F');
+                doc.setDrawColor(...C.gBord); doc.setLineWidth(0.4);
+                doc.line(M, y, M + CW, y);
+                doc.setFillColor(...C.gMed);
+                doc.roundedRect(M + 1.5, y + 1, 6, 5, 0.8, 0.8, 'F');
+                doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...C.white);
+                doc.text(String(secNum), M + 4.5, y + 4.3, { align:'center' });
+                doc.setTextColor(...C.gText); doc.setFontSize(7.5);
+                doc.text(title.toUpperCase(), M + 10, y + 4.3);
+                y += 7;
+            };
+
+            const tbl = (extra = {}) => ({
+                theme: 'plain',
+                tableWidth: CW, // ocupa toda a largura útil (evita tabelas estreitas no PDF email, ex: 1 coluna)
+                styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2 },
+                headStyles: { fillColor: C.gray, textColor: C.grayTxt, fontStyle: 'bold', fontSize: 7 },
+                margin: { left: M, right: M },
+                tableLineColor: [208,216,228], tableLineWidth: 0.2,
+                ...extra,
+            });
+
+            // ── MODO PARCEIROS: gera somente a tabela de parceiros/quantidades ─
+            if (currentPdfMode === 'parceiros') {
+                doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...C.grayTxt);
+                doc.text(`Código: ${codigo}   ·   Data: ${displayDate}   ·   Produto: ${product}   ·   Cliente: ${client}`, M, y + 3.5);
+                y += 7;
+                sec('Parceiros / Quantidades');
+                const pRowsPc = validPartners.map(p => {
+                    const pct  = totalQty > 0 ? ((parseFloat(p.qty) / totalQty) * 100).toFixed(1) + '%' : '—';
+                    const hd   = p.harvestDate ? (hd => { const pp = hd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; })(p.harvestDate) : '—';
+                    const nm   = getPartnerName(p);
+                    const star = maxPartner && getPartnerName(maxPartner) === nm;
+                    return [{content: nm, styles: {fontStyle: star ? 'bold' : 'normal'}}, {content: p.palletLabel || '—', styles: {halign: 'center', fontStyle: 'bold'}}, parseFloat(p.qty) + ' cx', getPartnerUnit(p), hd, {content: pct, styles: {halign: 'right'}}];
+                });
+                if (pRowsPc.length) pRowsPc.push([
+                    {content: 'TOTAL', styles: {fontStyle: 'bold'}},
+                    '',
+                    {content: totalQty + ' cx', styles: {fontStyle: 'bold', halign: 'right'}},
+                    '', '', {content: '100%', styles: {fontStyle: 'bold', halign: 'right'}},
+                ]);
+                doc.autoTable(tbl({ startY: y,
+                    head: [['Parceiro', 'Pallet', 'Quantidade', 'Unidade', 'Data Colheita', '% do Total']],
+                    body: pRowsPc.length ? pRowsPc : [['Nenhum parceiro informado.', '', '', '', '', '']],
+                    columnStyles: {2: {halign: 'right'}, 5: {halign: 'right'}},
+                }));
+                y = doc.lastAutoTable.finalY;
+                if (doSave) {
+                    const clientSlug = client.replace(/[^a-zA-Z0-9À-ÿ]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+                    const layoutLabel = currentPdfLayout === 'screen' ? 'PC' : 'A4';
+                    doc.save(`Embarque_${codigo}_${displayDate.replace(/\//g,'-')}${clientSlug ? '_'+clientSlug : ''}_Parceiros_${layoutLabel}.pdf`);
+                }
+                return y;
+            }
 
             // 1. Dados do Embarque
             sec('Dados do Embarque');
