@@ -3132,7 +3132,7 @@
         function _flattenPalletPartnerGroups() {
             const rows = [];
             palletsData.forEach(pl => {
-                const plLabel = (pl.label || '').trim();
+                const plLabel = ((pl.label || '').trim()) + (pl.client ? ' - ' + pl.client.trim() : '');
                 (pl.partnerGroups || []).forEach(g => {
                     const name = (g.name === 'Outro' ? (g.nameCustom || '') : (g.name || '')).trim();
                     if (!name) return;
@@ -3180,7 +3180,7 @@
 
             // Retrocompatibilidade: registros antigos guardavam parceiros em pl.partners
             palletsData.forEach(pl => {
-                const plLabel = (pl.label || '').trim();
+                const plLabel = ((pl.label || '').trim()) + (pl.client ? ' - ' + pl.client.trim() : '');
                 (pl.partners || []).forEach(p => {
                     const name = (p.name === 'Outro' ? (p.nameCustom || '') : (p.name || '')).trim();
                     const qty = parseFloat(p.qty);
@@ -3248,7 +3248,7 @@
             const labels = new Set(palletsData.map(pl => (pl.label || '').trim().toLowerCase()).filter(Boolean));
             return labels.size;
         }
-        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
+        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
@@ -3342,7 +3342,9 @@
                     <div class="flex items-center justify-between bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
                         <div class="flex items-center gap-2 flex-1 min-w-0">
                             <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-amber-600 shrink-0"></i>
-                            <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="flex-1 min-w-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
+                            <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="w-24 shrink-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
+                            <span class="text-amber-400 font-bold shrink-0 select-none">—</span>
+                            <input type="text" value="${(pl.client||'').replace(/"/g,'&quot;')}" placeholder="Nome do cliente" oninput="updatePallet(${idx}, 'client', this.value)" onclick="event.stopPropagation()" class="flex-1 min-w-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none">
                             <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 shrink-0" onclick="event.stopPropagation()">
                                 <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                                 <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-14 p-1.5 text-sm outline-none bg-transparent">
@@ -3855,7 +3857,7 @@
                     const boxesHtml = (palletGroups.length || legacyItems.length)
                         ? totalBoxes + ' cx'
                         : (pl.boxes ? pl.boxes+' cx' : '—');
-                    return `${rpTD(pl.label,'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;text-align:center;')}`;
+                    return `${rpTD(pl.label+(pl.client?' — '+pl.client:''),'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;text-align:center;')}`;
                 };
                 let rows = `<tr>${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}${rpTH('Pallet')}${rpTH('Temperatura',90)}${rpTH('Qtd. Caixas',90)}</tr>`;
                 if (!validPallets.length) {
@@ -3881,15 +3883,15 @@
             ${showInternalSections ? `
             <!-- 6. PARCEIROS / QUANTIDADES -->
             ${rpSH(rn(),'Parceiros / Quantidades')}
-            ${rpTable(`<tr>${rpTH('Parceiro')}${rpTH('Pallet',70)}${rpTH('Quantidade',80)}${rpTH('Unidade',75)}${rpTH('Data Colheita',85)}${rpTH('% do Total',75)}</tr>
+            ${rpTable(`<tr>${rpTH('Parceiro',200)}${rpTH('Pallet',320)}${rpTH('Quantidade',120)}${rpTH('Unidade',150)}${rpTH('Data Colheita',130)}${rpTH('% do Total',120)}</tr>
             ${validPartners.length ? validPartners.map((p,i)=>{
                 const pct = totalQty>0 ? (parseFloat(p.qty)/totalQty*100).toFixed(1)+'%' : '—';
                 const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p)+'|'+(p.harvestDate||'') === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner)+'|'+(maxPartner.harvestDate||'');
                 const bg = i%2===0?'':'background:#f0f6ff;';
                 const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
-                return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(p.qty+' cx','font-weight:700;text-align:right;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
+                return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(p.qty+' cx','font-weight:700;text-align:center;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(totalQty+' cx','font-weight:900;text-align:right;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(totalQty+' cx','font-weight:900;text-align:center;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
@@ -3997,7 +3999,7 @@
                     ${palletsWithPhotos.length ? annexSection('Fotos dos Pallets','#92400e',
                         palletsWithPhotos.map(pl=>`
                         <div style="margin-bottom:10px;">
-                            <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
+                            <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.client ? ' — '+pl.client : ''}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
                             ${photoRowDiv(pl.photos||[], '#fbbf24', null)}
                         </div>`).join('')) : ''}
                 </div>`;
@@ -4106,7 +4108,7 @@
                 await _buildPDF(Math.max(measuredY + 12, 281), true);
             } else {
                 setSaveProgress(50, 'Gerando PDF', 'Montando páginas e imagens...');
-                await _buildPDF(297, true);
+                await _buildPDF(210, true); // 210 = altura A4 paisagem
             }
             setSaveProgress(100, 'PDF pronto!', 'Fazendo download...');
         }
@@ -4114,8 +4116,9 @@
         async function _buildPDF(pageHeight, doSave) {
             const { jsPDF } = window.jspdf;
             const isScreen = currentPdfLayout === 'screen';
-            const PW = 280; // largura ampliada (antes 210/A4) para o texto não quebrar de linha
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [PW, pageHeight] });
+            const isLandscapePrint = currentPdfLayout === 'print';
+            const PW = isLandscapePrint ? 290 : 280; // landscape A4 ≈ 290 usável; portrait = 280
+            const doc = new jsPDF({ orientation: isLandscapePrint ? 'landscape' : 'portrait', unit: 'mm', format: isLandscapePrint ? [297, pageHeight] : [PW, pageHeight] });
             const PH = pageHeight, M = 3, CW = PW - 2 * M;
             // As larguras de coluna abaixo foram definidas para um conteúdo de 204mm.
             // K reescala tudo proporcionalmente para a nova largura útil (CW).
@@ -4247,23 +4250,27 @@
                 doc.text(`Código: ${codigo}   ·   Data: ${displayDate}   ·   Produto: ${product}   ·   Cliente: ${client}`, M, y + 3.5);
                 y += 7;
                 sec('Parceiros / Quantidades');
-                const pRowsPc = validPartners.map(p => {
-                    const pct  = totalQty > 0 ? ((parseFloat(p.qty) / totalQty) * 100).toFixed(1) + '%' : '—';
-                    const hd   = p.harvestDate ? (hd => { const pp = hd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; })(p.harvestDate) : '—';
-                    const nm   = getPartnerName(p);
-                    const star = maxPartner && getPartnerName(maxPartner) === nm;
-                    return [{content: nm, styles: {fontStyle: star ? 'bold' : 'normal'}}, {content: p.palletLabel || '—', styles: {halign: 'center', fontStyle: 'bold'}}, parseFloat(p.qty) + ' cx', getPartnerUnit(p), hd, {content: pct, styles: {halign: 'right'}}];
+                const flatRows = _flattenPalletPartnerGroups()
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                const totalQtyPc = flatRows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+                const pRowsPc = flatRows.map(r => {
+                    const pct = totalQtyPc > 0 ? ((parseFloat(r.qty) / totalQtyPc) * 100).toFixed(1) + '%' : '—';
+                    const hd  = r.harvestDate ? (hd => { const pp = hd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; })(r.harvestDate) : '—';
+                    return [r.name, {content: r.palletLabel || '—', styles: {halign: 'center', fontStyle: 'bold'}}, {content: parseFloat(r.qty) + ' cx', styles: {halign: 'right', fontStyle: 'bold'}}, r.unit || '—', hd, {content: pct, styles: {halign: 'right'}}];
                 });
                 if (pRowsPc.length) pRowsPc.push([
                     {content: 'TOTAL', styles: {fontStyle: 'bold'}},
                     '',
-                    {content: totalQty + ' cx', styles: {fontStyle: 'bold', halign: 'right'}},
+                    {content: totalQtyPc + ' cx', styles: {fontStyle: 'bold', halign: 'right'}},
                     '', '', {content: '100%', styles: {fontStyle: 'bold', halign: 'right'}},
                 ]);
                 doc.autoTable(tbl({ startY: y,
                     head: [['Parceiro', 'Pallet', 'Quantidade', 'Unidade', 'Data Colheita', '% do Total']],
                     body: pRowsPc.length ? pRowsPc : [['Nenhum parceiro informado.', '', '', '', '', '']],
-                    columnStyles: {2: {halign: 'right'}, 5: {halign: 'right'}},
+                    columnStyles: {
+                        0:{cellWidth:cw(42)}, 1:{cellWidth:cw(90)}, 2:{cellWidth:cw(15),halign:'right'},
+                        3:{cellWidth:cw(23)}, 4:{cellWidth:cw(18)}, 5:{cellWidth:cw(16),halign:'right'},
+                    },
                 }));
                 y = doc.lastAutoTable.finalY;
                 if (doSave) {
@@ -4314,7 +4321,7 @@
                 const totalBoxes = palGrps.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0)
                                  + legItems.reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
                 const boxes = (palGrps.length || legItems.length) ? (totalBoxes + ' cx') : '—';
-                return [pl.label, temp, boxes];
+                return [pl.label + (pl.client ? ' - ' + pl.client : ''), temp, boxes];
             });
             const palletRows = [];
             for (let i = 0; i < palletData.length; i += 2) {
@@ -4371,7 +4378,7 @@
                     const hd   = p.harvestDate ? (hd=>{const pp=hd.split('-');return `${pp[2]}/${pp[1]}/${pp[0]}`;}) (p.harvestDate) : '—';
                     const nm   = getPartnerName(p);
                     const star = maxPartner && getPartnerName(maxPartner)===nm;
-                    return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:p.palletLabel||'—',styles:{halign:'center',fontStyle:'bold'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
+                    return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:(p.palletLabel||'—').replace(/, /g,'\n'),styles:{halign:'center',fontStyle:'bold'}}, parseFloat(p.qty)+' cx', getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
                 });
                 if (pRows.length) pRows.push([
                     {content:'TOTAL',styles:{fontStyle:'bold'}},
@@ -4382,7 +4389,10 @@
                 doc.autoTable(tbl({ startY: y,
                     head: [['Parceiro','Pallet','Quantidade','Unidade','Data Colheita','% do Total']],
                     body: pRows.length ? pRows : [['Nenhum parceiro.','','','','','']],
-                    columnStyles: { 2:{halign:'right'}, 5:{halign:'right'} },
+                    columnStyles: {
+                        0:{cellWidth:cw(42)}, 1:{cellWidth:cw(90)}, 2:{cellWidth:cw(15),halign:'right'},
+                        3:{cellWidth:cw(23)}, 4:{cellWidth:cw(18)}, 5:{cellWidth:cw(16),halign:'right'},
+                    },
                 }));
                 y = doc.lastAutoTable.finalY;
 
@@ -4509,7 +4519,7 @@
                     tempsWP.map(t => ({ label: `${t.label}${t.value!==''?' — '+t.value+'°C':''}`, photos: t.photos })));
 
                 if (palletsWP.length) drawPhotos('Fotos dos Pallets', C.amber,
-                    palletsWP.map(pl => ({ label: `${pl.label}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: pl.photos })));
+                    palletsWP.map(pl => ({ label: `${pl.label}${pl.client?' — '+pl.client:''}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: pl.photos })));
             }
 
             // ── RODAPÉ ────────────────────────────────────────────────────────
