@@ -527,11 +527,12 @@
                                 </div>
                                 <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Vídeos do Embarque</span>
                             </div>
-                            <button type="button" onclick="document.getElementById('videoInput').click()" class="text-violet-600 hover:text-violet-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
+                            <button type="button" onclick="openVideoSourceModal(handleVideoUpload)" class="text-violet-600 hover:text-violet-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
                                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar vídeo
                             </button>
                         </div>
-                        <input type="file" id="videoInput" accept="video/*" multiple class="hidden" onchange="handleVideoUpload(event)">
+                        <input type="file" id="videoInput_camera"  accept="video/*" capture="environment" class="hidden">
+                        <input type="file" id="videoInput_gallery" accept="video/*" multiple class="hidden">
                         <div id="videosContainer" class="space-y-2"></div>
                         <p id="videosHint" class="text-[10px] text-slate-400 text-center mt-1">Nenhum vídeo adicionado. Ao enviar o relatório, o vídeo será salvo no Google Drive automaticamente.</p>
                     </div>
@@ -789,6 +790,42 @@
             <!-- inputs ocultos -->
             <input type="file" id="photoInput_camera"  accept="image/*" capture="environment" multiple class="hidden">
             <input type="file" id="photoInput_gallery" accept="image/*"                       multiple class="hidden">
+        </div>
+    </div>
+
+    <!-- MODAL FONTE DE VÍDEO -->
+    <div id="videoSourceModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-end justify-center backdrop-blur-sm" onclick="if(event.target===this) closeVideoSourceModal()">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl pb-safe overflow-hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Adicionar vídeo</p>
+                <button onclick="closeVideoSourceModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 grid grid-cols-2 gap-3">
+                <!-- Câmera -->
+                <button type="button" onclick="triggerVideoCapture('camera')"
+                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all active:scale-95">
+                    <div class="w-14 h-14 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                        <i data-lucide="video" class="w-7 h-7"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-black text-slate-700">Gravar vídeo</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Abrir câmera</p>
+                    </div>
+                </button>
+                <!-- Galeria -->
+                <button type="button" onclick="triggerVideoCapture('gallery')"
+                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all active:scale-95">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="film" class="w-7 h-7"></i>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm font-black text-slate-700">Galeria</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Escolher arquivo</p>
+                    </div>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1098,6 +1135,38 @@
             _lastPhotoSource = source;
             closePhotoSourceModal();
             const input = document.getElementById(source === 'camera' ? 'photoInput_camera' : 'photoInput_gallery');
+            input.value = '';
+            input.onchange = (e) => { if (cb) cb(e); };
+            input.click();
+        }
+
+        let _videoSourceCallback = null;
+
+        function openVideoSourceModal(callback) {
+            _videoSourceCallback = callback;
+            document.getElementById('videoInput_camera').value  = '';
+            document.getElementById('videoInput_gallery').value = '';
+            const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (!isMobile) {
+                triggerVideoCapture('gallery');
+                return;
+            }
+            const modal = document.getElementById('videoSourceModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeVideoSourceModal() {
+            document.getElementById('videoSourceModal').classList.add('hidden');
+            document.getElementById('videoSourceModal').classList.remove('flex');
+            _videoSourceCallback = null;
+        }
+
+        function triggerVideoCapture(source) {
+            const cb = _videoSourceCallback;
+            closeVideoSourceModal();
+            const input = document.getElementById(source === 'camera' ? 'videoInput_camera' : 'videoInput_gallery');
             input.value = '';
             input.onchange = (e) => { if (cb) cb(e); };
             input.click();
@@ -4962,7 +5031,7 @@
         const _MODAL_IDS = [
             'usersModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
-            'photoSourceModal','genericConfirmModal','conflictModal','passwordModal',
+            'photoSourceModal','videoSourceModal','genericConfirmModal','conflictModal','passwordModal',
             'saveLoadingModal','analysisModal'
         ];
         function _anyModalOpen() {
