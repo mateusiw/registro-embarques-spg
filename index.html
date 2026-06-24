@@ -517,6 +517,24 @@
                     </div>
                     <div id="photosContainer" class="space-y-2"></div>
                     <p id="photosHint" class="text-[10px] text-slate-400 text-center mt-2">Nenhuma foto adicionada. Clique em "Adicionar" para incluir fotos no relatório.</p>
+
+                    <!-- VÍDEOS DO EMBARQUE -->
+                    <div class="border-t border-slate-100 mt-4 pt-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-7 h-7 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                    <i data-lucide="video" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Vídeos do Embarque</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('videoInput').click()" class="text-violet-600 hover:text-violet-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar vídeo
+                            </button>
+                        </div>
+                        <input type="file" id="videoInput" accept="video/*" multiple class="hidden" onchange="handleVideoUpload(event)">
+                        <div id="videosContainer" class="space-y-2"></div>
+                        <p id="videosHint" class="text-[10px] text-slate-400 text-center mt-1">Nenhum vídeo adicionado. Ao enviar o relatório, o vídeo será salvo no Google Drive automaticamente.</p>
+                    </div>
                 </div>
 
             </form>
@@ -1035,6 +1053,7 @@
         let additionalInfoData = [];
         let aiSummary = null;
         let photosData = [];
+        let videosData = [];
         let historyRows = [];
         let historyRowsFiltered = [];
 
@@ -1355,6 +1374,7 @@
                 additionalInfoData,
                 aiSummary,
                 photosData,
+                videosData,
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
@@ -1432,6 +1452,7 @@
             if (ser(current.palletsData) !== ser(snapshot.palletsData))           changed['Pallets'] = ser(current.palletsData);
             if (ser(current.additionalInfoData) !== ser(snapshot.additionalInfoData)) changed['InfoAdicionais'] = ser(current.additionalInfoData);
             if (ser(current.photosData) !== ser(snapshot.photosData))             changed['Fotos'] = ser(current.photosData);
+            if (ser(current.videosData) !== ser(snapshot.videosData))             changed['Videos'] = ser(current.videosData);
 
             if (str(current.aiSummary) !== str(snapshot.aiSummary))
                 changed['AISummary'] = str(current.aiSummary);
@@ -1493,12 +1514,14 @@
                         const cc = result.changedColumns;
                         const parseJson = (v) => { try { return JSON.parse(v); } catch(_) { return []; } };
                         if (cc['Fotos'])        photosData = parseJson(cc['Fotos']);
+                        if (cc['Videos'])       videosData = parseJson(cc['Videos']);
                         if (cc['Descartes'])    discardsData = parseJson(cc['Descartes']);
                         if (cc['Temperaturas']) customTempsData = parseJson(cc['Temperaturas']);
                         if (cc['Pallets'])      palletsData = parseJson(cc['Pallets']);
                     } else if (result.data) {
                         const d = result.data;
                         if (d.photosData)      photosData = d.photosData;
+                        if (d.videosData)      videosData = d.videosData;
                         if (d.discardsData)    discardsData = d.discardsData;
                         if (d.customTempsData) customTempsData = d.customTempsData;
                         if (d.palletsData)     palletsData = d.palletsData;
@@ -2004,6 +2027,7 @@
                 discardsData    = parse(row.Descartes);
                 additionalInfoData = parse(row.InfoAdicionais);
                 photosData      = parse(row.Fotos);
+                videosData      = parse(row.Videos);
                 palletsData     = parse(row.Pallets);
                 aiSummary       = row.AISummary && String(row.AISummary).trim() ? String(row.AISummary) : null;
 
@@ -2037,6 +2061,7 @@
                 renderCustomTemps();
                 renderAdditionalInfo();
                 renderPhotos();
+                renderVideos();
                 updatePreview();
 
                 document.getElementById('historyModal').classList.add('hidden');
@@ -2219,6 +2244,7 @@
             discardsData = [];
             additionalInfoData = [];
             photosData = [];
+            videosData = [];
             aiSummary = null;
             _collapsedPallets = [];
             _collapsedTemps = [];
@@ -2232,6 +2258,7 @@
             renderDiscards();
             renderAdditionalInfo();
             renderPhotos();
+            renderVideos();
 
             updatePreview();
         }
@@ -2458,6 +2485,7 @@
                 additionalInfoData,
                 aiSummary,
                 photosData,
+                videosData,
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
@@ -2469,10 +2497,11 @@
             try {
                 localStorage.setItem('spg_form_data', JSON.stringify(data));
             } catch(e) {
-                // Cota excedida: salva sem as fotos (que continuam na sessão atual)
+                // Cota excedida: salva sem as fotos/vídeos base64 (que continuam na sessão atual)
                 const dataNoPhotos = {
                     ...data,
                     photosData: [],
+                    videosData: videosData.map(v => _isDriveUrl(v.dataUrl) ? v : { ...v, dataUrl: null }),
                     discardsData: discardsData.map(d => ({ ...d, photos: [] })),
                     customTempsData: customTempsData.map(t => ({ ...t, photos: [] }))
                 };
@@ -2514,6 +2543,7 @@
                 }
                 if (data.aiSummary) aiSummary = data.aiSummary;
                 if (data.photosData && data.photosData.length) photosData = data.photosData;
+                if (data.videosData) videosData = data.videosData;
                 const fields = ['driverName','vehiclePlate','departureTime','sensorNumber','lacreNumber'];
                 fields.forEach(f => { if (data[f] !== undefined) document.getElementById(f).value = data[f]; });
                 if (data.palletsData && data.palletsData.length) palletsData = data.palletsData;
@@ -2575,6 +2605,7 @@
             renderCustomTemps();
             renderAdditionalInfo();
             renderPhotos();
+            renderVideos();
             updatePreview();
             applyProfileRestrictions();
             _restoreEditMode();
@@ -3762,6 +3793,104 @@
             lucide.createIcons();
         }
 
+        // ---------- Vídeos ----------
+        const VIDEO_MAX_MB = 40;
+
+        function handleVideoUpload(event) {
+            const files = Array.from(event.target.files);
+            event.target.value = '';
+            files.forEach(file => {
+                if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
+                    showMessageModal('Vídeo muito grande', `O vídeo "${file.name}" tem ${(file.size/1024/1024).toFixed(1)} MB. O limite é ${VIDEO_MAX_MB} MB. Tente gravar um vídeo mais curto.`, 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    videosData.push({ dataUrl: e.target.result, caption: '', name: file.name, size: file.size });
+                    renderVideos();
+                    updatePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeVideo(idx) {
+            videosData.splice(idx, 1);
+            renderVideos();
+            updatePreview();
+        }
+
+        function updateVideoCaption(idx, value) { videosData[idx].caption = value; updatePreview(); }
+
+        function _fmtVideoSize(bytes) {
+            if (!bytes) return '';
+            if (bytes >= 1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+            return (bytes/1024).toFixed(0) + ' KB';
+        }
+
+        function _isDriveUrl(url) {
+            return url && (url.startsWith('https://drive.google.com') || url.startsWith('https://docs.google.com'));
+        }
+
+        function _getDriveFileId(driveUrl) {
+            if (!driveUrl) return null;
+            const m = driveUrl.match(/\/file\/d\/([^/?&#]+)/);
+            return m ? m[1] : null;
+        }
+
+        function _getDriveThumbnailUrl(driveUrl) {
+            const id = _getDriveFileId(driveUrl);
+            return id ? 'https://drive.google.com/thumbnail?id=' + id + '&sz=w640' : null;
+        }
+
+        function renderVideos() {
+            const container = document.getElementById('videosContainer');
+            const hint = document.getElementById('videosHint');
+            if (!container) return;
+            if (videosData.length === 0) {
+                container.innerHTML = '';
+                if (hint) hint.classList.remove('hidden');
+                return;
+            }
+            if (hint) hint.classList.add('hidden');
+            container.innerHTML = videosData.map((v, idx) => {
+                const isDrive = _isDriveUrl(v.dataUrl);
+                const isBase64 = v.dataUrl && v.dataUrl.startsWith('data:');
+                const nameLabel = (v.name || (isDrive ? 'Vídeo ' + (idx+1) : 'Vídeo')).replace(/</g,'&lt;');
+                const sizeLabel = v.size ? _fmtVideoSize(v.size) : '';
+                const thumbUrl = isDrive ? _getDriveThumbnailUrl(v.dataUrl) : null;
+                return `
+                <div class="bg-violet-50 rounded-xl border border-violet-100 overflow-hidden">
+                    ${isDrive && thumbUrl ? `
+                    <a href="${v.dataUrl}" target="_blank" rel="noopener" class="block relative">
+                        <img src="${thumbUrl}" alt="Thumbnail do vídeo" class="w-full h-32 object-cover" onerror="this.style.display='none'">
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <div class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                <svg viewBox="0 0 24 24" fill="#6d28d9" class="w-6 h-6 ml-0.5"><polygon points="5,3 19,12 5,21"/></svg>
+                            </div>
+                        </div>
+                    </a>` : isBase64 ? `
+                    <div class="w-full h-20 bg-violet-200 flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" class="w-8 h-8"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="m16 2-4 5-4-5"/><circle cx="12" cy="14" r="3"/></svg>
+                        <span class="text-violet-700 text-xs font-bold">Aguardando envio...</span>
+                    </div>` : ''}
+                    <div class="p-2 space-y-1">
+                        <div class="flex items-center justify-between gap-1.5 min-w-0">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-xs font-bold text-slate-700 truncate">${nameLabel}</span>
+                                ${sizeLabel ? `<span class="text-[10px] text-slate-400 shrink-0">${sizeLabel}</span>` : ''}
+                            </div>
+                            <button type="button" onclick="removeVideo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
+                        ${isDrive ? `<a href="${v.dataUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:underline"><i data-lucide="external-link" class="w-3 h-3"></i> Abrir vídeo no Drive</a>` : ''}
+                        ${isBase64 ? `<div class="text-[10px] text-violet-500 font-semibold flex items-center gap-1"><i data-lucide="upload-cloud" class="w-3 h-3"></i> Será enviado ao Drive ao salvar o relatório</div>` : ''}
+                        <input type="text" value="${(v.caption||'').replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updateVideoCaption(${idx}, this.value)" class="w-full p-1.5 rounded-lg border border-violet-100 text-xs bg-white focus:ring-2 focus:ring-violet-300 outline-none">
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
         // ---------- Informações Adicionais ----------
         const INFO_TOPICS = ['Temperatura', 'Carregamento'];
         function addAdditionalInfo() { additionalInfoData.push({ topic: '', text: '' }); renderAdditionalInfo(); }
@@ -3996,6 +4125,44 @@
                             <span style="font-size:22px;font-weight:900;color:#64748b;">+${photosData.length - 5}</span>
                             <span style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">em anexo</span>
                         </div>` : ''}
+                    </div>
+                </div>`;
+            })()}
+
+            ${(() => {
+                const validVideos = videosData.filter(v => v.dataUrl);
+                if (!validVideos.length) return '';
+                const secNum = rn();
+                return `
+                ${rpSH(secNum,'Vídeos do Embarque')}
+                <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 12px;background:#faf5ff;">
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                    ${validVideos.map((v, i) => {
+                        const isDrive = _isDriveUrl(v.dataUrl);
+                        const label = (v.caption || v.name || ('Vídeo ' + (i + 1))).replace(/</g,'&lt;');
+                        const thumbUrl = isDrive ? _getDriveThumbnailUrl(v.dataUrl) : null;
+                        if (isDrive) {
+                            return `<a href="${v.dataUrl}" target="_blank" rel="noopener" style="display:block;text-decoration:none;width:200px;">
+                                <div style="position:relative;width:200px;height:112px;border-radius:6px;overflow:hidden;border:2px solid #a78bfa;">
+                                    ${thumbUrl ? `<img src="${thumbUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">` : ''}
+                                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
+                                        <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+                                            <svg viewBox="0 0 24 24" fill="#6d28d9" width="18" height="18" style="margin-left:2px;"><polygon points="5,3 19,12 5,21"/></svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top:4px;font-size:11px;font-weight:700;color:#6d28d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${label}</div>
+                                <div style="font-size:10px;color:#8b5cf6;">▶ Clique para assistir</div>
+                            </a>`;
+                        }
+                        return `<div style="width:200px;">
+                            <div style="width:200px;height:112px;border-radius:6px;background:#ede9fe;border:2px dashed #a78bfa;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="28" height="28"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="m16 2-4 5-4-5"/></svg>
+                                <span style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:0.05em;">Aguardando envio</span>
+                            </div>
+                            <div style="margin-top:4px;font-size:11px;font-weight:700;color:#6d28d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${label}</div>
+                        </div>`;
+                    }).join('')}
                     </div>
                 </div>`;
             })()}
@@ -4575,12 +4742,17 @@
             const tempsWP    = getValidCustomTemps().filter(t => t.photos.length);
             const palletsWP  = validPallets.filter(pl => (pl.photos||[]).length);
 
-            // Pré-carregar todas as fotos como base64 (necessário quando vêm como URLs do Drive)
+            // Pré-carregar todas as fotos e thumbnails de vídeo como base64
+            const _videoThumbSrcs = videosData
+                .filter(v => _isDriveUrl(v.dataUrl))
+                .map(v => _getDriveThumbnailUrl(v.dataUrl))
+                .filter(Boolean);
             const _allPhotoSrcs = [
                 ...discardsWP.flatMap(d => d.photos||[]),
                 ...tempsWP.flatMap(t => t.photos||[]),
                 ...palletsWP.flatMap(pl => pl.photos||[]),
                 ...photosData.map(p => p.dataUrl||p).filter(Boolean),
+                ..._videoThumbSrcs,
             ];
             const _photoCache = await _preloadPhotos(_allPhotoSrcs);
             const _photo = src => src in _photoCache ? _photoCache[src] : src;
@@ -4639,6 +4811,94 @@
 
                 if (palletsWP.length) drawPhotos('Fotos dos Pallets', C.amber,
                     palletsWP.map(pl => ({ label: `${pl.label}${pl.client?' — '+pl.client:''}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: pl.photos })));
+            }
+
+            // ── VÍDEOS ────────────────────────────────────────────────────────
+            const validVideos = videosData.filter(v => _isDriveUrl(v.dataUrl));
+            if (validVideos.length) {
+                if (!isScreen) { doc.addPage(); y = M; } else { y += 8; }
+                doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...C.black);
+                doc.text('VÍDEOS DO EMBARQUE', M, y + 5);
+                doc.setDrawColor(...C.gMed); doc.setLineWidth(0.5);
+                doc.line(M, y + 7, M + CW, y + 7);
+                y += 14;
+
+                // 2 vídeos por linha
+                const VPR = 2;
+                const VW = (CW - (VPR - 1) * 4) / VPR;  // largura de cada banner
+                const THUMB_H = VW * 9 / 16;              // proporção 16:9
+                const CARD_H = THUMB_H + 14;              // thumbnail + área de texto
+
+                for (let i = 0; i < validVideos.length; i += VPR) {
+                    const chunk = validVideos.slice(i, i + VPR);
+                    checkPage(CARD_H + 4);
+
+                    chunk.forEach((v, ci) => {
+                        const x = M + ci * (VW + 4);
+                        const url = v.dataUrl;
+                        const label = (v.caption && v.caption.trim()) ? v.caption.trim() : (v.name || ('Vídeo ' + (i + ci + 1)));
+                        const thumbSrc = _getDriveThumbnailUrl(url);
+                        const thumbImg = thumbSrc && _photoCache[thumbSrc] ? _photoCache[thumbSrc] : null;
+
+                        // fundo do card
+                        doc.setFillColor(237, 233, 254);
+                        doc.roundedRect(x, y, VW, CARD_H, 2, 2, 'F');
+                        doc.setDrawColor(167, 139, 250);
+                        doc.setLineWidth(0.3);
+                        doc.roundedRect(x, y, VW, CARD_H, 2, 2, 'S');
+
+                        if (thumbImg) {
+                            // Thumbnail com cantos arredondados (clipa com rect)
+                            try {
+                                doc.addImage(thumbImg, 'JPEG', x, y, VW, THUMB_H, undefined, 'FAST');
+                            } catch(e) {
+                                try { doc.addImage(thumbImg, 'PNG', x, y, VW, THUMB_H, undefined, 'FAST'); } catch(_) {}
+                            }
+                        } else {
+                            // Placeholder se thumbnail não carregar
+                            doc.setFillColor(196, 181, 253);
+                            doc.rect(x, y, VW, THUMB_H, 'F');
+                        }
+
+                        // Overlay escuro sobre thumbnail
+                        doc.setFillColor(0, 0, 0);
+                        doc.setGState(new doc.GState({ opacity: 0.35 }));
+                        doc.rect(x, y, VW, THUMB_H, 'F');
+                        doc.setGState(new doc.GState({ opacity: 1 }));
+
+                        // Ícone de play (círculo + triângulo)
+                        const cx = x + VW / 2;
+                        const cy = y + THUMB_H / 2;
+                        const r = Math.min(VW, THUMB_H) * 0.13;
+                        doc.setFillColor(255, 255, 255);
+                        doc.setDrawColor(255, 255, 255);
+                        doc.circle(cx, cy, r, 'F');
+                        // triângulo dentro do círculo
+                        doc.setFillColor(109, 40, 217);
+                        const tr = r * 0.5;
+                        doc.triangle(
+                            cx - tr * 0.5, cy - tr,
+                            cx - tr * 0.5, cy + tr,
+                            cx + tr,       cy,
+                            'F'
+                        );
+
+                        // Texto: label + "Clique para assistir"
+                        const textY = y + THUMB_H + 5;
+                        const maxLabelW = VW - 4;
+                        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(76, 29, 149);
+                        const truncLabel = doc.splitTextToSize(label, maxLabelW)[0] || label;
+                        doc.textWithLink(truncLabel, x + 2, textY, { url });
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(124, 58, 237);
+                        doc.textWithLink('▶ Clique aqui para assistir', x + 2, textY + 5, { url });
+
+                        // Link clicável em toda a área do card
+                        doc.link(x, y, VW, CARD_H, { url });
+                    });
+
+                    y += CARD_H + 5;
+                }
+                y += 3;
             }
 
             // ── RODAPÉ ────────────────────────────────────────────────────────
