@@ -2533,6 +2533,7 @@
         document.addEventListener("DOMContentLoaded", async () => {
             applyBrandAssets();
             lucide.createIcons();
+            _initViewerGestures();
 
             // Verifica sessão existente (persistente primeiro, depois de aba)
             try {
@@ -3144,7 +3145,7 @@
                         .filter(Boolean)));
                     const dates = Array.from(new Set(lots.map(l => l.harvestDate).filter(Boolean)));
                     rows.push({
-                        name, qty, palletLabel: plLabel,
+                        name, qty, palletLabel: plLabel, client: (pl.client || '').trim(),
                         unit: products.join(', '),
                         harvestDate: dates.length === 1 ? dates[0] : ''
                     });
@@ -3662,16 +3663,21 @@
         }
         // ---------- Lightbox ----------
         let _viewerPhotos = [], _viewerIdx = 0;
+        let _vzScale = 1, _vzLastDist = 0;
         function openPhotoViewer(photos, idx) {
             _viewerPhotos = Array.isArray(photos) ? photos : [photos];
             _viewerIdx = idx || 0;
+            _vzScale = 1; _vzLastDist = 0;
             _updateViewer();
             document.getElementById('photoViewerModal').classList.remove('hidden');
             lockScroll();
             lucide.createIcons();
         }
         function _updateViewer() {
-            document.getElementById('viewerImg').src = _viewerPhotos[_viewerIdx];
+            const img = document.getElementById('viewerImg');
+            _vzScale = 1; _vzLastDist = 0;
+            img.style.transform = '';
+            img.src = _viewerPhotos[_viewerIdx];
             const counter = document.getElementById('viewerCounter');
             counter.textContent = (_viewerIdx + 1) + ' / ' + _viewerPhotos.length;
             counter.style.display = _viewerPhotos.length > 1 ? '' : 'none';
@@ -3680,7 +3686,48 @@
         }
         function viewerPrev() { _viewerIdx = (_viewerIdx - 1 + _viewerPhotos.length) % _viewerPhotos.length; _updateViewer(); }
         function viewerNext() { _viewerIdx = (_viewerIdx + 1) % _viewerPhotos.length; _updateViewer(); }
-        function closePhotoViewer() { document.getElementById('photoViewerModal').classList.add('hidden'); unlockScroll(); _viewerPhotos = []; }
+        function closePhotoViewer() {
+            const img = document.getElementById('viewerImg');
+            if (img) { _vzScale = 1; img.style.transform = ''; }
+            document.getElementById('photoViewerModal').classList.add('hidden');
+            unlockScroll();
+            _viewerPhotos = [];
+        }
+        function _initViewerGestures() {
+            const modal = document.getElementById('photoViewerModal');
+            if (!modal) return;
+            modal.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) {
+                    _vzLastDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            }, { passive: true });
+            modal.addEventListener('touchmove', e => {
+                if (e.touches.length === 2 && _vzLastDist > 0) {
+                    e.preventDefault();
+                    const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    _vzScale = Math.max(1, Math.min(5, _vzScale * (dist / _vzLastDist)));
+                    _vzLastDist = dist;
+                    const img = document.getElementById('viewerImg');
+                    if (img) img.style.transform = 'scale(' + _vzScale + ')';
+                }
+            }, { passive: false });
+            modal.addEventListener('touchend', e => {
+                if (e.touches.length < 2) {
+                    _vzLastDist = 0;
+                    if (_vzScale < 1.1) {
+                        _vzScale = 1;
+                        const img = document.getElementById('viewerImg');
+                        if (img) img.style.transform = 'scale(1)';
+                    }
+                }
+            }, { passive: true });
+        }
 
         function renderPhotos() {
             const container = document.getElementById('photosContainer');
@@ -3931,10 +3978,10 @@
                 <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 12px;background:#fbfdfd;">
                     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
                         ${preview.map((p,i)=>`<div style="page-break-inside:avoid;text-align:center;">
-                            <img src="${p.dataUrl}" style="width:340px;height:340px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
+                            <img src="${p.dataUrl}" onclick="openPhotoViewer(photosData.map(function(x){return x.dataUrl}),${i})" style="cursor:pointer;width:340px;height:340px;object-fit:cover;border:1px solid #c8d8d8;border-radius:4px;">
                             <div style="font-size:13px;color:#445;margin-top:4px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.caption || 'Foto '+(i+1)}</div>
                         </div>`).join('')}
-                        ${photosData.length > 5 ? `<div style="width:340px;height:340px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:4px;">
+                        ${photosData.length > 5 ? `<div onclick="openPhotoViewer(photosData.map(function(x){return x.dataUrl}),5)" style="cursor:pointer;width:340px;height:340px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:#f1f5f9;border:1.5px dashed #94a3b8;border-radius:4px;">
                             <span style="font-size:22px;font-weight:900;color:#64748b;">+${photosData.length - 5}</span>
                             <span style="font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">em anexo</span>
                         </div>` : ''}
@@ -3962,15 +4009,19 @@
                     for (let i = 0; i < arr.length; i += PER_ROW) chunks.push(arr.slice(i, i + PER_ROW));
                     return chunks;
                 };
-                const photoRowDiv = (srcs, border, captionFn) =>
-                    photoChunks(srcs).map(chunk =>
-                        `<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;width:100%;">
-                            ${chunk.map((src, i) => `<div style="flex:1;min-width:0;text-align:center;">
-                                <img src="${src}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border:1px solid ${border};border-radius:4px;display:block;">
-                                ${captionFn ? `<div style="font-size:12px;color:#555;margin-top:3px;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${captionFn(src,i)}</div>` : ''}
-                            </div>`).join('')}
-                        </div>`
-                    ).join('');
+                const photoRowDiv = (srcs, border, captionFn, onclickFn) =>
+                    photoChunks(srcs).map((chunk, chunkIdx) => {
+                        const cells = chunk.map((src, ci) => {
+                            const gi = chunkIdx * PER_ROW + ci;
+                            const ca = onclickFn ? 'onclick="' + onclickFn(gi) + '" ' : '';
+                            const cs = onclickFn ? 'cursor:pointer;' : '';
+                            return '<div style="flex:1;min-width:0;text-align:center;">' +
+                                '<img src="' + src + '" ' + ca + 'style="width:100%;aspect-ratio:1/1;object-fit:cover;border:1px solid ' + border + ';border-radius:4px;display:block;' + cs + '">' +
+                                (captionFn ? '<div style="font-size:12px;color:#555;margin-top:3px;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + captionFn(src, gi) + '</div>' : '') +
+                                '</div>';
+                        }).join('');
+                        return '<div style="display:flex;gap:8px;margin-bottom:8px;page-break-inside:avoid;width:100%;">' + cells + '</div>';
+                    }).join('');
 
                 const annexSection = (title, color, items) => `
                     <div style="margin-bottom:20px;">
@@ -3983,25 +4034,31 @@
                     <div style="font-size:13px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #059669;padding-bottom:8px;margin-bottom:20px;">Anexo Fotográfico</div>
 
                     ${discardsWithPhotos.length ? annexSection('Comprovantes dos Descartes','#b91c1c',
-                        discardsWithPhotos.map(d=>`
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner}${d.cultura ? ' · '+d.cultura : ''} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
-                            ${photoRowDiv(d.photos||[], '#e3b8b8', null)}
-                        </div>`).join('')) : ''}
+                        discardsWithPhotos.map(d => {
+                            const di = discardsData.indexOf(d);
+                            return `<div style="margin-bottom:10px;">
+                                <div style="font-size:9px;font-weight:800;color:#7a2020;margin-bottom:4px;">${d.partner}${d.cultura ? ' · '+d.cultura : ''} — ${d.weight} kg${d.reason ? ' · '+d.reason : ''}</div>
+                                ${photoRowDiv(d.photos||[], '#e3b8b8', null, di >= 0 ? gi => 'openPhotoViewer(discardsData[' + di + '].photos,' + gi + ')' : null)}
+                            </div>`;
+                        }).join('')) : ''}
 
                     ${tempsWithPhotos.length ? annexSection('Comprovantes das Temperaturas','#9a3412',
-                        tempsWithPhotos.map(t=>`
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:4px;">${t.label}${t.value !== '' && t.value != null ? ' — '+t.value+' °C' : ''}</div>
-                            ${photoRowDiv(t.photos||[], '#e8c9a8', null)}
-                        </div>`).join('')) : ''}
+                        tempsWithPhotos.map(t => {
+                            const ti = customTempsData.findIndex(ct => ct.photos === t.photos);
+                            return `<div style="margin-bottom:10px;">
+                                <div style="font-size:9px;font-weight:800;color:#7c3a10;margin-bottom:4px;">${t.label}${t.value !== '' && t.value != null ? ' — '+t.value+' °C' : ''}</div>
+                                ${photoRowDiv(t.photos||[], '#e8c9a8', null, ti >= 0 ? gi => 'openPhotoViewer(customTempsData[' + ti + '].photos,' + gi + ')' : null)}
+                            </div>`;
+                        }).join('')) : ''}
 
                     ${palletsWithPhotos.length ? annexSection('Fotos dos Pallets','#92400e',
-                        palletsWithPhotos.map(pl=>`
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.client ? ' — '+pl.client : ''}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
-                            ${photoRowDiv(pl.photos||[], '#fbbf24', null)}
-                        </div>`).join('')) : ''}
+                        palletsWithPhotos.map(pl => {
+                            const pi = palletsData.indexOf(pl);
+                            return `<div style="margin-bottom:10px;">
+                                <div style="font-size:9px;font-weight:800;color:#78350f;margin-bottom:4px;">${pl.label}${pl.client ? ' — '+pl.client : ''}${pl.temp !== '' && pl.temp != null ? ' — '+pl.temp+'°C' : ''}</div>
+                                ${photoRowDiv(pl.photos||[], '#fbbf24', null, pi >= 0 ? gi => 'openPhotoViewer(palletsData[' + pi + '].photos,' + gi + ')' : null)}
+                            </div>`;
+                        }).join('')) : ''}
                 </div>`;
             })()}`;
 
@@ -4250,29 +4307,80 @@
                 doc.text(`Código: ${codigo}   ·   Data: ${displayDate}   ·   Produto: ${product}   ·   Cliente: ${client}`, M, y + 3.5);
                 y += 7;
                 sec('Parceiros / Quantidades');
-                const flatRows = _flattenPalletPartnerGroups()
-                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                const flatRows = _flattenPalletPartnerGroups();
                 const totalQtyPc = flatRows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
-                const pRowsPc = flatRows.map(r => {
-                    const pct = totalQtyPc > 0 ? ((parseFloat(r.qty) / totalQtyPc) * 100).toFixed(1) + '%' : '—';
-                    const hd  = r.harvestDate ? (hd => { const pp = hd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; })(r.harvestDate) : '—';
-                    return [r.name, {content: r.palletLabel || '—', styles: {halign: 'center', fontStyle: 'bold'}}, {content: parseFloat(r.qty) + ' cx', styles: {halign: 'right', fontStyle: 'bold'}}, r.unit || '—', hd, {content: pct, styles: {halign: 'right'}}];
-                });
-                if (pRowsPc.length) pRowsPc.push([
-                    {content: 'TOTAL', styles: {fontStyle: 'bold'}},
-                    '',
-                    {content: totalQtyPc + ' cx', styles: {fontStyle: 'bold', halign: 'right'}},
-                    '', '', {content: '100%', styles: {fontStyle: 'bold', halign: 'right'}},
-                ]);
-                doc.autoTable(tbl({ startY: y,
-                    head: [['Parceiro', 'Pallet', 'Quantidade', 'Unidade', 'Data Colheita', '% do Total']],
-                    body: pRowsPc.length ? pRowsPc : [['Nenhum parceiro informado.', '', '', '', '', '']],
-                    columnStyles: {
-                        0:{cellWidth:cw(42)}, 1:{cellWidth:cw(90)}, 2:{cellWidth:cw(15),halign:'right'},
-                        3:{cellWidth:cw(23)}, 4:{cellWidth:cw(18)}, 5:{cellWidth:cw(16),halign:'right'},
-                    },
-                }));
-                y = doc.lastAutoTable.finalY;
+                const fmtDate = hd => { const pp = hd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; };
+
+                if (!flatRows.length) {
+                    doc.autoTable(tbl({ startY: y,
+                        head: [['Parceiro','Quantidade','Unidade','Data Colheita','% do Total']],
+                        body: [['Nenhum parceiro informado.','','','','']],
+                        columnStyles: { 0:{cellWidth:cw(100)}, 1:{cellWidth:cw(20),halign:'right'}, 2:{cellWidth:cw(30)}, 3:{cellWidth:cw(28)}, 4:{cellWidth:cw(26),halign:'right'} },
+                    }));
+                    y = doc.lastAutoTable.finalY;
+                } else {
+                    // Agrupar por cliente (pl.client), sem cliente fica no fim
+                    const clientMap = new Map();
+                    flatRows.forEach(r => {
+                        const key = r.client || '';
+                        if (!clientMap.has(key)) clientMap.set(key, []);
+                        clientMap.get(key).push(r);
+                    });
+                    const clientKeys = Array.from(clientMap.keys()).sort((a, b) => {
+                        if (!a) return 1; if (!b) return -1;
+                        return a.localeCompare(b, 'pt-BR', {sensitivity:'base'});
+                    });
+
+                    const colStyles = { 0:{cellWidth:cw(100)}, 1:{cellWidth:cw(20),halign:'right'}, 2:{cellWidth:cw(30)}, 3:{cellWidth:cw(28)}, 4:{cellWidth:cw(26),halign:'right'} };
+
+                    clientKeys.forEach((ck, ci) => {
+                        const clientRows = clientMap.get(ck).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
+                        const clientQty = clientRows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+                        const clientPct = totalQtyPc > 0 ? ((clientQty / totalQtyPc) * 100).toFixed(1) + '%' : '100%';
+
+                        // Cabeçalho do cliente
+                        checkPage(14);
+                        if (ci > 0) y += 3;
+                        doc.setFillColor(...C.gMed);
+                        doc.rect(M, y, CW, 6, 'F');
+                        doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...C.white);
+                        doc.text(ck || 'Sem cliente', M + 3, y + 4.1);
+                        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+                        doc.text(clientQty + ' cx  ·  ' + clientPct, M + CW - 3, y + 4.1, {align:'right'});
+                        y += 7;
+
+                        const tableRows = clientRows.map(r => {
+                            const pct = totalQtyPc > 0 ? ((parseFloat(r.qty) / totalQtyPc) * 100).toFixed(1) + '%' : '—';
+                            const hd  = r.harvestDate ? fmtDate(r.harvestDate) : '—';
+                            return [r.name, {content: parseFloat(r.qty) + ' cx', styles: {halign:'right', fontStyle:'bold'}}, r.unit || '—', hd, {content: pct, styles: {halign:'right'}}];
+                        });
+
+                        doc.autoTable(tbl({ startY: y,
+                            head: [['Parceiro','Quantidade','Unidade','Data Colheita','% do Total']],
+                            body: tableRows,
+                            columnStyles: colStyles,
+                            didParseCell: data => { if (data.section === 'head') data.cell.styles.fillColor = [220,240,230]; },
+                        }));
+                        y = doc.lastAutoTable.finalY;
+                    });
+
+                    // Rodapé com total geral
+                    y += 2;
+                    doc.autoTable(tbl({ startY: y,
+                        head: [],
+                        body: [[
+                            {content:'TOTAL GERAL', styles:{fontStyle:'bold', fillColor:C.gDark, textColor:C.white}},
+                            {content: totalQtyPc + ' cx', styles:{fontStyle:'bold', halign:'right', fillColor:C.gDark, textColor:C.white}},
+                            {content:'', styles:{fillColor:C.gDark}},
+                            {content:'', styles:{fillColor:C.gDark}},
+                            {content:'100%', styles:{fontStyle:'bold', halign:'right', fillColor:C.gDark, textColor:C.white}},
+                        ]],
+                        columnStyles: colStyles,
+                    }));
+                    y = doc.lastAutoTable.finalY;
+                }
+
                 if (doSave) {
                     const clientSlug = client.replace(/[^a-zA-Z0-9À-ÿ]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
                     const layoutLabel = currentPdfLayout === 'screen' ? 'PC' : 'A4';
