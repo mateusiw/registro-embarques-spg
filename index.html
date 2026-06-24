@@ -3317,15 +3317,12 @@
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!palletsData[idx].photos) palletsData[idx].photos = [];
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (fromCamera) _savePhotoToGallery(e.target.result);
-                    palletsData[idx].photos.push(e.target.result);
-                    renderPallets();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
+            files.forEach(async file => {
+                const dataUrl = await _compressImage(file);
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                palletsData[idx].photos.push(dataUrl);
+                renderPallets();
+                updatePreview();
             });
         }
         function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
@@ -3432,15 +3429,12 @@
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (fromCamera) _savePhotoToGallery(e.target.result);
-                    discardsData[idx].photos.push(e.target.result);
-                    renderDiscards();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
+            files.forEach(async file => {
+                const dataUrl = await _compressImage(file);
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                discardsData[idx].photos.push(dataUrl);
+                renderDiscards();
+                updatePreview();
             });
         }
         function removeDiscardPhoto(idx, pidx) {
@@ -3557,15 +3551,12 @@
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (fromCamera) _savePhotoToGallery(e.target.result);
-                    customTempsData[idx].photos.push(e.target.result);
-                    renderCustomTemps();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
+            files.forEach(async file => {
+                const dataUrl = await _compressImage(file);
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                customTempsData[idx].photos.push(dataUrl);
+                renderCustomTemps();
+                updatePreview();
             });
         }
         function removeTempPhoto(idx, pidx) {
@@ -3636,19 +3627,40 @@
         }
 
         // ---------- Fotos ----------
+        function _compressImage(file, maxPx = 1200, quality = 0.78) {
+            return new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxPx || h > maxPx) {
+                            if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+                            else        { w = Math.round(w * maxPx / h); h = maxPx; }
+                        }
+                        const c = document.createElement('canvas');
+                        c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(c.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = () => resolve(ev.target.result);
+                    img.src = ev.target.result;
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        }
+
         function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (fromCamera) _savePhotoToGallery(e.target.result);
-                    photosData.push({ dataUrl: e.target.result, caption: '' });
-                    renderPhotos();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
+            files.forEach(async file => {
+                const dataUrl = await _compressImage(file);
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                photosData.push({ dataUrl, caption: '' });
+                renderPhotos();
+                updatePreview();
             });
         }
         function removePhoto(idx) {
