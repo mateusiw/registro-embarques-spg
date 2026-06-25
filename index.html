@@ -28,6 +28,7 @@
         input, select, textarea { line-height: 1.5; }
         .animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .bar-track { background: #f1f5f9; border-radius: 999px; overflow: hidden; height: 10px; }
         .bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
         .field-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
@@ -107,6 +108,9 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-[140px] xl:pb-20 select-none" style="overflow:hidden">
+
+    <!-- AUTO-SAVE TOAST -->
+    <div id="autoSaveToast" class="fixed top-16 right-4 z-[200] pointer-events-none flex items-center gap-2 bg-slate-800/90 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-lg backdrop-blur-sm" style="opacity:0;transition:opacity 0.4s ease;will-change:opacity;"></div>
 
     <!-- ===== LOGIN OVERLAY ===== -->
     <div id="loginOverlay" class="fixed inset-0 z-[300] flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#064e3b 100%);">
@@ -2283,6 +2287,7 @@
 
         function executeClearForm() {
             document.getElementById('clearFormModal').classList.add('hidden');
+            _autoSaveTimestamp = null; // próximo embarque começa como novo registro
 
             // Campos simples
             ['reportDate','embarqueCodigo','varietyInput','customProductName',
@@ -2679,7 +2684,88 @@
             applyProfileRestrictions();
             _restoreEditMode();
             checkPendingNotifications();
+            startAutoSave();
         }
+
+        // ===== AUTO-SAVE =====
+        let _autoSaveTimer    = null;
+        let _autoSaveTimestamp = null; // timestamp do registro já salvo no servidor
+
+        const _ICON_CHECK    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#34d399"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+        const _ICON_SPIN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
+        const _ICON_WARN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#f59e0b"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+        function _setAutoSaveToast(icon, text, autohide = true) {
+            const toast = document.getElementById('autoSaveToast');
+            if (!toast) return;
+            toast.innerHTML = icon + `<span>${text}</span>`;
+            toast.style.opacity = '1';
+            clearTimeout(toast._hideTimer);
+            if (autohide) {
+                toast._hideTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+            }
+        }
+
+        async function _autoSaveToCloud() {
+            if (_isSaving || !APPS_SCRIPT_URL) return;
+            const codigoEl = document.getElementById('embarqueCodigo');
+            if (!codigoEl || !codigoEl.value.trim()) return;
+
+            _isSaving = true;
+            _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
+
+            try {
+                const data = collectFormData();
+
+                if (_autoSaveTimestamp) {
+                    data.action            = 'update';
+                    data.originalTimestamp = _autoSaveTimestamp;
+                    data.password          = 'spg@2024';
+                }
+                // else: insert normal (sem action → backend trata como novo registro)
+
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const result = await resp.json();
+
+                if (result.success) {
+                    // Guarda o timestamp do insert para updates futuros
+                    if (!_autoSaveTimestamp && result.timestamp) {
+                        _autoSaveTimestamp = result.timestamp;
+                    }
+
+                    // Atualiza URLs das fotos/vídeos (base64 → Drive link)
+                    const parseJ = v => { try { return JSON.parse(v); } catch(_) { return []; } };
+                    if (result.changedColumns) {
+                        const cc = result.changedColumns;
+                        if (cc['Fotos'])  photosData = parseJ(cc['Fotos']);
+                        if (cc['Videos']) videosData = parseJ(cc['Videos']);
+                    } else if (result.data) {
+                        if (result.data.photosData) photosData = result.data.photosData;
+                        if (result.data.videosData) videosData = result.data.videosData;
+                    }
+                    saveToLocalStorage();
+                    _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
+                } else {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
+                }
+            } catch(e) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
+                saveToLocalStorage();
+            } finally {
+                _isSaving = false;
+            }
+        }
+
+        function startAutoSave() {
+            if (_autoSaveTimer) clearInterval(_autoSaveTimer);
+            _autoSaveTimer = setInterval(_autoSaveToCloud, 30000);
+        }
+        // ===== FIM AUTO-SAVE =====
 
         // ===== LOGIN / LOGOUT =====
         function toggleLoginPassword() {
