@@ -2287,7 +2287,8 @@
 
         function executeClearForm() {
             document.getElementById('clearFormModal').classList.add('hidden');
-            _autoSaveTimestamp = null; // próximo embarque começa como novo registro
+            _autoSaveTimestamp = null;
+            try { localStorage.removeItem('spg_autosave_ts'); } catch(_) {}
 
             // Campos simples
             ['reportDate','embarqueCodigo','varietyInput','customProductName',
@@ -2684,6 +2685,7 @@
             applyProfileRestrictions();
             _restoreEditMode();
             checkPendingNotifications();
+            _restoreAutoSaveTimestamp();
             startAutoSave();
         }
 
@@ -2717,10 +2719,12 @@
             try {
                 const data = collectFormData();
 
-                if (_autoSaveTimestamp) {
+                // Prioridade: timestamp do auto-save > editModeTimestamp (histórico carregado)
+                const targetTimestamp = _autoSaveTimestamp || editModeTimestamp;
+                if (targetTimestamp) {
                     data.action            = 'update';
-                    data.originalTimestamp = _autoSaveTimestamp;
-                    data.password          = 'spg@2024';
+                    data.originalTimestamp = targetTimestamp;
+                    data.password          = _editPassword || 'spg@2024';
                 }
                 // else: insert normal (sem action → backend trata como novo registro)
 
@@ -2733,9 +2737,11 @@
                 const result = await resp.json();
 
                 if (result.success) {
-                    // Guarda o timestamp do insert para updates futuros
+                    // Guarda o timestamp do insert para updates futuros (memória + localStorage)
                     if (!_autoSaveTimestamp && result.timestamp) {
                         _autoSaveTimestamp = result.timestamp;
+                        const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+                        try { localStorage.setItem('spg_autosave_ts', JSON.stringify({ codigo, ts: _autoSaveTimestamp })); } catch(_) {}
                     }
 
                     // Atualiza URLs das fotos/vídeos (base64 → Drive link)
@@ -2759,6 +2765,18 @@
             } finally {
                 _isSaving = false;
             }
+        }
+
+        function _restoreAutoSaveTimestamp() {
+            try {
+                const saved = localStorage.getItem('spg_autosave_ts');
+                if (!saved) return;
+                const { codigo, ts } = JSON.parse(saved);
+                const currentCodigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+                if (codigo && ts && codigo === currentCodigo) {
+                    _autoSaveTimestamp = ts;
+                }
+            } catch(_) {}
         }
 
         function startAutoSave() {
