@@ -1351,6 +1351,15 @@
                             showMessageModal('Embarque já enviado', `O embarque Nº ${codigo} já foi registrado e não pode ser reenviado. Caso precise corrigir, solicite ao responsável.`, 'error');
                             return;
                         }
+                    } else if (_autoSaveTimestamp) {
+                        // Sem conexão para verificar, mas o auto-save já criou um registro:
+                        // atualiza esse registro em vez de criar uma duplicata.
+                        editModeTimestamp = _autoSaveTimestamp;
+                        _editPassword = 'spg@2024';
+                        await _doSaveToCloud();
+                        editModeTimestamp = null;
+                        _editPassword = null;
+                        return;
                     }
 
                     await _doSaveToCloud();
@@ -2336,6 +2345,10 @@
             renderVideos();
 
             updatePreview();
+
+            // Persiste o estado vazio no localStorage para evitar que um reload
+            // restaure o código de embarque anterior e o auto-save crie duplicatas.
+            saveToLocalStorage();
         }
 
         // ===== SENHA DE PROTEÇÃO =====
