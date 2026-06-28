@@ -1676,6 +1676,26 @@
             return changed;
         }
 
+        // POST com progresso REAL de upload (client → Apps Script). O fetch() não
+        // expõe progresso de envio, então usamos XHR + upload.onprogress. Para um
+        // payload dominado pelo vídeo, a fração enviada (0..1) equivale a quanto do
+        // vídeo já subiu para o Drive. Retorna { ok, status, statusText, text }.
+        function _postWithProgress(url, body, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+                if (onProgress && xhr.upload) {
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) onProgress(e.loaded / e.total);
+                    };
+                }
+                xhr.onload    = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, statusText: xhr.statusText, text: xhr.responseText });
+                xhr.onerror   = () => reject(new Error('Falha de conexão.'));
+                xhr.ontimeout = () => reject(new Error('Tempo de conexão esgotado.'));
+                xhr.send(body);
+            });
+        }
+
         async function _doSaveToCloud() {
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
@@ -1695,16 +1715,35 @@
             }
             body = JSON.stringify(data);
 
-            setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
-            let serverPct = 10;
-            const serverInterval = setInterval(() => {
-                serverPct += (90 - serverPct) * 0.06;
-                setSaveProgress(serverPct, 'Processando no servidor', 'Gravando na planilha...');
-            }, 400);
+            // Há vídeo ainda em base64? Então mostramos o % real de upload ao Drive.
+            const hasPendingVideo = videosData.some(v => v.dataUrl && v.dataUrl.startsWith('data:'));
+
+            let serverInterval = null;
+            const startServerCreep = (from) => {
+                let p = from;
+                serverInterval = setInterval(() => {
+                    p += (98 - p) * 0.06;
+                    setSaveProgress(p, 'Processando no servidor', hasPendingVideo ? 'Salvando vídeo no Drive...' : 'Gravando na planilha...');
+                }, 400);
+            };
+
+            if (hasPendingVideo) {
+                setSaveProgress(0, 'Enviando vídeo', 'Iniciando envio...');
+            } else {
+                setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
+                startServerCreep(10);
+            }
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body });
-                clearInterval(serverInterval);
+                const resp = await _postWithProgress(APPS_SCRIPT_URL, body, hasPendingVideo ? (frac) => {
+                    if (frac < 1) {
+                        const pct = Math.max(1, Math.round(frac * 85)); // 0–85% = envio do vídeo
+                        setSaveProgress(pct, 'Enviando vídeo', pct + '% enviado ao Drive...');
+                    } else if (!serverInterval) {
+                        startServerCreep(85); // upload concluído: servidor processando
+                    }
+                } : null);
+                if (serverInterval) clearInterval(serverInterval);
                 setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
                 await new Promise(r => setTimeout(r, 600));
                 hideSaveLoadingModal();
@@ -1712,7 +1751,7 @@
                     showMessageModal('Erro do servidor', `HTTP ${resp.status} — ${resp.statusText}`, 'error');
                     return;
                 }
-                const text = await resp.text();
+                const text = resp.text;
                 let result;
                 try { result = JSON.parse(text); } catch(_) {
                     showMessageModal('Resposta inválida', 'O servidor retornou:\n' + text.substring(0, 200), 'error');
@@ -3144,13 +3183,18 @@
                 }
                 // else: insert normal (sem action → backend trata como novo registro)
 
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
+                // Vídeo ainda em base64? Mostra o % real de upload no toast.
+                const hasPendingVideo = videosData.some(v => v.dataUrl && v.dataUrl.startsWith('data:'));
+                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(data), hasPendingVideo ? (frac) => {
+                    if (frac < 1) {
+                        _setAutoSaveToast(_ICON_SPIN, 'Enviando vídeo ' + Math.max(1, Math.round(frac * 100)) + '%', false);
+                    } else {
+                        _setAutoSaveToast(_ICON_SPIN, 'Processando no Drive...', false);
+                    }
+                } : null);
 
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const result = await resp.json();
+                const result = JSON.parse(resp.text);
 
                 if (result.success) {
                     // Guarda o timestamp do insert para updates futuros (memória + localStorage)
