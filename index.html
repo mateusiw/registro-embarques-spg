@@ -1124,7 +1124,7 @@
 
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250628.1'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20250628.2'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -3091,6 +3091,7 @@
         // ===== AUTO-SAVE =====
         let _autoSaveTimer    = null;
         let _autoSaveTimestamp = null; // timestamp do registro já salvo no servidor
+        let _autoSaveDirty = true; // true = há mudanças não salvas; false = sincronizado
 
         const _ICON_CHECK    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#34d399"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
         const _ICON_SPIN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
@@ -3111,6 +3112,7 @@
             if (_isSaving || !APPS_SCRIPT_URL) return;
             const codigoEl = document.getElementById('embarqueCodigo');
             if (!codigoEl || !codigoEl.value.trim()) return;
+            if ((_autoSaveTimestamp || editModeTimestamp) && !_autoSaveDirty) return;
 
             _isSaving = true;
             _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
@@ -3160,6 +3162,7 @@
                         if (result.data.videosData) videosData = _safeJ(result.data.videosData, videosData);
                     }
                     saveToLocalStorage();
+                    _autoSaveDirty = false;
                     _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
                 } else {
                     _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
@@ -4597,6 +4600,7 @@
 
         // ---------- Preview ----------
         function updatePreview() {
+            _autoSaveDirty = true;
             const dateVal = document.getElementById('reportDate').value;
             const codigo = document.getElementById('embarqueCodigo').value || '---';
             const product = (getProductName() || '---').toUpperCase();
