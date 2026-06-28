@@ -2735,6 +2735,9 @@
             try {
                 const data = collectFormData();
 
+                // Auto-save sempre usa pendente: só o botão Salvar define o status final
+                data.statusRegistro = 'pendente';
+
                 // Prioridade: timestamp do auto-save > editModeTimestamp (histórico carregado)
                 const targetTimestamp = _autoSaveTimestamp || editModeTimestamp;
                 if (targetTimestamp) {
