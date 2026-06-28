@@ -2593,6 +2593,7 @@
                         editHistoryReport(idx, password);
                     } else if (type === 'load') {
                         const row = historyRowsFiltered[idx];
+                        _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
                         closeHistoryModal();
                         loadHistoryReport(idx);
                         _editSnapshot = collectFormData();
