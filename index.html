@@ -238,6 +238,10 @@
             <div class="w-px h-6 bg-white/15 mx-1"></div>
 
             <!-- Ações principais -->
+            <button type="button" id="navBtnNovoEmbarque" onclick="novoEmbarque()" class="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/80 hover:bg-emerald-400 text-white rounded-lg text-xs font-bold border border-emerald-400/40 shadow shadow-black/20 transition-all active:scale-95" title="Novo Embarque">
+                <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                <span>Novo Embarque</span>
+            </button>
             <button type="button" id="navBtnLimpar" onclick="clearForm()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Limpar formulário">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 <span>Limpar</span>
@@ -709,7 +713,13 @@
                 </div>
             </div>
             <div class="px-4 pt-3 pb-0 border-b border-slate-100 shrink-0 space-y-2">
-                <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
+                <div class="relative">
+                    <input type="text" id="historySearch" placeholder="Buscar por código, produto ou responsável..." oninput="filterHistory(this.value)" class="w-full p-2.5 pr-8 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-sky-400 outline-none">
+                    <button id="historySearchClear" onclick="document.getElementById('historySearch').value='';filterHistory('');" class="absolute right-2.5 top-1/2 -translate-y-1/2 hidden text-slate-400 hover:text-slate-600 transition-colors" title="Limpar busca">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="historySearchInfo" class="hidden px-1 pb-1 text-xs"></div>
                 <div class="flex gap-2 pb-3 flex-wrap">
                     <button id="tabTodos" onclick="setHistoryTab('todos')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 text-white transition-all">Todos</button>
                     <button id="tabPendentes" onclick="setHistoryTab('pendentes')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5">
@@ -999,7 +1009,11 @@
             <div style="padding:7px 14px;border-bottom:1px solid #334155;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Mais opções</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
+                <button type="button" onclick="novoEmbarque();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:#10b981;border:none;border-right:1px solid #334155;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;">
+                    <i data-lucide="file-plus" style="width:18px;height:18px;flex-shrink:0;"></i>
+                    <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;line-height:1;">Novo</span>
+                </button>
                 <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                     <i data-lucide="history" style="width:18px;height:18px;flex-shrink:0;"></i>
                     <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
@@ -1946,10 +1960,10 @@
             const q = query.toLowerCase().trim();
             let base = q
                 ? historyRows.filter(r =>
-                    (r.Codigo||'').toLowerCase().includes(q) ||
-                    (r.Produto||'').toLowerCase().includes(q) ||
-                    (r.Responsavel||'').toLowerCase().includes(q) ||
-                    (r.Cliente||'').toLowerCase().includes(q)
+                    String(r.Codigo||'').toLowerCase().includes(q) ||
+                    String(r.Produto||'').toLowerCase().includes(q) ||
+                    String(r.Responsavel||'').toLowerCase().includes(q) ||
+                    String(r.Cliente||'').toLowerCase().includes(q)
                   )
                 : [...historyRows];
             if (_historyTab === 'pendentes') {
@@ -1959,6 +1973,25 @@
             }
             historyRowsFiltered = base;
             renderHistoryList(historyRowsFiltered);
+
+            const infoEl = document.getElementById('historySearchInfo');
+            const clearBtn = document.getElementById('historySearchClear');
+            if (infoEl) {
+                if (q) {
+                    const count = historyRowsFiltered.length;
+                    if (count === 0) {
+                        infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-rose-500 font-bold"><i data-lucide="search-x" class="w-3.5 h-3.5"></i> Nenhum resultado para "<em>${query.trim()}</em>"</span>`;
+                    } else {
+                        infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-sky-600 font-bold"><i data-lucide="search-check" class="w-3.5 h-3.5"></i> ${count} resultado${count !== 1 ? 's' : ''} para "<em>${query.trim()}</em>"</span>`;
+                    }
+                    infoEl.classList.remove('hidden');
+                    if (clearBtn) clearBtn.classList.remove('hidden');
+                } else {
+                    infoEl.classList.add('hidden');
+                    if (clearBtn) clearBtn.classList.add('hidden');
+                }
+                lucide.createIcons();
+            }
         }
 
         function renderHistoryList(rows) {
@@ -2214,6 +2247,12 @@
             _editOriginalRow = null;
             document.getElementById('editModeBanner').classList.add('hidden');
             try { sessionStorage.removeItem('spg_edit_mode'); } catch(e) {}
+        }
+
+        function novoEmbarque() {
+            clearEditMode();
+            executeClearForm();
+            showMessageModal('Pronto para novo embarque!', 'Formulário limpo. Pode começar o preenchimento do novo embarque.', 'success');
         }
 
         // Converte uma data (ISO do Sheets ou YYYY-MM-DD) para DD/MM/AAAA.
