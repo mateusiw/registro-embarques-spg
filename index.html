@@ -1168,7 +1168,13 @@
             closePhotoSourceModal();
             const input = document.getElementById(source === 'camera' ? 'photoInput_camera' : 'photoInput_gallery');
             input.value = '';
-            input.onchange = (e) => { if (cb) cb(e); };
+            input.onchange = (e) => {
+                try { sessionStorage.removeItem('spg_file_picker_active'); } catch(_) {}
+                if (cb) cb(e);
+            };
+            // iOS pode recarregar a página ao retornar da câmera; guardamos a fonte
+            // para que initApp() não mostre o modal de retomada e reanexe o handler.
+            try { sessionStorage.setItem('spg_file_picker_active', 'photo_' + source); } catch(_) {}
             input.click();
         }
 
@@ -1200,7 +1206,11 @@
             closeVideoSourceModal();
             const input = document.getElementById(source === 'camera' ? 'videoInput_camera' : 'videoInput_gallery');
             input.value = '';
-            input.onchange = (e) => { if (cb) cb(e); };
+            input.onchange = (e) => {
+                try { sessionStorage.removeItem('spg_file_picker_active'); } catch(_) {}
+                if (cb) cb(e);
+            };
+            try { sessionStorage.setItem('spg_file_picker_active', 'video_' + source); } catch(_) {}
             input.click();
         }
         function _savePhotoToGallery(dataUrl) {
@@ -2945,6 +2955,29 @@
             _restoreAutoSaveTimestamp();
             startAutoSave();
 
+            // Detecta se a página foi recarregada pelo iOS ao retornar de câmera/galeria.
+            // Nesse caso: não mostra modal de retomada e reanexar handlers nos inputs.
+            let _fromFilePicker = null;
+            try {
+                _fromFilePicker = sessionStorage.getItem('spg_file_picker_active');
+                if (_fromFilePicker) sessionStorage.removeItem('spg_file_picker_active');
+            } catch(_) {}
+
+            if (_fromFilePicker) {
+                // Reanexar handlers para capturar o arquivo que o iOS entrega após o reload
+                if (_fromFilePicker.startsWith('photo_')) {
+                    const src = _fromFilePicker.replace('photo_', '');
+                    const inputId = src === 'camera' ? 'photoInput_camera' : 'photoInput_gallery';
+                    const el = document.getElementById(inputId);
+                    if (el) el.onchange = (e) => handlePhotoUpload(e);
+                } else if (_fromFilePicker.startsWith('video_')) {
+                    const src = _fromFilePicker.replace('video_', '');
+                    const inputId = src === 'camera' ? 'videoInput_camera' : 'videoInput_gallery';
+                    const el = document.getElementById(inputId);
+                    if (el) el.onchange = (e) => handleVideoUpload(e);
+                }
+            }
+
             // Só mostra o modal de boas-vindas se não há sessão de trabalho ativa:
             // código de embarque vazio + sem edit mode + sem auto-save no servidor.
             // Se o usuário atualizou a página acidentalmente, os dados locais já foram
@@ -2953,7 +2986,7 @@
             const _hasActiveSession = (_codigoEl && _codigoEl.value.trim()) || !!editModeTimestamp || !!_autoSaveTimestamp;
             if (!_hasActiveSession) {
                 showWelcomeModal();
-            } else if (currentUser && currentUser.perfil === 'embarque') {
+            } else if (currentUser && currentUser.perfil === 'embarque' && !_fromFilePicker) {
                 // Embarque retornou ao app com sessão ativa: pergunta se quer continuar ou carregar outro
                 showResumeEditingModal();
             }
@@ -4243,16 +4276,16 @@
         }
 
         // ---------- Vídeos ----------
-        // Limite reduzido: base64 de 40 MB → ~54 MB de JSON, excede limites do Apps Script.
-        // Com 8 MB o payload JSON fica em ~11 MB, dentro do suporte do servidor.
-        const VIDEO_MAX_MB = 8;
+        // Limite cliente: o servidor (Apps Script) pode rejeitar payloads muito grandes.
+        // Base64 aumenta ~37% o tamanho — vídeos acima de ~150 MB podem falhar no envio.
+        const VIDEO_MAX_MB = 500;
 
         function handleVideoUpload(event) {
             const files = Array.from(event.target.files);
             event.target.value = '';
             files.forEach(file => {
                 if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
-                    showMessageModal('Vídeo muito grande', `O vídeo "${file.name}" tem ${(file.size/1024/1024).toFixed(1)} MB. O limite é ${VIDEO_MAX_MB} MB. Tente gravar um vídeo mais curto.`, 'error');
+                    showMessageModal('Vídeo muito grande', `O vídeo "${file.name}" tem ${(file.size/1024/1024).toFixed(1)} MB. O limite máximo por arquivo é ${VIDEO_MAX_MB} MB.`, 'error');
                     return;
                 }
                 const reader = new FileReader();
