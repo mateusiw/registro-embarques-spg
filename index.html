@@ -1379,6 +1379,8 @@
                         const existingByCodigo = rows.find(row => String(row.Codigo || '').trim() === codigo);
                         if (existingByCodigo) {
                             if (String(existingByCodigo.StatusRegistro || '').toLowerCase() === 'pendente') {
+                                // Mescla: preserva dados existentes + adiciona apenas o que é novo
+                                _mergeWithExistingRow(existingByCodigo);
                                 editModeTimestamp = String(existingByCodigo.Timestamp);
                                 _editPassword = 'spg@2024';
                                 await _doSaveToCloud();
@@ -1531,6 +1533,73 @@
             const m = document.getElementById('saveLoadingModal');
             m.classList.add('hidden');
             m.classList.remove('flex');
+        }
+
+        // Mescla o registro existente com os dados do formulário atual.
+        // Preserva tudo que já estava no registro; adiciona apenas o que é novo no formulário.
+        function _mergeWithExistingRow(existingRow) {
+            const parseArr = (v) => { try { const r = JSON.parse(String(v || '[]')); return Array.isArray(r) ? r : []; } catch(_) { return []; } };
+
+            // Fotos: existentes + novas (únicas por dataUrl)
+            const existingPhotos = parseArr(existingRow.Fotos);
+            const existingPhotoUrls = new Set(existingPhotos.map(p => p.dataUrl).filter(Boolean));
+            photosData = [...existingPhotos, ...photosData.filter(p => p.dataUrl && !existingPhotoUrls.has(p.dataUrl))];
+
+            // Vídeos: existentes + novos (únicos por dataUrl)
+            const existingVideos = parseArr(existingRow.Videos);
+            const existingVideoUrls = new Set(existingVideos.map(v => v.dataUrl).filter(Boolean));
+            videosData = [...existingVideos, ...videosData.filter(v => v.dataUrl && !existingVideoUrls.has(v.dataUrl))];
+
+            // Descartes: preserva existentes, adiciona novos com conteúdo real
+            const existingDescartes = parseArr(existingRow.Descartes);
+            const newDescartes = discardsData.filter(d => (d.partner || d.partnerSel || '').trim() || (d.weight || '').trim());
+            discardsData = [...existingDescartes, ...newDescartes];
+
+            // Temperaturas: preserva existentes, adiciona novos com conteúdo real
+            const existingTemps = parseArr(existingRow.Temperaturas);
+            const newTemps = customTempsData.filter(t => (t.preset || '').trim() || (t.value || '').trim() || (t.labelCustom || '').trim());
+            customTempsData = [...existingTemps, ...newTemps];
+
+            // Pallets: preserva existentes, adiciona novos que tenham lotes, fotos ou temperatura
+            const existingPallets = parseArr(existingRow.Pallets);
+            const newPallets = palletsData.filter(pl =>
+                ((pl.partnerGroups || []).some(g => (g.lots || []).length > 0)) ||
+                (pl.photos || []).length > 0 ||
+                (pl.temp || '').trim()
+            );
+            palletsData = [...existingPallets, ...newPallets];
+
+            // NFes: merge único
+            const existingNfes = String(existingRow.NFes || '').split(',').map(n => n.trim()).filter(Boolean);
+            const currentNfes = nfeList.filter(n => n.trim());
+            const mergedNfes = [...new Set([...existingNfes, ...currentNfes])];
+            nfeList = mergedNfes.length ? mergedNfes : [''];
+            renderNfeInputs();
+
+            // InfoAdicionais: preserva existentes, adiciona novos tópicos únicos
+            const existingAdditional = parseArr(existingRow.InfoAdicionais);
+            const existingTopics = new Set(existingAdditional.map(a => (a.topic || '').trim()));
+            additionalInfoData = [...existingAdditional, ...additionalInfoData.filter(a => (a.topic || '').trim() && !existingTopics.has((a.topic || '').trim()))];
+
+            // Campos escalares: mantém valor existente se o campo atual estiver vazio
+            const scalarFields = [
+                { id: 'reportDate',      key: 'Data' },
+                { id: 'varietyInput',    key: 'Cliente' },
+                { id: 'driverName',      key: 'Motorista' },
+                { id: 'vehiclePlate',    key: 'Placa' },
+                { id: 'departureTime',   key: 'HorarioSaida' },
+                { id: 'sensorNumber',    key: 'Sensor' },
+                { id: 'lacreNumber',     key: 'Lacre' },
+                { id: 'thermostatValue', key: 'Termostato' },
+                { id: 'thermostatMode',  key: 'ModoTermostato' },
+            ];
+            scalarFields.forEach(({ id, key }) => {
+                const el = document.getElementById(id);
+                if (el && !el.value.trim() && existingRow[key]) el.value = String(existingRow[key]);
+            });
+
+            // AISummary: mantém existente se não há novo
+            if (!aiSummary && existingRow.AISummary) aiSummary = String(existingRow.AISummary);
         }
 
         function _computeEditDiff(current, snapshot) {
