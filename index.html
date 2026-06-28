@@ -1592,18 +1592,21 @@
                     return;
                 }
                 if (result.success) {
+                    // Guarda: só substitui fotos/vídeos se o servidor devolveu URLs do Drive (não vazia/base64)
+                    const _hasDriveUrl = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
+                    const _safeUpdateMedia = (newArr, curArr) => (_hasDriveUrl(newArr) || curArr.length === 0) ? newArr : curArr;
                     if (result.changedColumns) {
                         const cc = result.changedColumns;
                         const parseJson = (v) => { try { return JSON.parse(v); } catch(_) { return []; } };
-                        if (cc['Fotos'])        photosData = parseJson(cc['Fotos']);
-                        if (cc['Videos'])       videosData = parseJson(cc['Videos']);
+                        if (cc['Fotos'])        photosData   = _safeUpdateMedia(parseJson(cc['Fotos']),   photosData);
+                        if (cc['Videos'])       videosData   = _safeUpdateMedia(parseJson(cc['Videos']),  videosData);
                         if (cc['Descartes'])    discardsData = parseJson(cc['Descartes']);
                         if (cc['Temperaturas']) customTempsData = parseJson(cc['Temperaturas']);
                         if (cc['Pallets'])      palletsData = parseJson(cc['Pallets']);
                     } else if (result.data) {
                         const d = result.data;
-                        if (d.photosData)      photosData = d.photosData;
-                        if (d.videosData)      videosData = d.videosData;
+                        if (d.photosData)      photosData   = _safeUpdateMedia(d.photosData,  photosData);
+                        if (d.videosData)      videosData   = _safeUpdateMedia(d.videosData,  videosData);
                         if (d.discardsData)    discardsData = d.discardsData;
                         if (d.customTempsData) customTempsData = d.customTempsData;
                         if (d.palletsData)     palletsData = d.palletsData;
@@ -2758,14 +2761,17 @@
                     }
 
                     // Atualiza URLs das fotos/vídeos (base64 → Drive link)
+                    // Guarda: só substitui se o servidor devolveu URLs reais do Drive
                     const parseJ = v => { try { return JSON.parse(v); } catch(_) { return []; } };
+                    const _hasDriveJ = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
+                    const _safeJ = (newArr, curArr) => (_hasDriveJ(newArr) || curArr.length === 0) ? newArr : curArr;
                     if (result.changedColumns) {
                         const cc = result.changedColumns;
-                        if (cc['Fotos'])  photosData = parseJ(cc['Fotos']);
-                        if (cc['Videos']) videosData = parseJ(cc['Videos']);
+                        if (cc['Fotos'])  photosData = _safeJ(parseJ(cc['Fotos']),  photosData);
+                        if (cc['Videos']) videosData = _safeJ(parseJ(cc['Videos']), videosData);
                     } else if (result.data) {
-                        if (result.data.photosData) photosData = result.data.photosData;
-                        if (result.data.videosData) videosData = result.data.videosData;
+                        if (result.data.photosData) photosData = _safeJ(result.data.photosData, photosData);
+                        if (result.data.videosData) videosData = _safeJ(result.data.videosData, videosData);
                     }
                     saveToLocalStorage();
                     _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
@@ -3980,7 +3986,9 @@
         }
 
         // ---------- Vídeos ----------
-        const VIDEO_MAX_MB = 40;
+        // Limite reduzido: base64 de 40 MB → ~54 MB de JSON, excede limites do Apps Script.
+        // Com 8 MB o payload JSON fica em ~11 MB, dentro do suporte do servidor.
+        const VIDEO_MAX_MB = 8;
 
         function handleVideoUpload(event) {
             const files = Array.from(event.target.files);
