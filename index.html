@@ -618,6 +618,13 @@
         </div>
     </div>
 
+    <!-- MODAL RETOMAR EDIÇÃO (perfil embarque — retorno ao app) -->
+    <div id="resumeEditingModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.90);backdrop-filter:blur(8px);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
+            <div id="resumeEditingContent"></div>
+        </div>
+    </div>
+
     <!-- MODAL LIMPAR FORMULÁRIO -->
     <div id="clearFormModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center border border-slate-200">
@@ -2442,6 +2449,50 @@
             openEmbarqueCarregar();
         }
 
+        function showResumeEditingModal() {
+            if (!currentUser || currentUser.perfil !== 'embarque') return;
+            const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '—';
+            const content = document.getElementById('resumeEditingContent');
+            if (!content) return;
+            content.innerHTML = `
+                <div class="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="clipboard-list" class="w-7 h-7 text-sky-600"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-2">Bem-vindo de volta!</h2>
+                <p class="text-sm text-slate-500 mb-2">Você estava editando o embarque:</p>
+                <div class="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4">
+                    <span class="text-2xl font-black text-sky-700">Nº ${codigo}</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-5">Deseja continuar de onde parou ou carregar um novo embarque?</p>
+                <div class="flex flex-col gap-3">
+                    <button onclick="_resumeEditingContinue()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i> Continuar Editando
+                    </button>
+                    <button onclick="_resumeEditingLoadNew()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i data-lucide="folder-open" class="w-4 h-4"></i> Carregar Outro Embarque
+                    </button>
+                </div>`;
+            document.getElementById('resumeEditingModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function _closeResumeEditingModal() {
+            document.getElementById('resumeEditingModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function _resumeEditingContinue() {
+            _closeResumeEditingModal();
+        }
+
+        function _resumeEditingLoadNew() {
+            _welcomeAwaitingLoad = true;
+            _closeResumeEditingModal();
+            executeClearForm();
+            openEmbarqueCarregar();
+        }
+
         function clearForm() {
             document.getElementById('clearFormModal').classList.remove('hidden');
             lucide.createIcons();
@@ -2863,6 +2914,9 @@
             const _hasActiveSession = (_codigoEl && _codigoEl.value.trim()) || !!editModeTimestamp || !!_autoSaveTimestamp;
             if (!_hasActiveSession) {
                 showWelcomeModal();
+            } else if (currentUser && currentUser.perfil === 'embarque') {
+                // Embarque retornou ao app com sessão ativa: pergunta se quer continuar ou carregar outro
+                showResumeEditingModal();
             }
         }
 
@@ -5321,7 +5375,7 @@
             'usersModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
             'photoSourceModal','videoSourceModal','genericConfirmModal','conflictModal','passwordModal',
-            'saveLoadingModal','analysisModal'
+            'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
         ];
         function _anyModalOpen() {
             return _MODAL_IDS.some(id => {
