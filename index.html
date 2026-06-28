@@ -611,6 +611,13 @@
         </div>
     </div>
 
+    <!-- MODAL BOAS-VINDAS / SELEÇÃO DE AÇÃO -->
+    <div id="welcomeModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.90);backdrop-filter:blur(8px);">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
+            <div id="welcomeContent"></div>
+        </div>
+    </div>
+
     <!-- MODAL LIMPAR FORMULÁRIO -->
     <div id="clearFormModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center border border-slate-200">
@@ -1645,6 +1652,11 @@
             if (tabRevisados) tabRevisados.style.display = '';
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Histórico de Embarques';
+
+            // Perfil embarque fechou o seletor sem carregar nenhum relatório → reapresenta a tela de boas-vindas
+            if (_welcomeAwaitingLoad) {
+                showWelcomeModal();
+            }
         }
 
         async function openEmbarqueCarregar() {
@@ -2041,6 +2053,7 @@
         }
 
         function loadHistoryReport(idx) {
+            _welcomeAwaitingLoad = false; // relatório foi carregado; embarque pode prosseguir
             try {
                 const row = historyRowsFiltered[idx];
                 if (!row) { showMessageModal('Erro', 'Registro não encontrado (idx=' + idx + ').', 'error'); return; }
@@ -2290,6 +2303,143 @@
             document.getElementById('mobilePopupPdf').style.display = 'none';
             document.getElementById('mobilePopupMenu').style.display = 'none';
             document.getElementById('mobileNavOverlay').style.display = 'none';
+        }
+
+        // ===== TELA DE BOAS-VINDAS =====
+        let _welcomeAwaitingLoad = false; // true enquanto embarque ainda não carregou um relatório
+
+        function showWelcomeModal() {
+            if (!currentUser) return;
+            const isMaster = currentUser.perfil === 'master';
+            const nome = currentUser.nome ? currentUser.nome.split(' ')[0] : 'Usuário';
+            const content = document.getElementById('welcomeContent');
+            if (!content) return;
+
+            if (isMaster) {
+                content.innerHTML = `
+                    <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="truck" class="w-7 h-7 text-emerald-600"></i>
+                    </div>
+                    <h2 class="text-xl font-black text-slate-800 mb-1">Olá, ${nome}!</h2>
+                    <p class="text-sm text-slate-500 mb-6">O que deseja fazer agora?</p>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="welcomeNew()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Novo Embarque
+                        </button>
+                        <button onclick="welcomeLoad()" class="w-full py-3.5 bg-gradient-to-r from-sky-500 to-sky-700 hover:from-sky-600 hover:to-sky-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                            <i data-lucide="folder-open" class="w-4 h-4"></i> Editar / Carregar Relatório
+                        </button>
+                    </div>`;
+            } else {
+                content.innerHTML = `
+                    <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="clipboard-list" class="w-7 h-7 text-amber-600"></i>
+                    </div>
+                    <h2 class="text-xl font-black text-slate-800 mb-1">Olá, ${nome}!</h2>
+                    <p class="text-sm text-slate-500 mb-3">Para iniciar, carregue um embarque pendente atribuído a você.</p>
+                    <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-6">Somente embarques com status <strong>Pendente</strong> estão disponíveis.</p>
+                    <button onclick="welcomeLoadPendente()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i data-lucide="folder-open" class="w-4 h-4"></i> Carregar Embarque Pendente
+                    </button>`;
+            }
+
+            document.getElementById('welcomeModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function _closeWelcomeModal() {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function welcomeNew() {
+            // Passo 2: pede o número do embarque antes de liberar o formulário
+            const content = document.getElementById('welcomeContent');
+            if (!content) return;
+            content.innerHTML = `
+                <button onclick="showWelcomeModal()" class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-4 transition-colors">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar
+                </button>
+                <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="hash" class="w-7 h-7 text-emerald-600"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-1">Número do Embarque</h2>
+                <p class="text-sm text-slate-500 mb-4">Informe o número antes de iniciar o preenchimento. O formulário só será liberado após a confirmação.</p>
+                <input id="welcomeCodigoInput" type="text" inputmode="numeric" placeholder="Ex: 910"
+                    class="w-full border-2 border-slate-200 focus:border-emerald-400 rounded-xl px-4 py-3 text-lg font-bold text-center text-slate-800 outline-none mb-2 transition-colors"
+                    onkeydown="if(event.key==='Enter') welcomeConfirmNew()" />
+                <p id="welcomeCodigoError" class="hidden text-red-600 text-xs font-semibold mb-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></p>
+                <button id="welcomeConfirmBtn" onclick="welcomeConfirmNew()"
+                    class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95 mt-1">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário
+                </button>`;
+            lucide.createIcons();
+            setTimeout(() => document.getElementById('welcomeCodigoInput')?.focus(), 100);
+        }
+
+        async function welcomeConfirmNew() {
+            const input  = document.getElementById('welcomeCodigoInput');
+            const errEl  = document.getElementById('welcomeCodigoError');
+            const btn    = document.getElementById('welcomeConfirmBtn');
+            if (!input) return;
+
+            const codigo = input.value.trim();
+
+            // Validação básica
+            if (!codigo) {
+                errEl.textContent = 'Informe o número do embarque para continuar.';
+                errEl.classList.remove('hidden');
+                input.focus();
+                return;
+            }
+
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Verificando...`;
+
+            // Consulta a planilha para checar duplicata
+            if (APPS_SCRIPT_URL) {
+                try {
+                    const resp   = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                    const result = await resp.json();
+                    if (result.success) {
+                        const exists = (result.rows || []).find(r => String(r.Codigo || '').trim() === codigo);
+                        if (exists) {
+                            errEl.textContent = `O embarque Nº ${codigo} já existe na planilha. Escolha outro número.`;
+                            errEl.classList.remove('hidden');
+                            btn.disabled = false;
+                            btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário`;
+                            lucide.createIcons();
+                            input.focus();
+                            return;
+                        }
+                    }
+                } catch(_) { /* sem conexão: prossegue sem verificar */ }
+            }
+
+            // Código válido: limpa o formulário, preenche o código e libera
+            editModeTimestamp = null;
+            _editPassword     = null;
+            _editSnapshot     = null;
+            executeClearForm();
+
+            const codigoEl = document.getElementById('embarqueCodigo');
+            if (codigoEl) { codigoEl.value = codigo; }
+            saveToLocalStorage();
+            updatePreview();
+            _closeWelcomeModal();
+        }
+
+        function welcomeLoad() {
+            _closeWelcomeModal();
+            openHistory();
+        }
+
+        function welcomeLoadPendente() {
+            _welcomeAwaitingLoad = true; // aguarda confirmação de carga
+            _closeWelcomeModal();
+            openEmbarqueCarregar();
         }
 
         function clearForm() {
@@ -2703,6 +2853,16 @@
             checkPendingNotifications();
             _restoreAutoSaveTimestamp();
             startAutoSave();
+
+            // Só mostra o modal de boas-vindas se não há sessão de trabalho ativa:
+            // código de embarque vazio + sem edit mode + sem auto-save no servidor.
+            // Se o usuário atualizou a página acidentalmente, os dados locais já foram
+            // restaurados acima e ele volta direto para onde estava.
+            const _codigoEl = document.getElementById('embarqueCodigo');
+            const _hasActiveSession = (_codigoEl && _codigoEl.value.trim()) || !!editModeTimestamp || !!_autoSaveTimestamp;
+            if (!_hasActiveSession) {
+                showWelcomeModal();
+            }
         }
 
         // ===== AUTO-SAVE =====
