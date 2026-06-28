@@ -1124,7 +1124,7 @@
 
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250628.2'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20250628.3'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -2197,11 +2197,11 @@
             } catch(e) { alert('Erro ao marcar como pendente: ' + e.message); }
         }
 
-        function loadHistoryReport(ts) {
-            _welcomeAwaitingLoad = false; // relatório foi carregado; embarque pode prosseguir
+        function loadHistoryReport(ts, { silent = false } = {}) {
+            if (!silent) _welcomeAwaitingLoad = false;
             try {
                 const row = _findRowByTs(ts);
-                if (!row) { showMessageModal('Erro', 'Registro não encontrado. Tente reabrir o histórico.', 'error'); return; }
+                if (!row) { if (!silent) showMessageModal('Erro', 'Registro não encontrado. Tente reabrir o histórico.', 'error'); return; }
 
                 const parse = (v) => {
                     try { return typeof v === 'string' && v ? JSON.parse(v) : (Array.isArray(v) ? v : []); }
@@ -2307,11 +2307,13 @@
                 renderVideos();
                 updatePreview();
 
-                document.getElementById('historyModal').classList.add('hidden');
-                showMessageModal('Carregado!', 'Embarque ' + (row.Codigo || '') + ' restaurado com sucesso.', 'success');
+                if (!silent) {
+                    document.getElementById('historyModal').classList.add('hidden');
+                    showMessageModal('Carregado!', 'Embarque ' + (row.Codigo || '') + ' restaurado com sucesso.', 'success');
+                }
 
             } catch(err) {
-                showMessageModal('Erro ao carregar', err.message || String(err), 'error');
+                if (!silent) showMessageModal('Erro ao carregar', err.message || String(err), 'error');
             }
         }
 
@@ -3048,6 +3050,9 @@
             _restoreEditMode();
             checkPendingNotifications();
             _restoreAutoSaveTimestamp();
+            // Se o modo edição foi restaurado (sem auto-save), também marca como sincronizado
+            // para não sobrescrever o registro do servidor com dados locais antigos após F5
+            if (editModeTimestamp && !_autoSaveTimestamp) _autoSaveDirty = false;
             startAutoSave();
             startUpdateChecker();
 
@@ -3085,6 +3090,13 @@
             } else if (currentUser && currentUser.perfil === 'embarque' && !_fromFilePicker) {
                 // Embarque retornou ao app com sessão ativa: pergunta se quer continuar ou carregar outro
                 showResumeEditingModal();
+            }
+
+            // Após F5: busca dados atuais do servidor e repopula o formulário.
+            // Garante que fotos/dados enviados por outro perfil (ex: embarque pelo celular)
+            // apareçam no formulário, sem sobrescrever o servidor com dados locais antigos.
+            if ((_autoSaveTimestamp || editModeTimestamp) && APPS_SCRIPT_URL) {
+                _syncFromServer();
             }
         }
 
@@ -3183,6 +3195,7 @@
                 const currentCodigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
                 if (codigo && ts && codigo === currentCodigo) {
                     _autoSaveTimestamp = ts;
+                    _autoSaveDirty = false; // Dados restaurados do localStorage = já sincronizados; não sobrescrever servidor com dados antigos após F5
                 }
             } catch(_) {}
         }
@@ -3190,6 +3203,35 @@
         function startAutoSave() {
             if (_autoSaveTimer) clearInterval(_autoSaveTimer);
             _autoSaveTimer = setInterval(_autoSaveToCloud, 30000);
+        }
+
+        // Busca os dados mais recentes do servidor e repopula o formulário silenciosamente.
+        // Chamada após F5 para evitar que dados locais desatualizados (stale) sejam exibidos.
+        // Só sobrescreve o formulário se o usuário ainda não fez alterações (_autoSaveDirty = false).
+        async function _syncFromServer() {
+            const targetTs = _autoSaveTimestamp || editModeTimestamp;
+            if (!APPS_SCRIPT_URL || !targetTs) return;
+            _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'list' })
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error || 'Erro');
+                historyRows = result.rows || [];
+                historyRowsFiltered = [...historyRows];
+                if (!_autoSaveDirty) {
+                    // Usuário não fez alterações desde a recarga — seguro carregar dados do servidor
+                    loadHistoryReport(String(targetTs), { silent: true });
+                    _autoSaveDirty = false; // resetar após updatePreview() chamado pelo loadHistoryReport
+                    if (editModeTimestamp) _editSnapshot = collectFormData(); // atualiza baseline do diff
+                }
+                _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
+            } catch(e) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão — dados locais');
+            }
         }
         // ===== FIM AUTO-SAVE =====
 
