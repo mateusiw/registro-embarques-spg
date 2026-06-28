@@ -1124,7 +1124,7 @@
 
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250628.3'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20250628.4'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -3238,8 +3238,18 @@
         // ===== AUTO-UPDATE =====
         let _updateNewHtml = null;
         let _updateTimer   = null;
+        let _updateCheckerInterval = null;
+        let _updateApplied = false;
+
+        function _isNewerVersion(remote, current) {
+            const parse = v => { const [d, p = '0'] = v.split('.'); return [parseInt(d, 10), parseInt(p, 10)]; };
+            const [rd, rp] = parse(remote);
+            const [cd, cp] = parse(current);
+            return rd > cd || (rd === cd && rp > cp);
+        }
 
         async function checkForUpdates() {
+            if (_updateApplied) return;
             const url = localStorage.getItem('spg_github_raw_url') || GITHUB_RAW_URL;
             if (!url) return;
             try {
@@ -3248,7 +3258,7 @@
                 if (!resp.ok) return;
                 const html = await resp.text();
                 const m = html.match(/const APP_VERSION\s*=\s*'([^']+)'/);
-                if (!m || m[1] === APP_VERSION) return;
+                if (!m || !_isNewerVersion(m[1], APP_VERSION)) return;
                 _updateNewHtml = html;
                 _showUpdateBanner();
             } catch(_) { /* falha silenciosa — não interrompe o usuário */ }
@@ -3276,6 +3286,8 @@
 
         function applyUpdate() {
             clearInterval(_updateTimer);
+            clearInterval(_updateCheckerInterval);
+            _updateApplied = true;
             const b = document.getElementById('updateBanner');
             if (b) b.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span style="margin-left:8px;">Aplicando atualização...</span>';
             setTimeout(() => {
@@ -3291,7 +3303,7 @@
 
         function startUpdateChecker() {
             setTimeout(checkForUpdates, 4000); // Delay inicial para não competir com o carregamento
-            setInterval(checkForUpdates, 30 * 60 * 1000); // Verifica a cada 30 minutos
+            _updateCheckerInterval = setInterval(checkForUpdates, 30 * 60 * 1000); // Verifica a cada 30 minutos
         }
         // ===== FIM AUTO-UPDATE =====
 
