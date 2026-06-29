@@ -1514,17 +1514,15 @@
         async function _confirmAndSave() {
             document.getElementById('saveConfirmModal').classList.add('hidden');
 
-            // Perfis de seção (parceiros, descartes, nf) têm fluxo de save próprio
-            if (currentUser && (currentUser.perfil === 'parceiros' || currentUser.perfil === 'descartes' || currentUser.perfil === 'nf')) {
+            // Perfis de seção salvam apenas na sua aba específica (não em Embarques)
+            if (currentUser && (currentUser.perfil === 'parceiros' || currentUser.perfil === 'descartes' || currentUser.perfil === 'nf' || currentUser.perfil === 'embarque')) {
                 _setSavingState(true);
                 try { await _doSaveSectionToCloud(); } finally { _setSavingState(false); }
                 return;
             }
 
-            // Modo edição (master editando ou embarque atualizando pendente): salva como update
+            // Modo edição (master editando): escolhe status antes de salvar
             if (editModeTimestamp) {
-                // Master deve escolher qual status manter ao editar (não assumir "revisado").
-                // O perfil embarque permanece sempre "pendente", sem perguntar.
                 if (currentUser && currentUser.perfil === 'master') {
                     document.getElementById('saveStatusModal').classList.remove('hidden');
                     lucide.createIcons();
@@ -1546,76 +1544,12 @@
             try {
                 const codigo = document.getElementById('embarqueCodigo').value.trim();
                 const currentNfes = nfeList.filter(n => n.trim());
-                const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
 
-                // Perfil embarque com código: abre modal e consulta o servidor agora (sem cache)
-                if (isEmbarquePerfil && codigo) {
-                    showSaveLoadingModal();
-                    setSaveProgress(0, 'Verificando embarque', 'Consultando o servidor...');
-
-                    let checkPct = 0;
-                    const checkInterval = setInterval(() => {
-                        checkPct += (78 - checkPct) * 0.09;
-                        setSaveProgress(checkPct, 'Verificando embarque', 'Aguardando resposta...');
-                    }, 300);
-
-                    let rows = [];
-                    let fetchOk = false;
-                    try {
-                        const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                        const result = await resp.json();
-                        clearInterval(checkInterval);
-                        if (result.success) {
-                            rows = result.rows || [];
-                            historyRows = rows;
-                            fetchOk = true;
-                        }
-                    } catch(e) {
-                        clearInterval(checkInterval);
-                    }
-
-                    setSaveProgress(100, 'Verificação concluída', fetchOk ? 'Analisando registros...' : 'Sem conexão, prosseguindo...');
-                    await new Promise(r => setTimeout(r, 500));
-                    hideSaveLoadingModal();
-
-                    if (fetchOk) {
-                        const existingByCodigo = rows.find(row => String(row.Codigo || '').trim() === codigo);
-                        if (existingByCodigo) {
-                            if (String(existingByCodigo.StatusRegistro || '').toLowerCase() === 'pendente') {
-                                // Mescla: preserva dados existentes + adiciona apenas o que é novo
-                                _mergeWithExistingRow(existingByCodigo);
-                                editModeTimestamp = String(existingByCodigo.Timestamp);
-                                _editPassword = 'spg@2024';
-                                await _doSaveToCloud();
-                                editModeTimestamp = null;
-                                _editPassword = null;
-                                return;
-                            }
-                            showMessageModal('Embarque já enviado', `O embarque Nº ${codigo} já foi registrado e não pode ser reenviado. Caso precise corrigir, solicite ao responsável.`, 'error');
-                            return;
-                        }
-                    } else if (_autoSaveTimestamp) {
-                        // Sem conexão para verificar, mas o auto-save já criou um registro:
-                        // atualiza esse registro em vez de criar uma duplicata.
-                        editModeTimestamp = _autoSaveTimestamp;
-                        _editPassword = 'spg@2024';
-                        await _doSaveToCloud();
-                        editModeTimestamp = null;
-                        _editPassword = null;
-                        return;
-                    }
-
-                    await _doSaveToCloud();
-                    return;
-                }
-
-                // Sem código nem NFe: salva como novo direto
                 if (!codigo && !currentNfes.length) {
                     await _doSaveToCloud();
                     return;
                 }
 
-                // Perfil master: usa cache ou busca se vazio
                 let rows = historyRows;
                 if (!rows.length) {
                     try {
@@ -1625,7 +1559,6 @@
                     } catch(e) {}
                 }
 
-                // Para perfil master: procura registro com mesmo código de embarque E mesma NFe para atualizar
                 const match = rows.find(row => {
                     const rowCodigo = String(row.Codigo || '').trim();
                     const rowNfes   = String(row.NFes   || '').split(',').map(n => n.trim()).filter(Boolean);
@@ -1926,7 +1859,7 @@
                 return;
             }
 
-            const sectionTypeMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
+            const sectionTypeMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
             const sectionType = sectionTypeMap[perfil];
             if (!sectionType) return;
 
@@ -1944,6 +1877,11 @@
             } else if (sectionType === 'descartes') {
                 payload.discardsData = discardsData;
                 payload.reportDate   = document.getElementById('reportDate')?.value || '';
+            } else if (sectionType === 'midias') {
+                payload.photosData    = photosData;
+                payload.videosData    = videosData;
+                payload.reportDate    = document.getElementById('reportDate')?.value    || '';
+                payload.departureTime = document.getElementById('departureTime')?.value || '';
             }
 
             try {
@@ -2576,9 +2514,21 @@
                 customTempsData = parse(row.Temperaturas);
                 discardsData    = parse(row.Descartes);
                 additionalInfoData = parse(row.InfoAdicionais);
-                photosData      = parse(row.Fotos);
-                videosData      = parse(row.Videos);
                 palletsData     = parse(row.Pallets);
+
+                // Prefere dados da aba Midias (perfil embarque) sobre as colunas da aba Embarques.
+                // Fallback para colunas antigas (compatibilidade com registros anteriores).
+                const m = row._midias;
+                if (m) {
+                    const mPhotos = parse(m.Fotos);
+                    const mVideos = parse(m.Videos);
+                    photosData = mPhotos.length > 0 ? mPhotos : parse(row.Fotos);
+                    videosData = mVideos.length > 0 ? mVideos : parse(row.Videos);
+                    if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
+                } else {
+                    photosData = parse(row.Fotos);
+                    videosData = parse(row.Videos);
+                }
                 aiSummary       = row.AISummary && String(row.AISummary).trim() ? String(row.AISummary) : null;
 
                 // Migração automática: move dados antigos de Parceiros para dentro do Pallet 1
@@ -2927,7 +2877,7 @@
         // Carrega dados já salvos da aba de seção para o perfil atual
         async function _loadSectionData(codigo) {
             if (!APPS_SCRIPT_URL || !currentUser) return;
-            const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
+            const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
             const sectionType = sectionMap[currentUser.perfil];
             if (!sectionType) return;
 
@@ -2940,6 +2890,7 @@
                 if (!result.success || !result.data) return;
 
                 const d = result.data;
+                const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
                 if (sectionType === 'nf') {
                     nfeList = d.NFes ? d.NFes.split(', ').filter(Boolean) : [''];
                     if (!nfeList.length) nfeList = [''];
@@ -2947,11 +2898,20 @@
                     const vp = document.getElementById('vehiclePlate'); if (vp) vp.value = d.Placa     || '';
                     renderNfeInputs();
                 } else if (sectionType === 'parceiros') {
-                    try { palletsData = JSON.parse(d.ParceirosData || '[]'); } catch (_) { palletsData = []; }
+                    palletsData = tryParse(d.ParceirosData);
                     renderPallets();
                 } else if (sectionType === 'descartes') {
-                    try { discardsData = JSON.parse(d.DiscartsData || '[]'); } catch (_) { discardsData = []; }
+                    discardsData = tryParse(d.DiscartsData);
                     renderDiscards();
+                } else if (sectionType === 'midias') {
+                    photosData = tryParse(d.Fotos);
+                    videosData = tryParse(d.Videos);
+                    if (d.HorarioSaida) {
+                        const dtEl = document.getElementById('departureTime');
+                        if (dtEl) dtEl.value = _parseHorarioSaida(d.HorarioSaida);
+                    }
+                    renderPhotos();
+                    renderVideos();
                 }
             } catch (_) {}
         }
@@ -3621,6 +3581,33 @@
 
             _isSaving = true;
             _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
+
+            // Perfil embarque: auto-save vai para Midias, não para Embarques
+            if (currentUser && currentUser.perfil === 'embarque') {
+                try {
+                    const payload = {
+                        action: 'saveSection', sectionType: 'midias',
+                        codigo: codigoEl.value.trim(),
+                        photosData, videosData,
+                        reportDate:    document.getElementById('reportDate')?.value    || '',
+                        departureTime: document.getElementById('departureTime')?.value || ''
+                    };
+                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    const result = await resp.json();
+                    if (result.success) {
+                        _autoSaveDirty = false;
+                        _setAutoSaveToast(_ICON_CHECK, 'Mídias sincronizadas');
+                    } else {
+                        _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
+                    }
+                } catch(e) {
+                    _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
+                    saveToLocalStorage();
+                } finally {
+                    _isSaving = false;
+                }
+                return;
+            }
 
             try {
                 const data = collectFormData();
