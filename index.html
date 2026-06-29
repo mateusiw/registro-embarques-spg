@@ -1124,7 +1124,7 @@
 
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250629.1'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20250629.2'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -1729,7 +1729,7 @@
         // servidor guarda os pedaços e remonta o arquivo no último. O registro do
         // embarque é salvo depois, já com a URL do Drive (payload pequeno).
         const _VIDEO_CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB de base64 por pedaço (path legado)
-        const _VIDEO_RAW_CHUNK  = 2 * 1024 * 1024; // 2 MB binário por pedaço → ~2.67 MB base64 (path mobile)
+        const _VIDEO_RAW_CHUNK  = 3 * 1024 * 1024; // 3 MB binário por pedaço — múltiplo de 3 → base64 sem padding intermediário
 
         // Lê um Blob como dataUrl de forma assíncrona (FileReader em Promise).
         function _readBlobAsDataUrl(blob) {
