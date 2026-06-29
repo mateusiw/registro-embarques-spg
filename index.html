@@ -1680,13 +1680,18 @@
         // expõe progresso de envio, então usamos XHR + upload.onprogress. Para um
         // payload dominado pelo vídeo, a fração enviada (0..1) equivale a quanto do
         // vídeo já subiu para o Drive. Retorna { ok, status, statusText, text }.
+        // Formata bytes em MB com 1 casa decimal (ex: "12.4 MB").
+        function _fmtMB(bytes) {
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
         function _postWithProgress(url, body, onProgress) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', url, true);
                 if (onProgress && xhr.upload) {
                     xhr.upload.onprogress = (e) => {
-                        if (e.lengthComputable) onProgress(e.loaded / e.total);
+                        if (e.lengthComputable) onProgress(e.loaded / e.total, e.loaded, e.total);
                     };
                 }
                 xhr.onload    = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, statusText: xhr.statusText, text: xhr.responseText });
@@ -1735,10 +1740,10 @@
             }
 
             try {
-                const resp = await _postWithProgress(APPS_SCRIPT_URL, body, hasPendingVideo ? (frac) => {
+                const resp = await _postWithProgress(APPS_SCRIPT_URL, body, hasPendingVideo ? (frac, loaded, total) => {
                     if (frac < 1) {
                         const pct = Math.max(1, Math.round(frac * 85)); // 0–85% = envio do vídeo
-                        setSaveProgress(pct, 'Enviando vídeo', pct + '% enviado ao Drive...');
+                        setSaveProgress(pct, 'Enviando vídeo', pct + '% — ' + _fmtMB(loaded) + ' / ' + _fmtMB(total) + ' enviados ao Drive...');
                     } else if (!serverInterval) {
                         startServerCreep(85); // upload concluído: servidor processando
                     }
@@ -3185,9 +3190,9 @@
 
                 // Vídeo ainda em base64? Mostra o % real de upload no toast.
                 const hasPendingVideo = videosData.some(v => v.dataUrl && v.dataUrl.startsWith('data:'));
-                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(data), hasPendingVideo ? (frac) => {
+                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(data), hasPendingVideo ? (frac, loaded, total) => {
                     if (frac < 1) {
-                        _setAutoSaveToast(_ICON_SPIN, 'Enviando vídeo ' + Math.max(1, Math.round(frac * 100)) + '%', false);
+                        _setAutoSaveToast(_ICON_SPIN, 'Enviando vídeo ' + Math.max(1, Math.round(frac * 100)) + '% (' + _fmtMB(loaded) + ' / ' + _fmtMB(total) + ')', false);
                     } else {
                         _setAutoSaveToast(_ICON_SPIN, 'Processando no Drive...', false);
                     }
