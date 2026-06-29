@@ -1878,10 +1878,12 @@
                 payload.discardsData = discardsData;
                 payload.reportDate   = document.getElementById('reportDate')?.value || '';
             } else if (sectionType === 'midias') {
-                payload.photosData    = photosData;
-                payload.videosData    = videosData;
-                payload.reportDate    = document.getElementById('reportDate')?.value    || '';
-                payload.departureTime = document.getElementById('departureTime')?.value || '';
+                payload.photosData      = photosData;
+                payload.videosData      = videosData;
+                payload.reportDate      = document.getElementById('reportDate')?.value    || '';
+                payload.departureTime   = document.getElementById('departureTime')?.value || '';
+                payload.customTempsData = customTempsData;
+                payload.palletsData     = palletsData;
             }
 
             try {
@@ -2525,6 +2527,23 @@
                     photosData = mPhotos.length > 0 ? mPhotos : parse(row.Fotos);
                     videosData = mVideos.length > 0 ? mVideos : parse(row.Videos);
                     if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
+                    const mTemps = parse(m.Temperaturas);
+                    if (mTemps.length > 0) customTempsData = mTemps;
+                    const mPallets = parse(m.Pallets);
+                    if (mPallets.length > 0) {
+                        if (palletsData.length > 0) {
+                            mPallets.forEach((mp, i) => {
+                                if (palletsData[i]) {
+                                    if (mp.photos && mp.photos.length > 0) palletsData[i].photos = mp.photos;
+                                    if (mp.temp !== undefined && mp.temp !== '') palletsData[i].temp = mp.temp;
+                                } else {
+                                    palletsData.push(mp);
+                                }
+                            });
+                        } else {
+                            palletsData = mPallets;
+                        }
+                    }
                 } else {
                     photosData = parse(row.Fotos);
                     videosData = parse(row.Videos);
@@ -2910,8 +2929,27 @@
                         const dtEl = document.getElementById('departureTime');
                         if (dtEl) dtEl.value = _parseHorarioSaida(d.HorarioSaida);
                     }
+                    const savedTemps = tryParse(d.Temperaturas);
+                    if (savedTemps.length > 0) customTempsData = savedTemps;
+                    const savedPallets = tryParse(d.Pallets);
+                    if (savedPallets.length > 0) {
+                        if (palletsData.length > 0) {
+                            savedPallets.forEach((sp, i) => {
+                                if (palletsData[i]) {
+                                    if (sp.photos && sp.photos.length > 0) palletsData[i].photos = sp.photos;
+                                    if (sp.temp !== undefined && sp.temp !== '') palletsData[i].temp = sp.temp;
+                                } else {
+                                    palletsData.push(sp);
+                                }
+                            });
+                        } else {
+                            palletsData = savedPallets;
+                        }
+                    }
                     renderPhotos();
                     renderVideos();
+                    renderCustomTemps();
+                    renderPallets();
                 }
             } catch (_) {}
         }
@@ -3589,8 +3627,9 @@
                         action: 'saveSection', sectionType: 'midias',
                         codigo: codigoEl.value.trim(),
                         photosData, videosData,
-                        reportDate:    document.getElementById('reportDate')?.value    || '',
-                        departureTime: document.getElementById('departureTime')?.value || ''
+                        reportDate:      document.getElementById('reportDate')?.value    || '',
+                        departureTime:   document.getElementById('departureTime')?.value || '',
+                        customTempsData, palletsData
                     };
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
