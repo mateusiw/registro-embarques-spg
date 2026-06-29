@@ -1798,22 +1798,42 @@
             const file = video.fileKey ? _videoPendingFiles.get(video.fileKey) : null;
 
             if (file) {
-                // Caminho mobile-friendly: lê um pedaço de cada vez via file.slice().
-                // Chunk 0: dataUrl completo (inclui "data:video/...;base64," + base64 do 1º trecho).
-                // Chunks 1+: só o base64 puro (sem prefixo) — o servidor concatena tudo e o resultado
-                // é um dataUrl válido: prefixo do chunk 0 + base64 dos demais.
+                // Caminho mobile-friendly: lê pedaços via file.slice().
+                // Chunk 0 vai sempre primeiro (garante que a pasta temp existe e roda limpeza de órfãos).
+                // Intermediários são enviados em paralelo (lotes de 3) para absorver o cold start do
+                // Apps Script (~3-5s por execução); o último chunk só vai depois que todos os
+                // intermediários são confirmados, para disparar a montagem no servidor.
                 const total = Math.max(1, Math.ceil(file.size / _VIDEO_RAW_CHUNK));
-                for (let i = 0; i < total; i++) {
+                const chunkFracs = new Array(total).fill(0);
+                const _sendChunk = async (i, isLast) => {
                     const blob = file.slice(i * _VIDEO_RAW_CHUNK, (i + 1) * _VIDEO_RAW_CHUNK);
                     const dataUrl = await _readBlobAsDataUrl(blob);
                     const chunkData = i === 0 ? dataUrl : dataUrl.split(',')[1];
-                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: i === total - 1, chunk: chunkData, filename: baseName, embarqueCodigo: codigo, reportDate };
-                    const resp = await _postWithRetry(APPS_SCRIPT_URL, JSON.stringify(payload), onProgress ? (frac) => { onProgress((i + frac) / total); } : null);
+                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: isLast, chunk: chunkData, filename: baseName, embarqueCodigo: codigo, reportDate };
+                    const resp = await _postWithRetry(
+                        APPS_SCRIPT_URL,
+                        JSON.stringify(payload),
+                        onProgress ? (frac) => {
+                            chunkFracs[i] = frac;
+                            onProgress(chunkFracs.reduce((s, f) => s + f, 0) / total);
+                        } : null
+                    );
                     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
                     let result;
                     try { result = JSON.parse(resp.text); } catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
                     if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
                     if (result.driveUrl) driveUrl = result.driveUrl;
+                    chunkFracs[i] = 1;
+                    if (onProgress) onProgress(chunkFracs.reduce((s, f) => s + f, 0) / total);
+                };
+                await _sendChunk(0, total === 1);
+                if (total > 1) {
+                    for (let start = 1; start < total - 1; start += 3) {
+                        const batch = [];
+                        for (let i = start; i < Math.min(start + 3, total - 1); i++) batch.push(_sendChunk(i, false));
+                        await Promise.all(batch);
+                    }
+                    await _sendChunk(total - 1, true);
                 }
             } else {
                 // Caminho legado: dataUrl já está em memória (entradas antigas do localStorage).
