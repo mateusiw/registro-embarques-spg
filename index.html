@@ -1347,7 +1347,10 @@
         }
 
         async function saveToCloud() {
-            if (_isSaving) return;
+            if (_isSaving) {
+                showMessageModal('Envio em andamento', 'Aguarde o envio do vídeo terminar antes de salvar.', 'error');
+                return;
+            }
 
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
@@ -3076,6 +3079,14 @@
         }
 
         function clearForm() {
+            if (_isSaving) {
+                showMessageModal('Envio em andamento', 'Aguarde o envio do vídeo terminar antes de limpar o formulário.', 'error');
+                return;
+            }
+            if (videosData.some(v => _isVideoPending(v))) {
+                showMessageModal('Vídeo não enviado', 'Há um vídeo que ainda não foi enviado ao Drive. Salve o relatório para concluir o envio, ou remova o vídeo antes de limpar o formulário.', 'error');
+                return;
+            }
             document.getElementById('clearFormModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -5578,6 +5589,14 @@
             const form = document.getElementById('checklistForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
+            if (_isSaving) {
+                showMessageModal('Envio em andamento', 'Aguarde o envio do vídeo terminar antes de gerar o PDF.', 'error');
+                return;
+            }
+            if (videosData.some(v => _isVideoPending(v))) {
+                showMessageModal('Vídeo não enviado', 'Há um vídeo que ainda não foi enviado ao Drive. Salve o relatório primeiro para concluir o envio do vídeo.', 'error');
+                return;
+            }
             currentPdfMode = mode || 'interno';
             const isEmail = currentPdfMode === 'email';
             const isParceiros = currentPdfMode === 'parceiros';
