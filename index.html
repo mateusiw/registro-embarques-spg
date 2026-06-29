@@ -1124,7 +1124,7 @@
 
         localStorage.removeItem('spg_apps_script_url');
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250628.5'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20250628.6'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -1143,6 +1143,9 @@
         let aiSummary = null;
         let photosData = [];
         let videosData = [];
+        // Guarda os objetos File selecionados pelo usuário (não serializáveis em JSON).
+        // Chave: fileKey gerado em handleVideoUpload. Limpo após cada upload bem-sucedido.
+        const _videoPendingFiles = new Map();
         let historyRows = [];
         let historyRowsFiltered = [];
 
@@ -1707,59 +1710,91 @@
         // vídeo é enviado em pedaços pequenos (cada um num POST separado); o
         // servidor guarda os pedaços e remonta o arquivo no último. O registro do
         // embarque é salvo depois, já com a URL do Drive (payload pequeno).
-        const _VIDEO_CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB de base64 por pedaço
+        const _VIDEO_CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB de base64 por pedaço (path legado)
+        const _VIDEO_RAW_CHUNK  = 2 * 1024 * 1024; // 2 MB binário por pedaço → ~2.67 MB base64 (path mobile)
 
-        // Envia UM vídeo (data:...;base64,...) ao Drive em pedaços.
-        // onProgress(frac 0..1) reporta o progresso deste vídeo. Retorna a URL do Drive.
+        // Lê um Blob como dataUrl de forma assíncrona (FileReader em Promise).
+        function _readBlobAsDataUrl(blob) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload  = e => resolve(e.target.result);
+                r.onerror = () => reject(new Error('Erro ao ler o arquivo de vídeo.'));
+                r.readAsDataURL(blob);
+            });
+        }
+
+        // Envia UM vídeo ao Drive em pedaços.
+        // Se o vídeo tem fileKey: usa file.slice() — nunca carrega o arquivo inteiro na memória.
+        // Se o vídeo tem dataUrl: caminho legado (base64 já está em memória).
+        // onProgress(frac 0..1) reporta o progresso. Retorna a URL do Drive.
         async function _uploadVideoChunked(video, onProgress) {
-            const dataUrl = video.dataUrl;
             const uploadId = 'vid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-            const total = Math.max(1, Math.ceil(dataUrl.length / _VIDEO_CHUNK_SIZE));
             const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
             const reportDate = document.getElementById('reportDate')?.value || '';
             const baseName = (video.name || 'video').replace(/\.[^.]+$/, '').trim() || 'video';
             let driveUrl = null;
 
-            for (let i = 0; i < total; i++) {
-                const chunk = dataUrl.substring(i * _VIDEO_CHUNK_SIZE, (i + 1) * _VIDEO_CHUNK_SIZE);
-                const payload = {
-                    action: 'videoChunk',
-                    uploadId,
-                    index: i,
-                    total,
-                    last: i === total - 1,
-                    chunk,
-                    filename: baseName,
-                    embarqueCodigo: codigo,
-                    reportDate
-                };
-                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(payload), onProgress ? (frac) => {
-                    onProgress((i + frac) / total); // progresso global do vídeo
-                } : null);
-                if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
-                let result;
-                try { result = JSON.parse(resp.text); }
-                catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
-                if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
-                if (result.driveUrl) driveUrl = result.driveUrl;
+            const file = video.fileKey ? _videoPendingFiles.get(video.fileKey) : null;
+
+            if (file) {
+                // Caminho mobile-friendly: lê um pedaço de cada vez via file.slice().
+                // Chunk 0: dataUrl completo (inclui "data:video/...;base64," + base64 do 1º trecho).
+                // Chunks 1+: só o base64 puro (sem prefixo) — o servidor concatena tudo e o resultado
+                // é um dataUrl válido: prefixo do chunk 0 + base64 dos demais.
+                const total = Math.max(1, Math.ceil(file.size / _VIDEO_RAW_CHUNK));
+                for (let i = 0; i < total; i++) {
+                    const blob = file.slice(i * _VIDEO_RAW_CHUNK, (i + 1) * _VIDEO_RAW_CHUNK);
+                    const dataUrl = await _readBlobAsDataUrl(blob);
+                    const chunkData = i === 0 ? dataUrl : dataUrl.split(',')[1];
+                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: i === total - 1, chunk: chunkData, filename: baseName, embarqueCodigo: codigo, reportDate };
+                    const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(payload), onProgress ? (frac) => { onProgress((i + frac) / total); } : null);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
+                    let result;
+                    try { result = JSON.parse(resp.text); } catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
+                    if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
+                    if (result.driveUrl) driveUrl = result.driveUrl;
+                }
+            } else {
+                // Caminho legado: dataUrl já está em memória (entradas antigas do localStorage).
+                const dataUrl = video.dataUrl || '';
+                const total = Math.max(1, Math.ceil(dataUrl.length / _VIDEO_CHUNK_SIZE));
+                for (let i = 0; i < total; i++) {
+                    const chunk = dataUrl.substring(i * _VIDEO_CHUNK_SIZE, (i + 1) * _VIDEO_CHUNK_SIZE);
+                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: i === total - 1, chunk, filename: baseName, embarqueCodigo: codigo, reportDate };
+                    const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(payload), onProgress ? (frac) => { onProgress((i + frac) / total); } : null);
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
+                    let result;
+                    try { result = JSON.parse(resp.text); } catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
+                    if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
+                    if (result.driveUrl) driveUrl = result.driveUrl;
+                }
             }
+
             if (!driveUrl) throw new Error('O servidor não retornou o link do vídeo.');
             return driveUrl;
         }
 
-        // Sobe todos os vídeos ainda em base64, trocando o dataUrl pela URL do Drive.
+        // Retorna true para vídeos ainda não enviados ao Drive (fileKey ou base64 em memória).
+        function _isVideoPending(v) {
+            return (v.fileKey && _videoPendingFiles.has(v.fileKey)) ||
+                   (v.dataUrl && v.dataUrl.startsWith('data:'));
+        }
+
+        // Sobe todos os vídeos pendentes, trocando o dataUrl pela URL do Drive.
         // onProgress(frac 0..1) cobre o conjunto de vídeos pendentes.
         async function _uploadPendingVideos(onProgress) {
             const pending = videosData
                 .map((v, idx) => ({ v, idx }))
-                .filter(({ v }) => v.dataUrl && v.dataUrl.startsWith('data:'));
+                .filter(({ v }) => _isVideoPending(v));
             if (!pending.length) return;
             for (let k = 0; k < pending.length; k++) {
                 const { idx } = pending[k];
                 const url = await _uploadVideoChunked(videosData[idx], onProgress ? (frac) => {
                     onProgress((k + frac) / pending.length);
                 } : null);
-                videosData[idx].dataUrl = url;
+                const oldKey = videosData[idx].fileKey;
+                videosData[idx] = { ...videosData[idx], dataUrl: url, fileKey: undefined };
+                if (oldKey) _videoPendingFiles.delete(oldKey);
                 saveToLocalStorage();
                 renderVideos();
             }
@@ -1768,8 +1803,8 @@
         // Soma o tamanho (bytes) dos vídeos ainda pendentes, para exibir "X MB / Y MB".
         function _pendingVideoBytes() {
             return videosData
-                .filter(v => v.dataUrl && v.dataUrl.startsWith('data:'))
-                .reduce((s, v) => s + (v.size || Math.round(v.dataUrl.length * 0.73)), 0);
+                .filter(v => _isVideoPending(v))
+                .reduce((s, v) => s + (v.size || Math.round((v.dataUrl || '').length * 0.73)), 0);
         }
 
         async function _doSaveToCloud() {
@@ -1782,8 +1817,8 @@
 
             const isEdit = !!editModeTimestamp;
 
-            // Há vídeo ainda em base64? Será enviado ao Drive em pedaços (chunks).
-            const hasPendingVideo = videosData.some(v => v.dataUrl && v.dataUrl.startsWith('data:'));
+            // Há vídeo pendente (fileKey ou base64)? Será enviado ao Drive em pedaços (chunks).
+            const hasPendingVideo = videosData.some(v => _isVideoPending(v));
 
             let serverInterval = null;
             const startServerCreep = (from) => {
@@ -2792,6 +2827,7 @@
             discardsData = [];
             additionalInfoData = [];
             photosData = [];
+            _videoPendingFiles.clear();
             videosData = [];
             aiSummary = null;
             _collapsedPallets = [];
@@ -3018,6 +3054,10 @@
         // ===== FIM IndexedDB =====
 
         function saveToLocalStorage() {
+            // Entradas com fileKey têm o objeto File em _videoPendingFiles (não serializável em JSON).
+            // Salvamos apenas Drive URLs e base64; fileKey é descartado — se a página recarregar
+            // antes do envio o usuário precisará selecionar o vídeo novamente.
+            const _videosForStorage = videosData.filter(v => _isDriveUrl(v.dataUrl) || (v.dataUrl && v.dataUrl.startsWith('data:')));
             const data = {
                 reportDate: document.getElementById('reportDate').value,
                 embarqueCodigo: document.getElementById('embarqueCodigo').value,
@@ -3038,7 +3078,7 @@
                 additionalInfoData,
                 aiSummary,
                 photosData,
-                videosData,
+                videosData: _videosForStorage,
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
@@ -3244,8 +3284,8 @@
             _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
 
             try {
-                // Vídeo ainda em base64? Sobe em pedaços antes (payload do registro fica pequeno).
-                const hasPendingVideo = videosData.some(v => v.dataUrl && v.dataUrl.startsWith('data:'));
+                // Vídeo pendente (fileKey ou base64)? Sobe em pedaços antes (payload do registro fica pequeno).
+                const hasPendingVideo = videosData.some(v => _isVideoPending(v));
                 if (hasPendingVideo) {
                     const totalBytes = _pendingVideoBytes();
                     await _uploadPendingVideos((frac) => {
@@ -4623,17 +4663,19 @@
                     showMessageModal('Vídeo muito grande', `O vídeo "${file.name}" tem ${(file.size/1024/1024).toFixed(1)} MB. O limite máximo por arquivo é ${VIDEO_MAX_MB} MB.`, 'error');
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    videosData.push({ dataUrl: e.target.result, caption: '', name: file.name, size: file.size });
-                    renderVideos();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
+                // Armazena o File sem lê-lo em memória: evita o crash de memória no celular
+                // ao tentar carregar o arquivo inteiro como base64 de uma vez.
+                const fileKey = 'vpf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+                _videoPendingFiles.set(fileKey, file);
+                videosData.push({ fileKey, dataUrl: null, caption: '', name: file.name, size: file.size, mimeType: file.type || 'video/mp4' });
+                renderVideos();
+                updatePreview();
             });
         }
 
         function removeVideo(idx) {
+            const v = videosData[idx];
+            if (v && v.fileKey) _videoPendingFiles.delete(v.fileKey);
             videosData.splice(idx, 1);
             renderVideos();
             updatePreview();
@@ -4675,6 +4717,7 @@
             container.innerHTML = videosData.map((v, idx) => {
                 const isDrive = _isDriveUrl(v.dataUrl);
                 const isBase64 = v.dataUrl && v.dataUrl.startsWith('data:');
+                const isPending = !isDrive && !isBase64 && !!v.fileKey; // arquivo selecionado, ainda não enviado
                 const nameLabel = (v.name || (isDrive ? 'Vídeo ' + (idx+1) : 'Vídeo')).replace(/</g,'&lt;');
                 const sizeLabel = v.size ? _fmtVideoSize(v.size) : '';
                 const thumbUrl = isDrive ? _getDriveThumbnailUrl(v.dataUrl) : null;
@@ -4688,7 +4731,7 @@
                                 <svg viewBox="0 0 24 24" fill="#6d28d9" class="w-6 h-6 ml-0.5"><polygon points="5,3 19,12 5,21"/></svg>
                             </div>
                         </div>
-                    </a>` : isBase64 ? `
+                    </a>` : (isBase64 || isPending) ? `
                     <div class="w-full h-20 bg-violet-200 flex items-center justify-center gap-2">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" class="w-8 h-8"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="m16 2-4 5-4-5"/><circle cx="12" cy="14" r="3"/></svg>
                         <span class="text-violet-700 text-xs font-bold">Aguardando envio...</span>
@@ -4702,7 +4745,7 @@
                             <button type="button" onclick="removeVideo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
                         ${isDrive ? `<a href="${v.dataUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:underline"><i data-lucide="external-link" class="w-3 h-3"></i> Abrir vídeo no Drive</a>` : ''}
-                        ${isBase64 ? `<div class="text-[10px] text-violet-500 font-semibold flex items-center gap-1"><i data-lucide="upload-cloud" class="w-3 h-3"></i> Será enviado ao Drive ao salvar o relatório</div>` : ''}
+                        ${(isBase64 || isPending) ? `<div class="text-[10px] text-violet-500 font-semibold flex items-center gap-1"><i data-lucide="upload-cloud" class="w-3 h-3"></i> Será enviado ao Drive ao salvar o relatório</div>` : ''}
                         <input type="text" value="${(v.caption||'').replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updateVideoCaption(${idx}, this.value)" class="w-full p-1.5 rounded-lg border border-violet-100 text-xs bg-white focus:ring-2 focus:ring-violet-300 outline-none">
                     </div>
                 </div>`;
