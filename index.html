@@ -555,14 +555,14 @@
                                 </div>
                                 <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Vídeos do Embarque</span>
                             </div>
-                            <button type="button" onclick="openVideoSourceModal(handleVideoUpload)" class="text-violet-600 hover:text-violet-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
+                            <button type="button" onclick="openVideoSourceModal()" class="text-violet-600 hover:text-violet-800 flex items-center gap-1 normal-case text-[10px] font-bold cursor-pointer">
                                 <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar vídeo
                             </button>
                         </div>
                         <input type="file" id="videoInput_camera"  accept="video/*" capture="environment" class="hidden">
                         <input type="file" id="videoInput_gallery" accept="video/*" multiple class="hidden">
                         <div id="videosContainer" class="space-y-2"></div>
-                        <p id="videosHint" class="text-[10px] text-slate-400 text-center mt-1">Nenhum vídeo adicionado. Ao enviar o relatório, o vídeo será salvo no Google Drive automaticamente.</p>
+                        <p id="videosHint" class="text-[10px] text-slate-400 text-center mt-1">Nenhum vídeo adicionado. Grave ou escolha um vídeo para enviar automaticamente ao Google Drive.</p>
                     </div>
                 </div>
 
@@ -860,28 +860,57 @@
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
-            <div class="p-4 grid grid-cols-2 gap-3">
-                <!-- Câmera -->
+            <div class="p-4 grid grid-cols-3 gap-3">
                 <button type="button" onclick="triggerVideoCapture('camera')"
-                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all active:scale-95">
-                    <div class="w-14 h-14 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center">
-                        <i data-lucide="video" class="w-7 h-7"></i>
+                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all active:scale-95">
+                    <div class="w-12 h-12 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                        <i data-lucide="video" class="w-6 h-6"></i>
                     </div>
-                    <div class="text-center">
-                        <p class="text-sm font-black text-slate-700">Gravar vídeo</p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">Abrir câmera</p>
-                    </div>
+                    <p class="text-xs font-black text-slate-700 text-center">Gravar</p>
                 </button>
-                <!-- Galeria -->
                 <button type="button" onclick="triggerVideoCapture('gallery')"
-                    class="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all active:scale-95">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                        <i data-lucide="film" class="w-7 h-7"></i>
+                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all active:scale-95">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="film" class="w-6 h-6"></i>
                     </div>
-                    <div class="text-center">
-                        <p class="text-sm font-black text-slate-700">Galeria</p>
-                        <p class="text-[10px] text-slate-400 mt-0.5">Escolher arquivo</p>
+                    <p class="text-xs font-black text-slate-700 text-center">Galeria</p>
+                </button>
+                <button type="button" onclick="closeVideoSourceModal(); openVideoLinkModal()"
+                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all active:scale-95">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="link" class="w-6 h-6"></i>
                     </div>
+                    <p class="text-xs font-black text-slate-700 text-center">Link</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADICIONAR LINK DE VÍDEO -->
+    <div id="videoLinkModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-end justify-center backdrop-blur-sm" onclick="if(event.target===this) closeVideoLinkModal()">
+        <div class="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl pb-safe overflow-hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Adicionar vídeo</p>
+                <button onclick="closeVideoLinkModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Link do vídeo</label>
+                    <input type="url" id="videoLinkUrl" placeholder="https://drive.google.com/..."
+                        class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 outline-none bg-slate-50 focus:bg-white transition-colors"
+                        onkeydown="if(event.key==='Enter') document.getElementById('videoLinkCaption').focus()">
+                    <p class="text-[10px] text-slate-400 mt-1">Cole o link compartilhável do Google Drive, YouTube ou outro serviço.</p>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Legenda (opcional)</label>
+                    <input type="text" id="videoLinkCaption" placeholder="Descrição do vídeo..."
+                        class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-400 outline-none bg-slate-50 focus:bg-white transition-colors"
+                        onkeydown="if(event.key==='Enter') confirmVideoLink()">
+                </div>
+                <button onclick="confirmVideoLink()" class="w-full py-3 bg-gradient-to-r from-violet-500 to-violet-700 hover:from-violet-600 hover:to-violet-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
+                    <i data-lucide="plus-circle" class="w-4 h-4 inline mr-2"></i> Adicionar Vídeo
                 </button>
             </div>
         </div>
@@ -1164,9 +1193,6 @@
         let aiSummary = null;
         let photosData = [];
         let videosData = [];
-        // Guarda os objetos File selecionados pelo usuário (não serializáveis em JSON).
-        // Chave: fileKey gerado em handleVideoUpload. Limpo após cada upload bem-sucedido.
-        const _videoPendingFiles = new Map();
         let historyRows = [];
         let historyRowsFiltered = [];
 
@@ -1222,17 +1248,12 @@
             input.click();
         }
 
-        let _videoSourceCallback = null;
-
-        function openVideoSourceModal(callback) {
-            _videoSourceCallback = callback;
+        // ----- Modal fonte de vídeo -----
+        function openVideoSourceModal() {
             document.getElementById('videoInput_camera').value  = '';
             document.getElementById('videoInput_gallery').value = '';
             const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            if (!isMobile) {
-                triggerVideoCapture('gallery');
-                return;
-            }
+            if (!isMobile) { triggerVideoCapture('gallery'); return; }
             const modal = document.getElementById('videoSourceModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -1242,20 +1263,148 @@
         function closeVideoSourceModal() {
             document.getElementById('videoSourceModal').classList.add('hidden');
             document.getElementById('videoSourceModal').classList.remove('flex');
-            _videoSourceCallback = null;
         }
 
         function triggerVideoCapture(source) {
-            const cb = _videoSourceCallback;
             closeVideoSourceModal();
             const input = document.getElementById(source === 'camera' ? 'videoInput_camera' : 'videoInput_gallery');
             input.value = '';
             input.onchange = (e) => {
                 try { sessionStorage.removeItem('spg_file_picker_active'); } catch(_) {}
-                if (cb) cb(e);
+                handleVideoUpload(e);
             };
             try { sessionStorage.setItem('spg_file_picker_active', 'video_' + source); } catch(_) {}
             input.click();
+        }
+
+        // ----- Upload direto para Google Drive API -----
+        // Apps Script fornece o OAuth token; o arquivo vai browser → Drive sem passar pelo Apps Script.
+        async function handleVideoUpload(event) {
+            const files = Array.from(event.target.files);
+            event.target.value = '';
+            if (!files.length) return;
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('Configuração ausente', 'URL do Apps Script não configurada.', 'error');
+                return;
+            }
+            for (const file of files) {
+                const tempId = 'vpf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                videosData.push({ dataUrl: null, caption: '', name: file.name, size: file.size, tempId, uploading: true, uploadPct: 0 });
+                renderVideos();
+
+                const idx = videosData.findIndex(v => v.tempId === tempId);
+                try {
+                    // 1. Pegar token OAuth do Apps Script (1 requisição rápida)
+                    const infoResp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify({ action: 'getUploadInfo' }), null);
+                    if (!infoResp.ok) throw new Error('Erro HTTP ' + infoResp.status + ' ao obter token.');
+                    const info = JSON.parse(infoResp.text);
+                    if (!info.success) throw new Error(info.error || 'Erro ao autenticar com o Drive.');
+
+                    // 2. Upload direto para a API do Drive com progresso real
+                    const driveUrl = await _uploadToDriveApi(file, info.token, info.folderId, (pct) => {
+                        if (videosData[idx]) { videosData[idx].uploadPct = pct; renderVideos(); }
+                    });
+
+                    videosData[idx] = { dataUrl: driveUrl, caption: '', name: file.name, size: file.size };
+                    renderVideos();
+                    updatePreview();
+                    saveToLocalStorage();
+                } catch(e) {
+                    if (videosData[idx]) videosData[idx] = { ...videosData[idx], uploading: false, error: e.message };
+                    renderVideos();
+                    showMessageModal('Erro no upload', e.message, 'error');
+                }
+            }
+        }
+
+        async function _uploadToDriveApi(file, token, folderId, onProgress) {
+            // Inicia sessão de upload resumível (não envia dados ainda)
+            const initResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json',
+                    'X-Upload-Content-Type': file.type || 'video/mp4',
+                    'X-Upload-Content-Length': String(file.size)
+                },
+                body: JSON.stringify({ name: file.name, parents: folderId ? [folderId] : [] })
+            });
+            if (!initResp.ok) throw new Error('Drive API HTTP ' + initResp.status + ' ao iniciar upload.');
+            const uploadUrl = initResp.headers.get('Location');
+            if (!uploadUrl) throw new Error('Drive API não retornou URL de upload.');
+
+            // Envia o arquivo completo via XHR para ter progresso real
+            const fileId = await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', uploadUrl);
+                xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100));
+                };
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try { resolve(JSON.parse(xhr.responseText).id); }
+                        catch(_) { reject(new Error('Resposta inválida do Drive API.')); }
+                    } else {
+                        reject(new Error('Drive API HTTP ' + xhr.status + ' durante o upload.'));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Falha de conexão. Verifique sua internet e tente novamente.'));
+                xhr.send(file);
+            });
+
+            // Torna o arquivo acessível via link (necessário para visualização)
+            await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '/permissions', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'reader', type: 'anyone' })
+            }).catch(() => {}); // não bloqueia se falhar
+
+            return 'https://drive.google.com/file/d/' + fileId + '/view?usp=sharing';
+        }
+
+        // ----- Modal cole um link -----
+        function openVideoLinkModal() {
+            document.getElementById('videoLinkUrl').value = '';
+            document.getElementById('videoLinkCaption').value = '';
+            const modal = document.getElementById('videoLinkModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lockScroll();
+            lucide.createIcons();
+            setTimeout(() => document.getElementById('videoLinkUrl').focus(), 100);
+        }
+
+        function closeVideoLinkModal() {
+            document.getElementById('videoLinkModal').classList.add('hidden');
+            document.getElementById('videoLinkModal').classList.remove('flex');
+            unlockScroll();
+        }
+
+        function confirmVideoLink() {
+            const url = document.getElementById('videoLinkUrl').value.trim();
+            const caption = document.getElementById('videoLinkCaption').value.trim();
+            if (!url) { document.getElementById('videoLinkUrl').focus(); return; }
+            let name = 'Vídeo';
+            if (_isDriveUrl(url)) name = 'Vídeo no Google Drive';
+            else if (url.includes('youtube.com') || url.includes('youtu.be')) name = 'Vídeo no YouTube';
+            videosData.push({ dataUrl: url, caption, name });
+            closeVideoLinkModal();
+            renderVideos();
+            updatePreview();
+            saveToLocalStorage();
+        }
+
+        function shareVideoWhatsApp(idx) {
+            const v = videosData[idx];
+            if (!v) return;
+            const url = v.dataUrl || '';
+            const text = (v.caption ? v.caption + '\n' : '') + url;
+            window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+        }
+
+        function _isVideoUploading() {
+            return videosData.some(v => v.uploading);
         }
         function _savePhotoToGallery(dataUrl) {
             try {
@@ -1767,127 +1916,6 @@
 
         // ===== UPLOAD DE VÍDEO EM PEDAÇOS (CHUNKS) =====
         // O Apps Script rejeita POSTs muito grandes (~50 MB). Um vídeo em base64
-        // estoura esse limite e a conexão cai ("Falha de conexão"). Por isso o
-        // vídeo é enviado em pedaços pequenos (cada um num POST separado); o
-        // servidor guarda os pedaços e remonta o arquivo no último. O registro do
-        // embarque é salvo depois, já com a URL do Drive (payload pequeno).
-        const _VIDEO_CHUNK_SIZE = 1536 * 1024; // 1,5 MB de base64 por pedaço (path legado) — múltiplo de 4 chars → sem padding intermediário
-        const _VIDEO_RAW_CHUNK  = 1536 * 1024; // 1,5 MB binário por pedaço — múltiplo de 3 bytes → base64 sem padding intermediário
-
-        // Lê um Blob como dataUrl de forma assíncrona (FileReader em Promise).
-        function _readBlobAsDataUrl(blob) {
-            return new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.onload  = e => resolve(e.target.result);
-                r.onerror = () => reject(new Error('Erro ao ler o arquivo de vídeo.'));
-                r.readAsDataURL(blob);
-            });
-        }
-
-        // Envia UM vídeo ao Drive em pedaços.
-        // Se o vídeo tem fileKey: usa file.slice() — nunca carrega o arquivo inteiro na memória.
-        // Se o vídeo tem dataUrl: caminho legado (base64 já está em memória).
-        // onProgress(frac 0..1) reporta o progresso. Retorna a URL do Drive.
-        async function _uploadVideoChunked(video, onProgress) {
-            const uploadId = 'vid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-            const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
-            const reportDate = document.getElementById('reportDate')?.value || '';
-            const baseName = (video.name || 'video').replace(/\.[^.]+$/, '').trim() || 'video';
-            let driveUrl = null;
-
-            const file = video.fileKey ? _videoPendingFiles.get(video.fileKey) : null;
-
-            if (file) {
-                // Caminho mobile-friendly: lê pedaços via file.slice().
-                // Chunk 0 vai sempre primeiro (garante que a pasta temp existe e roda limpeza de órfãos).
-                // Intermediários são enviados em paralelo (lotes de 3) para absorver o cold start do
-                // Apps Script (~3-5s por execução); o último chunk só vai depois que todos os
-                // intermediários são confirmados, para disparar a montagem no servidor.
-                const total = Math.max(1, Math.ceil(file.size / _VIDEO_RAW_CHUNK));
-                const chunkFracs = new Array(total).fill(0);
-                const _sendChunk = async (i, isLast) => {
-                    const blob = file.slice(i * _VIDEO_RAW_CHUNK, (i + 1) * _VIDEO_RAW_CHUNK);
-                    const dataUrl = await _readBlobAsDataUrl(blob);
-                    const chunkData = i === 0 ? dataUrl : dataUrl.split(',')[1];
-                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: isLast, chunk: chunkData, filename: baseName, embarqueCodigo: codigo, reportDate };
-                    const resp = await _postWithRetry(
-                        APPS_SCRIPT_URL,
-                        JSON.stringify(payload),
-                        onProgress ? (frac) => {
-                            chunkFracs[i] = frac;
-                            onProgress(chunkFracs.reduce((s, f) => s + f, 0) / total);
-                        } : null
-                    );
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
-                    let result;
-                    try { result = JSON.parse(resp.text); } catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
-                    if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
-                    if (result.driveUrl) driveUrl = result.driveUrl;
-                    chunkFracs[i] = 1;
-                    if (onProgress) onProgress(chunkFracs.reduce((s, f) => s + f, 0) / total);
-                };
-                await _sendChunk(0, total === 1);
-                if (total > 1) {
-                    for (let start = 1; start < total - 1; start += 3) {
-                        const batch = [];
-                        for (let i = start; i < Math.min(start + 3, total - 1); i++) batch.push(_sendChunk(i, false));
-                        await Promise.all(batch);
-                    }
-                    await _sendChunk(total - 1, true);
-                }
-            } else {
-                // Caminho legado: dataUrl já está em memória (entradas antigas do localStorage).
-                const dataUrl = video.dataUrl || '';
-                const total = Math.max(1, Math.ceil(dataUrl.length / _VIDEO_CHUNK_SIZE));
-                for (let i = 0; i < total; i++) {
-                    const chunk = dataUrl.substring(i * _VIDEO_CHUNK_SIZE, (i + 1) * _VIDEO_CHUNK_SIZE);
-                    const payload = { action: 'videoChunk', uploadId, index: i, total, last: i === total - 1, chunk, filename: baseName, embarqueCodigo: codigo, reportDate };
-                    const resp = await _postWithRetry(APPS_SCRIPT_URL, JSON.stringify(payload), onProgress ? (frac) => { onProgress((i + frac) / total); } : null);
-                    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ao enviar o vídeo.');
-                    let result;
-                    try { result = JSON.parse(resp.text); } catch(_) { throw new Error('Resposta inválida do servidor (vídeo). Republique o Apps Script.'); }
-                    if (!result.success) throw new Error(result.error || 'Falha ao enviar o vídeo.');
-                    if (result.driveUrl) driveUrl = result.driveUrl;
-                }
-            }
-
-            if (!driveUrl) throw new Error('O servidor não retornou o link do vídeo.');
-            return driveUrl;
-        }
-
-        // Retorna true para vídeos ainda não enviados ao Drive (fileKey ou base64 em memória).
-        function _isVideoPending(v) {
-            return (v.fileKey && _videoPendingFiles.has(v.fileKey)) ||
-                   (v.dataUrl && v.dataUrl.startsWith('data:'));
-        }
-
-        // Sobe todos os vídeos pendentes, trocando o dataUrl pela URL do Drive.
-        // onProgress(frac 0..1) cobre o conjunto de vídeos pendentes.
-        async function _uploadPendingVideos(onProgress) {
-            const pending = videosData
-                .map((v, idx) => ({ v, idx }))
-                .filter(({ v }) => _isVideoPending(v));
-            if (!pending.length) return;
-            for (let k = 0; k < pending.length; k++) {
-                const { idx } = pending[k];
-                const url = await _uploadVideoChunked(videosData[idx], onProgress ? (frac) => {
-                    onProgress((k + frac) / pending.length);
-                } : null);
-                const oldKey = videosData[idx].fileKey;
-                videosData[idx] = { ...videosData[idx], dataUrl: url, fileKey: undefined };
-                if (oldKey) _videoPendingFiles.delete(oldKey);
-                saveToLocalStorage();
-                renderVideos();
-            }
-        }
-
-        // Soma o tamanho (bytes) dos vídeos ainda pendentes, para exibir "X MB / Y MB".
-        function _pendingVideoBytes() {
-            return videosData
-                .filter(v => _isVideoPending(v))
-                .reduce((s, v) => s + (v.size || Math.round((v.dataUrl || '').length * 0.73)), 0);
-        }
-
         // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
         async function _doSaveSectionToCloud() {
             if (!APPS_SCRIPT_URL || !currentUser) return;
@@ -1949,33 +1977,18 @@
 
             const isEdit = !!editModeTimestamp;
 
-            // Há vídeo pendente (fileKey ou base64)? Será enviado ao Drive em pedaços (chunks).
-            const hasPendingVideo = videosData.some(v => _isVideoPending(v));
-
             let serverInterval = null;
             const startServerCreep = (from) => {
                 let p = from;
                 serverInterval = setInterval(() => {
                     p += (98 - p) * 0.06;
-                    setSaveProgress(p, 'Processando no servidor', hasPendingVideo ? 'Finalizando vídeo no Drive...' : 'Gravando na planilha...');
+                    setSaveProgress(p, 'Processando no servidor', 'Gravando na planilha...');
                 }, 400);
             };
 
             try {
-                // 1) Sobe os vídeos em pedaços (0–85% da barra). Cada pedaço é um POST
-                //    pequeno, evitando o limite de payload do Apps Script.
-                if (hasPendingVideo) {
-                    const totalBytes = _pendingVideoBytes();
-                    setSaveProgress(0, 'Enviando vídeo', 'Iniciando envio...');
-                    await _uploadPendingVideos((frac) => {
-                        const pct = Math.max(1, Math.round(frac * 85));
-                        setSaveProgress(pct, 'Enviando vídeo', _fmtMB(frac * totalBytes) + ' / ' + _fmtMB(totalBytes) + ' enviados ao Drive...');
-                    });
-                    startServerCreep(85);
-                } else {
-                    setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
-                    startServerCreep(10);
-                }
+                setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
+                startServerCreep(10);
 
                 // 2) Monta e envia o registro (vídeos já são URLs do Drive → payload pequeno).
                 const data = collectFormData();
@@ -3112,11 +3125,11 @@
 
         function clearForm() {
             if (_isSaving) {
-                showMessageModal('Envio em andamento', 'Aguarde o envio do vídeo terminar antes de limpar o formulário.', 'error');
+                showMessageModal('Envio em andamento', 'Aguarde o envio terminar antes de limpar o formulário.', 'error');
                 return;
             }
-            if (videosData.some(v => _isVideoPending(v))) {
-                showMessageModal('Vídeo não enviado', 'Há um vídeo que ainda não foi enviado ao Drive. Salve o relatório para concluir o envio, ou remova o vídeo antes de limpar o formulário.', 'error');
+            if (_isVideoUploading()) {
+                showMessageModal('Vídeo enviando', 'Aguarde o upload do vídeo terminar antes de limpar o formulário.', 'error');
                 return;
             }
             document.getElementById('clearFormModal').classList.remove('hidden');
@@ -3157,7 +3170,6 @@
             discardsData = [];
             additionalInfoData = [];
             photosData = [];
-            _videoPendingFiles.clear();
             videosData = [];
             aiSummary = null;
             _collapsedPallets = [];
@@ -3384,10 +3396,7 @@
         // ===== FIM IndexedDB =====
 
         function saveToLocalStorage() {
-            // Entradas com fileKey têm o objeto File em _videoPendingFiles (não serializável em JSON).
-            // Salvamos apenas Drive URLs e base64; fileKey é descartado — se a página recarregar
-            // antes do envio o usuário precisará selecionar o vídeo novamente.
-            const _videosForStorage = videosData.filter(v => _isDriveUrl(v.dataUrl) || (v.dataUrl && v.dataUrl.startsWith('data:')));
+            const _videosForStorage = videosData.filter(v => v.dataUrl);
             const data = {
                 reportDate: document.getElementById('reportDate').value,
                 embarqueCodigo: document.getElementById('embarqueCodigo').value,
@@ -3420,11 +3429,11 @@
             try {
                 localStorage.setItem('spg_form_data', JSON.stringify(data));
             } catch(e) {
-                // Cota excedida: salva sem as fotos/vídeos base64 (que continuam na sessão atual)
+                // Cota excedida: salva sem as fotos base64 (que continuam na sessão atual)
                 const dataNoPhotos = {
                     ...data,
                     photosData: [],
-                    videosData: videosData.map(v => _isDriveUrl(v.dataUrl) ? v : { ...v, dataUrl: null }),
+                    videosData,
                     discardsData: discardsData.map(d => ({ ...d, photos: [] })),
                     customTempsData: customTempsData.map(t => ({ ...t, photos: [] }))
                 };
@@ -3614,16 +3623,6 @@
             _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
 
             try {
-                // Vídeo pendente (fileKey ou base64)? Sobe em pedaços antes (payload do registro fica pequeno).
-                const hasPendingVideo = videosData.some(v => _isVideoPending(v));
-                if (hasPendingVideo) {
-                    const totalBytes = _pendingVideoBytes();
-                    await _uploadPendingVideos((frac) => {
-                        _setAutoSaveToast(_ICON_SPIN, 'Enviando vídeo ' + Math.max(1, Math.round(frac * 100)) + '% (' + _fmtMB(frac * totalBytes) + ' / ' + _fmtMB(totalBytes) + ')', false);
-                    });
-                    _setAutoSaveToast(_ICON_SPIN, 'Processando no Drive...', false);
-                }
-
                 const data = collectFormData();
 
                 // Auto-save sempre usa pendente: só o botão Salvar define o status final
@@ -5160,35 +5159,12 @@
         }
 
         // ---------- Vídeos ----------
-        // O vídeo é enviado em pedaços (chunks), mas o servidor (Apps Script) precisa
-        // remontar o arquivo inteiro na memória ao final. Acima de ~50 MB isso pode
-        // estourar o limite de memória do Apps Script, então limitamos por arquivo.
-        const VIDEO_MAX_MB = 50;
-
-        function handleVideoUpload(event) {
-            const files = Array.from(event.target.files);
-            event.target.value = '';
-            files.forEach(file => {
-                if (file.size > VIDEO_MAX_MB * 1024 * 1024) {
-                    showMessageModal('Vídeo muito grande', `O vídeo "${file.name}" tem ${(file.size/1024/1024).toFixed(1)} MB. O limite máximo por arquivo é ${VIDEO_MAX_MB} MB.`, 'error');
-                    return;
-                }
-                // Armazena o File sem lê-lo em memória: evita o crash de memória no celular
-                // ao tentar carregar o arquivo inteiro como base64 de uma vez.
-                const fileKey = 'vpf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-                _videoPendingFiles.set(fileKey, file);
-                videosData.push({ fileKey, dataUrl: null, caption: '', name: file.name, size: file.size, mimeType: file.type || 'video/mp4' });
-                renderVideos();
-                updatePreview();
-            });
-        }
 
         function removeVideo(idx) {
-            const v = videosData[idx];
-            if (v && v.fileKey) _videoPendingFiles.delete(v.fileKey);
             videosData.splice(idx, 1);
             renderVideos();
             updatePreview();
+            saveToLocalStorage();
         }
 
         function updateVideoCaption(idx, value) { videosData[idx].caption = value; updatePreview(); }
@@ -5225,37 +5201,62 @@
             }
             if (hint) hint.classList.add('hidden');
             container.innerHTML = videosData.map((v, idx) => {
-                const isDrive = _isDriveUrl(v.dataUrl);
-                const isBase64 = v.dataUrl && v.dataUrl.startsWith('data:');
-                const isPending = !isDrive && !isBase64 && !!v.fileKey; // arquivo selecionado, ainda não enviado
-                const nameLabel = (v.name || (isDrive ? 'Vídeo ' + (idx+1) : 'Vídeo')).replace(/</g,'&lt;');
-                const sizeLabel = v.size ? _fmtVideoSize(v.size) : '';
-                const thumbUrl = isDrive ? _getDriveThumbnailUrl(v.dataUrl) : null;
+                const url = v.dataUrl || '';
+                const isDrive = _isDriveUrl(url);
+                const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+                const nameLabel = (v.name || (isDrive ? 'Vídeo no Drive' : isYoutube ? 'Vídeo no YouTube' : 'Vídeo')).replace(/</g,'&lt;');
+                const thumbUrl = isDrive ? _getDriveThumbnailUrl(url) : null;
+                const pct = v.uploadPct || 0;
+
+                if (v.uploading) {
+                    return `
+                    <div class="bg-violet-50 rounded-xl border border-violet-100 overflow-hidden p-3 space-y-2">
+                        <div class="flex items-center justify-between gap-2 min-w-0">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-6 h-6 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0"></div>
+                                <span class="text-xs font-bold text-slate-700 truncate">${nameLabel}</span>
+                            </div>
+                            <span class="text-xs font-bold text-violet-600 shrink-0">${pct}%</span>
+                        </div>
+                        <div class="w-full bg-violet-100 rounded-full h-2">
+                            <div class="bg-violet-500 h-2 rounded-full transition-all duration-300" style="width:${pct}%"></div>
+                        </div>
+                        <p class="text-[10px] text-slate-400">${pct < 5 ? 'Iniciando envio para o Google Drive...' : pct < 99 ? 'Enviando para o Google Drive...' : 'Processando no Drive...'}</p>
+                    </div>`;
+                }
+
+                if (v.error) {
+                    return `
+                    <div class="bg-rose-50 rounded-xl border border-rose-200 overflow-hidden p-3 space-y-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-rose-700 truncate">${nameLabel}</span>
+                            <button type="button" onclick="removeVideo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
+                        <p class="text-[10px] text-rose-600">${(v.error||'').replace(/</g,'&lt;')}</p>
+                    </div>`;
+                }
+
                 return `
                 <div class="bg-violet-50 rounded-xl border border-violet-100 overflow-hidden">
                     ${isDrive && thumbUrl ? `
-                    <a href="${v.dataUrl}" target="_blank" rel="noopener" class="block relative">
+                    <a href="${url}" target="_blank" rel="noopener" class="block relative">
                         <img src="${thumbUrl}" alt="Thumbnail do vídeo" class="w-full h-32 object-cover" onerror="this.style.display='none'">
                         <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
                             <div class="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                                 <svg viewBox="0 0 24 24" fill="#6d28d9" class="w-6 h-6 ml-0.5"><polygon points="5,3 19,12 5,21"/></svg>
                             </div>
                         </div>
-                    </a>` : (isBase64 || isPending) ? `
-                    <div class="w-full h-20 bg-violet-200 flex items-center justify-center gap-2">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" class="w-8 h-8"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="m16 2-4 5-4-5"/><circle cx="12" cy="14" r="3"/></svg>
-                        <span class="text-violet-700 text-xs font-bold">Aguardando envio...</span>
-                    </div>` : ''}
-                    <div class="p-2 space-y-1">
+                    </a>` : ''}
+                    <div class="p-2 space-y-1.5">
                         <div class="flex items-center justify-between gap-1.5 min-w-0">
-                            <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="text-xs font-bold text-slate-700 truncate">${nameLabel}</span>
-                                ${sizeLabel ? `<span class="text-[10px] text-slate-400 shrink-0">${sizeLabel}</span>` : ''}
-                            </div>
+                            <span class="text-xs font-bold text-slate-700 truncate">${nameLabel}</span>
                             <button type="button" onclick="removeVideo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
-                        ${isDrive ? `<a href="${v.dataUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:underline"><i data-lucide="external-link" class="w-3 h-3"></i> Abrir vídeo no Drive</a>` : ''}
-                        ${(isBase64 || isPending) ? `<div class="text-[10px] text-violet-500 font-semibold flex items-center gap-1"><i data-lucide="upload-cloud" class="w-3 h-3"></i> Será enviado ao Drive ao salvar o relatório</div>` : ''}
+                        ${url ? `
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <a href="${url}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:underline"><i data-lucide="external-link" class="w-3 h-3"></i> Abrir no Drive</a>
+                            <button type="button" onclick="shareVideoWhatsApp(${idx})" class="inline-flex items-center gap-1 text-[10px] text-green-700 font-semibold hover:underline"><i data-lucide="message-circle" class="w-3 h-3"></i> WhatsApp</button>
+                        </div>` : ''}
                         <input type="text" value="${(v.caption||'').replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updateVideoCaption(${idx}, this.value)" class="w-full p-1.5 rounded-lg border border-violet-100 text-xs bg-white focus:ring-2 focus:ring-violet-300 outline-none">
                     </div>
                 </div>`;
@@ -5622,11 +5623,11 @@
             if (!form.checkValidity()) { form.reportValidity(); return; }
             if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
             if (_isSaving) {
-                showMessageModal('Envio em andamento', 'Aguarde o envio do vídeo terminar antes de gerar o PDF.', 'error');
+                showMessageModal('Envio em andamento', 'Aguarde o envio terminar antes de gerar o PDF.', 'error');
                 return;
             }
-            if (videosData.some(v => _isVideoPending(v))) {
-                showMessageModal('Vídeo não enviado', 'Há um vídeo que ainda não foi enviado ao Drive. Salve o relatório primeiro para concluir o envio do vídeo.', 'error');
+            if (_isVideoUploading()) {
+                showMessageModal('Vídeo enviando', 'Aguarde o upload do vídeo terminar antes de gerar o PDF.', 'error');
                 return;
             }
             currentPdfMode = mode || 'interno';
@@ -6343,7 +6344,7 @@
         const _MODAL_IDS = [
             'usersModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
-            'photoSourceModal','videoSourceModal','genericConfirmModal','conflictModal','passwordModal',
+            'photoSourceModal','videoSourceModal','videoLinkModal','genericConfirmModal','conflictModal','passwordModal',
             'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
         ];
         function _anyModalOpen() {
