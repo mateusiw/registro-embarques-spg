@@ -1721,24 +1721,35 @@
 
         function _postWithProgress(url, body, onProgress) {
             if (onProgress) onProgress(0, 0, 0);
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 120000);
-            return fetch(url, { method: 'POST', body, signal: ctrl.signal })
-                .then(async (resp) => {
+            return new Promise(function(resolve, reject) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+                // Aborta se passar 120s sem resposta (rede travada)
+                var timer = setTimeout(function() { xhr.abort(); }, 120000);
+                // Progresso REAL de envio: atualiza a barra enquanto o dado sobe ao servidor
+                if (onProgress && xhr.upload) {
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable && e.total > 0) {
+                            // Reserva 10% final para o servidor processar e responder
+                            onProgress(Math.min(0.9, e.loaded / e.total), 0, 0);
+                        }
+                    });
+                }
+                xhr.onload = function() {
                     clearTimeout(timer);
-                    const text = await resp.text();
                     if (onProgress) onProgress(1, 0, 0);
-                    return { ok: resp.ok, status: resp.status, statusText: resp.statusText, text };
-                }, (err) => {
-                    clearTimeout(timer);
-                    throw new Error(err.name === 'AbortError' ? 'Tempo de conexão esgotado.' : 'Falha de conexão.');
-                });
+                    resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, statusText: xhr.statusText, text: xhr.responseText });
+                };
+                xhr.onerror = function() { clearTimeout(timer); reject(new Error('Falha de conexão.')); };
+                xhr.onabort = function() { clearTimeout(timer); reject(new Error('Tempo de conexão esgotado.')); };
+                xhr.send(body);
+            });
         }
 
         // Retentativa automática para uploads de pedaços: se a conexão cair no celular,
-        // tenta de novo com backoff (1s → 2s → 4s). O servidor é idempotente (não duplica).
+        // tenta de novo com backoff (2s → 4s → 8s → 16s → 30s). O servidor é idempotente (não duplica).
         async function _postWithRetry(url, body, onProgress, maxRetries) {
-            if (maxRetries === undefined) maxRetries = 3;
+            if (maxRetries === undefined) maxRetries = 5;
             let lastErr;
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
                 try {
@@ -1746,7 +1757,8 @@
                 } catch (err) {
                     lastErr = err;
                     if (attempt < maxRetries) {
-                        await new Promise(r => setTimeout(r, 1000 * (1 << attempt))); // 1s, 2s, 4s
+                        const delay = Math.min(30000, 2000 * (1 << attempt)); // 2s, 4s, 8s, 16s, 30s
+                        await new Promise(r => setTimeout(r, delay));
                     }
                 }
             }
@@ -1759,8 +1771,8 @@
         // vídeo é enviado em pedaços pequenos (cada um num POST separado); o
         // servidor guarda os pedaços e remonta o arquivo no último. O registro do
         // embarque é salvo depois, já com a URL do Drive (payload pequeno).
-        const _VIDEO_CHUNK_SIZE = 3 * 1024 * 1024; // 3 MB de base64 por pedaço (path legado)
-        const _VIDEO_RAW_CHUNK  = 3 * 1024 * 1024; // 3 MB binário por pedaço — múltiplo de 3 → base64 sem padding intermediário
+        const _VIDEO_CHUNK_SIZE = 1536 * 1024; // 1,5 MB de base64 por pedaço (path legado) — múltiplo de 4 chars → sem padding intermediário
+        const _VIDEO_RAW_CHUNK  = 1536 * 1024; // 1,5 MB binário por pedaço — múltiplo de 3 bytes → base64 sem padding intermediário
 
         // Lê um Blob como dataUrl de forma assíncrona (FileReader em Promise).
         function _readBlobAsDataUrl(blob) {
