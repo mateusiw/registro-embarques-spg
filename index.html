@@ -188,8 +188,11 @@
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Perfil</label>
                             <select id="newUserPerfil" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
-                                <option value="master">Master</option>
-                                <option value="embarque">Embarque</option>
+                                <option value="master">Master (acesso total)</option>
+                                <option value="embarque">Embarque (fotos/vídeos)</option>
+                                <option value="parceiros">Parceiros e Quantidades</option>
+                                <option value="descartes">Descartes</option>
+                                <option value="nf">Nota Fiscal e Motorista</option>
                             </select>
                         </div>
                         <div>
@@ -258,6 +261,10 @@
             <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Carregar embarque">
                 <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
                 <span>Carregar</span>
+            </button>
+            <button type="button" id="navBtnTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none" class="items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Trocar código do embarque">
+                <i data-lucide="replace" class="w-3.5 h-3.5"></i>
+                <span>Trocar Embarque</span>
             </button>
             <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-bold shadow shadow-black/30 transition-all active:scale-95" title="Salvar na nuvem">
                 <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
@@ -454,7 +461,7 @@
                 </div>
 
                 <!-- PALLETS -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-pallets" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
@@ -469,7 +476,7 @@
                 </div>
 
                 <!-- TEMPERATURAS -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                <div id="section-temperaturas" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
@@ -1080,6 +1087,11 @@
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Carregar</span>
             </button>
 
+            <button type="button" id="mobileNavTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="replace" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Trocar</span>
+            </button>
+
             <button id="mobileNavLimpar" type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="trash-2" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#fca5a5;">Limpar</span>
@@ -1349,6 +1361,13 @@
 
         async function _confirmAndSave() {
             document.getElementById('saveConfirmModal').classList.add('hidden');
+
+            // Perfis de seção (parceiros, descartes, nf) têm fluxo de save próprio
+            if (currentUser && (currentUser.perfil === 'parceiros' || currentUser.perfil === 'descartes' || currentUser.perfil === 'nf')) {
+                _setSavingState(true);
+                try { await _doSaveSectionToCloud(); } finally { _setSavingState(false); }
+                return;
+            }
 
             // Modo edição (master editando ou embarque atualizando pendente): salva como update
             if (editModeTimestamp) {
@@ -1834,6 +1853,57 @@
                 .reduce((s, v) => s + (v.size || Math.round((v.dataUrl || '').length * 0.73)), 0);
         }
 
+        // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
+        async function _doSaveSectionToCloud() {
+            if (!APPS_SCRIPT_URL || !currentUser) return;
+            const perfil  = currentUser.perfil;
+            const codigo  = (document.getElementById('embarqueCodigo')?.value || '').trim();
+            if (!codigo) {
+                showMessageModal('Código ausente', 'Informe o código do embarque antes de salvar.', 'error');
+                return;
+            }
+
+            const sectionTypeMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
+            const sectionType = sectionTypeMap[perfil];
+            if (!sectionType) return;
+
+            showSaveLoadingModal();
+            setSaveProgress(10, 'Salvando seção', 'Enviando dados...');
+
+            let payload = { action: 'saveSection', sectionType, codigo };
+
+            if (sectionType === 'nf') {
+                payload.nfeList      = nfeList.filter(n => n.trim());
+                payload.driverName   = document.getElementById('driverName')?.value   || '';
+                payload.vehiclePlate = document.getElementById('vehiclePlate')?.value || '';
+            } else if (sectionType === 'parceiros') {
+                payload.palletsData = palletsData;
+            } else if (sectionType === 'descartes') {
+                payload.discardsData = discardsData;
+                payload.reportDate   = document.getElementById('reportDate')?.value || '';
+            }
+
+            try {
+                setSaveProgress(50, 'Salvando seção', 'Aguardando servidor...');
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+                setSaveProgress(100, 'Concluído', '');
+
+                if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+
+                setTimeout(() => {
+                    hideSaveLoadingModal();
+                    showMessageModal('Dados salvos!', `Os dados de <strong>${_perfilLabel(perfil)}</strong> do embarque Nº ${codigo} foram salvos com sucesso.`, 'success');
+                }, 400);
+            } catch (err) {
+                hideSaveLoadingModal();
+                showMessageModal('Erro ao salvar', err.message, 'error');
+            }
+        }
+
         async function _doSaveToCloud() {
             if (!APPS_SCRIPT_URL) {
                 showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
@@ -2304,6 +2374,18 @@
                         : `<button onclick="markPending('${ts}')" class="px-3 py-1.5 bg-slate-400 hover:bg-slate-500 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Pendente</button>`
                     : '';
                 const cardBorder = isPending ? 'border-orange-300 bg-orange-50' : isReviewed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200';
+                // Indicadores de preenchimento das abas de seção (visível apenas para o master)
+                const sectionIndicators = isMaster ? (() => {
+                    const checks = [
+                        { key: '_nf',        label: 'NF',         color: 'violet', filled: !!(row._nf) },
+                        { key: '_parceiros', label: 'Parceiros',  color: 'amber',  filled: !!(row._parceiros) },
+                        { key: '_descartes', label: 'Descartes',  color: 'rose',   filled: !!(row._descartes) },
+                        { key: '_midias',    label: 'Mídias',     color: 'teal',   filled: !!(row._midias) }
+                    ];
+                    return '<div class="flex flex-wrap gap-1 mt-1.5">' + checks.map(c =>
+                        `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${c.filled ? `bg-${c.color}-100 text-${c.color}-700` : 'bg-slate-100 text-slate-400'}">${c.filled ? '✓' : '·'} ${c.label}</span>`
+                    ).join('') + '</div>';
+                })() : '';
                 return `
                 <div class="border ${cardBorder} rounded-xl p-3.5 hover:border-sky-300 hover:bg-sky-50 transition-all">
                     <div class="flex items-start justify-between gap-3">
@@ -2315,6 +2397,7 @@
                             </div>
                             <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
                             <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
+                            ${sectionIndicators}
                         </div>
                         <div class="flex flex-col gap-1.5 shrink-0">
                             ${_embarqueHistoryMode ? `
@@ -2639,7 +2722,10 @@
 
         function showWelcomeModal() {
             if (!currentUser) return;
-            const isMaster = currentUser.perfil === 'master';
+            const perfil = currentUser.perfil;
+            const isMaster   = perfil === 'master';
+            const isEmbarque = perfil === 'embarque';
+            const isSection  = perfil === 'parceiros' || perfil === 'descartes' || perfil === 'nf';
             const nome = currentUser.nome ? currentUser.nome.split(' ')[0] : 'Usuário';
             const content = document.getElementById('welcomeContent');
             if (!content) return;
@@ -2659,7 +2745,7 @@
                             <i data-lucide="folder-open" class="w-4 h-4"></i> Editar / Carregar Relatório
                         </button>
                     </div>`;
-            } else {
+            } else if (isEmbarque) {
                 content.innerHTML = `
                     <div class="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <i data-lucide="clipboard-list" class="w-7 h-7 text-amber-600"></i>
@@ -2670,11 +2756,185 @@
                     <button onclick="welcomeLoadPendente()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
                         <i data-lucide="folder-open" class="w-4 h-4"></i> Carregar Embarque Pendente
                     </button>`;
+            } else if (isSection) {
+                const sectionInfo = {
+                    parceiros: { icon: 'layers',    color: 'amber',  title: 'Parceiros e Quantidades', desc: 'Informe o número do embarque para preencher os parceiros e quantidades.' },
+                    descartes: { icon: 'trash-2',   color: 'rose',   title: 'Descartes',               desc: 'Informe o número do embarque para registrar os descartes.' },
+                    nf:        { icon: 'file-text', color: 'violet', title: 'NF / Motorista',          desc: 'Informe o número do embarque para lançar as NF-es e dados do motorista.' }
+                };
+                const si = sectionInfo[perfil];
+                content.innerHTML = `
+                    <div class="w-14 h-14 bg-${si.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="${si.icon}" class="w-7 h-7 text-${si.color}-600"></i>
+                    </div>
+                    <h2 class="text-xl font-black text-slate-800 mb-1">Olá, ${nome}!</h2>
+                    <p class="text-sm text-slate-500 mb-4">${si.desc}</p>
+                    <button onclick="welcomeSectionLoad()" class="w-full py-3.5 bg-gradient-to-r from-${si.color}-500 to-${si.color}-700 hover:opacity-90 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <i data-lucide="hash" class="w-4 h-4"></i> Informar Código do Embarque
+                    </button>`;
             }
 
             document.getElementById('welcomeModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             lucide.createIcons();
+        }
+
+        // Fluxo para perfis de seção: pede código e valida no servidor
+        async function welcomeSectionLoad() {
+            const content = document.getElementById('welcomeContent');
+            const perfil  = currentUser && currentUser.perfil;
+            if (!content || !perfil) return;
+
+            // Garante que o modal esteja aberto (pode ser chamado após o modal ter sido fechado)
+            const welcomeModal = document.getElementById('welcomeModal');
+            if (welcomeModal) welcomeModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+
+            const sectionInfo = {
+                parceiros: { icon: 'layers',    color: 'amber',  title: 'Parceiros e Quantidades' },
+                descartes: { icon: 'trash-2',   color: 'rose',   title: 'Descartes' },
+                nf:        { icon: 'file-text', color: 'violet', title: 'NF / Motorista' }
+            };
+            const si = sectionInfo[perfil] || { icon: 'hash', color: 'slate', title: 'Seção' };
+
+            content.innerHTML = `
+                <button onclick="showWelcomeModal()" class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-4 transition-colors">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar
+                </button>
+                <div class="w-14 h-14 bg-${si.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="${si.icon}" class="w-7 h-7 text-${si.color}-600"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-1">Código do Embarque</h2>
+                <p class="text-sm text-slate-500 mb-4">Informe o número do embarque para carregar sua seção.</p>
+                <input id="welcomeSectionCodigoInput" type="text" inputmode="numeric" placeholder="Ex: 910"
+                    class="w-full border-2 border-slate-200 focus:border-${si.color}-400 rounded-xl px-4 py-3 text-lg font-bold text-center text-slate-800 outline-none mb-2 transition-colors"
+                    onkeydown="if(event.key==='Enter') confirmSectionCodigo()" />
+                <p id="welcomeSectionError" class="hidden text-red-600 text-xs font-semibold mb-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></p>
+                <button id="welcomeSectionConfirmBtn" onclick="confirmSectionCodigo()"
+                    class="w-full py-3.5 bg-gradient-to-r from-${si.color}-500 to-${si.color}-700 hover:opacity-90 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95 mt-1">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário
+                </button>`;
+            lucide.createIcons();
+            setTimeout(() => document.getElementById('welcomeSectionCodigoInput')?.focus(), 100);
+        }
+
+        async function confirmSectionCodigo() {
+            if (!APPS_SCRIPT_URL) return;
+            const input = document.getElementById('welcomeSectionCodigoInput');
+            const errEl = document.getElementById('welcomeSectionError');
+            const btn   = document.getElementById('welcomeSectionConfirmBtn');
+            if (!input) return;
+
+            const codigo = input.value.trim();
+            errEl.classList.add('hidden');
+
+            if (!codigo) {
+                errEl.textContent = 'Informe o número do embarque para continuar.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Verificando...';
+
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'checkCodigo', codigo })
+                });
+                const result = await resp.json();
+
+                if (!result.success) throw new Error(result.error || 'Erro desconhecido.');
+
+                if (!result.exists) {
+                    errEl.textContent = `Embarque Nº ${codigo} não encontrado. Verifique o número com o master.`;
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
+                    lucide.createIcons();
+                    return;
+                }
+
+                // Embarque encontrado: preenche código/data no form e fecha modal
+                const emb = result.embarque;
+                const codigoEl = document.getElementById('embarqueCodigo');
+                const dateEl   = document.getElementById('reportDate');
+                if (codigoEl) codigoEl.value = emb.Codigo || codigo;
+                if (dateEl && emb.Data) dateEl.value = emb.Data;
+
+                // Carrega dados da seção já existentes (se houver)
+                await _loadSectionData(codigo);
+
+                _closeWelcomeModal();
+                updatePreview();
+            } catch (err) {
+                errEl.textContent = 'Erro ao verificar: ' + err.message;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
+                lucide.createIcons();
+            }
+        }
+
+        // Carrega dados já salvos da aba de seção para o perfil atual
+        async function _loadSectionData(codigo) {
+            if (!APPS_SCRIPT_URL || !currentUser) return;
+            const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
+            const sectionType = sectionMap[currentUser.perfil];
+            if (!sectionType) return;
+
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getSection', sectionType, codigo })
+                });
+                const result = await resp.json();
+                if (!result.success || !result.data) return;
+
+                const d = result.data;
+                if (sectionType === 'nf') {
+                    nfeList = d.NFes ? d.NFes.split(', ').filter(Boolean) : [''];
+                    if (!nfeList.length) nfeList = [''];
+                    const dn = document.getElementById('driverName');   if (dn) dn.value = d.Motorista || '';
+                    const vp = document.getElementById('vehiclePlate'); if (vp) vp.value = d.Placa     || '';
+                    renderNfeInputs();
+                } else if (sectionType === 'parceiros') {
+                    try { palletsData = JSON.parse(d.ParceirosData || '[]'); } catch (_) { palletsData = []; }
+                    renderPallets();
+                } else if (sectionType === 'descartes') {
+                    try { discardsData = JSON.parse(d.DiscartsData || '[]'); } catch (_) { discardsData = []; }
+                    renderDiscards();
+                }
+            } catch (_) {}
+        }
+
+        // Permite que perfis de seção troquem o código do embarque informado.
+        function trocarEmbarqueSection() {
+            const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            const text = codigoAtual
+                ? `Você está no embarque Nº ${codigoAtual}. Ao trocar, os dados não salvos desta seção serão perdidos. Deseja continuar?`
+                : 'Trocar o código do embarque irá limpar os dados atuais desta seção. Deseja continuar?';
+
+            showConfirmModal({
+                title: 'Trocar Embarque',
+                text,
+                confirmLabel: 'Sim, trocar',
+                type: 'warning',
+                onConfirm: () => {
+                    // Limpa campos da seção antes de reabrir o modal
+                    nfeList = [''];
+                    palletsData = [];
+                    discardsData = [];
+                    const codigoEl = document.getElementById('embarqueCodigo');
+                    const dateEl   = document.getElementById('reportDate');
+                    if (codigoEl) codigoEl.value = '';
+                    if (dateEl)   dateEl.value   = '';
+                    if (typeof renderNfeInputs === 'function') renderNfeInputs();
+                    if (typeof renderPallets   === 'function') renderPallets();
+                    if (typeof renderDiscards  === 'function') renderDiscards();
+                    welcomeSectionLoad();
+                }
+            });
         }
 
         function _closeWelcomeModal() {
@@ -3600,47 +3860,159 @@
             lucide.createIcons();
         }
 
+        // ===== HELPERS DE PERFIL =====
+        function _perfilLabel(perfil) {
+            const labels = {
+                master: 'Master', embarque: 'Embarque',
+                parceiros: 'Parceiros', descartes: 'Descartes', nf: 'NF / Motorista'
+            };
+            return labels[perfil] || perfil;
+        }
+        function _perfilBadgeClass(perfil) {
+            const classes = {
+                master:    'bg-emerald-100 text-emerald-700',
+                embarque:  'bg-sky-100 text-sky-700',
+                parceiros: 'bg-amber-100 text-amber-700',
+                descartes: 'bg-rose-100 text-rose-700',
+                nf:        'bg-violet-100 text-violet-700'
+            };
+            return classes[perfil] || 'bg-slate-100 text-slate-700';
+        }
+        function _perfilBadgeColor(perfil) {
+            const colors = {
+                master: '#10b981', embarque: '#0ea5e9',
+                parceiros: '#f59e0b', descartes: '#f43f5e', nf: '#8b5cf6'
+            };
+            return colors[perfil] || '#64748b';
+        }
+
         // ===== PERFIL / RESTRIÇÕES =====
         function applyProfileRestrictions() {
             if (!currentUser) return;
-            const isEmbarque = currentUser.perfil === 'embarque';
-            const masterOnly = [
+            const perfil = currentUser.perfil;
+            const isMaster    = perfil === 'master';
+            const isEmbarque  = perfil === 'embarque';
+            const isParceiros = perfil === 'parceiros';
+            const isDescartes = perfil === 'descartes';
+            const isNF        = perfil === 'nf';
+            const isSection   = isParceiros || isDescartes || isNF; // perfis de seção (sem form completo)
+
+            // Seções do formulário visíveis por perfil
+            const allFormSections = [
                 'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
-                'section-descartes',
-                'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar', 'navBtnPdfInterno', 'navBtnPdfEmail',
-                'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
-                'tab-preview-btn'
+                'section-resp-embarque', 'section-veiculo', 'section-pallets',
+                'section-temperaturas', 'section-descartes', 'section-adicional', 'section-fotos'
             ];
-            masterOnly.forEach(id => {
+
+            if (isMaster) {
+                // Master vê tudo — restaura seções de form e todos os botões de nav
+                allFormSections.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+                ['field-driverName', 'field-vehiclePlate', 'field-sensorLacre'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = '';
+                });
+                const veiculoTitle = document.getElementById('section-veiculo-title');
+                if (veiculoTitle) veiculoTitle.textContent = 'Veículo / Logística';
+
+                // Restaura botões de nav e preview exclusivos do master
+                [
+                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'tab-preview-btn',
+                    'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup'
+                ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+                const previewCol = document.getElementById('preview-column');
+                if (previewCol) previewCol.style.removeProperty('display');
+
+            } else if (isEmbarque) {
+                // Embarque: fotos/vídeos + horário de saída + pallets
+                const hideForEmbarque = [
+                    'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
+                    'section-descartes',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'mobileNavAnalisar',
+                    'mobileNavPdfGroup', 'mobileNavMenuGroup', 'tab-preview-btn',
+                    'preview-column'
+                ];
+                hideForEmbarque.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (id === 'preview-column') el.style.setProperty('display', 'none', 'important');
+                    else el.style.display = 'none';
+                });
+                ['field-driverName', 'field-vehiclePlate', 'field-sensorLacre'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = 'none';
+                });
+                const veiculoTitle = document.getElementById('section-veiculo-title');
+                if (veiculoTitle) veiculoTitle.textContent = 'Horário da Saída';
+
+            } else if (isParceiros) {
+                // Parceiros: só seção de pallets (contém parceiros e quantidades)
+                const hideForParceiros = [
+                    'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
+                    'section-resp-embarque', 'section-veiculo', 'section-temperaturas',
+                    'section-descartes', 'section-adicional', 'section-fotos',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
+                    'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
+                    'mobileNavCarregar', 'tab-preview-btn'
+                ];
+                hideForParceiros.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                const pSection = document.getElementById('section-pallets');
+                if (pSection) pSection.style.display = '';
+
+            } else if (isDescartes) {
+                // Descartes: só seção de descartes
+                const hideForDescartes = [
+                    'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
+                    'section-resp-embarque', 'section-veiculo', 'section-pallets',
+                    'section-temperaturas', 'section-adicional', 'section-fotos',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
+                    'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
+                    'mobileNavCarregar', 'tab-preview-btn'
+                ];
+                hideForDescartes.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                const dSection = document.getElementById('section-descartes');
+                if (dSection) dSection.style.display = '';
+
+            } else if (isNF) {
+                // NF: NFe + veículo/logística (motorista, placa)
+                const hideForNF = [
+                    'section-produto-cliente', 'section-resp-cruzamento',
+                    'section-resp-embarque', 'section-pallets',
+                    'section-temperaturas', 'section-descartes', 'section-adicional', 'section-fotos',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
+                    'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
+                    'mobileNavCarregar', 'tab-preview-btn'
+                ];
+                hideForNF.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                ['section-nfe', 'section-veiculo'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = '';
+                });
+                // NF: mostra só motorista, placa e sensor — HorarioSaida não é responsabilidade deste perfil
+                ['field-driverName', 'field-vehiclePlate', 'field-sensorLacre'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.style.display = '';
+                });
+                const veiculoTitle = document.getElementById('section-veiculo-title');
+                if (veiculoTitle) veiculoTitle.textContent = 'NF / Motorista';
+            }
+
+            // Botão "Trocar Embarque": visível apenas para perfis de seção
+            [['navBtnTrocarEmbarque', 'flex'], ['mobileNavTrocarEmbarque', 'flex']].forEach(([id, showVal]) => {
                 const el = document.getElementById(id);
-                if (el) el.style.display = isEmbarque ? 'none' : '';
+                if (el) el.style.display = isSection ? showVal : 'none';
             });
 
-            // Seção Veículo/Logística: o embarque informa apenas o Horário da Saída
-            // (é quem acompanha o caminhão deixando a empresa). Os demais campos
-            // do veículo continuam exclusivos do master.
-            ['field-driverName', 'field-vehiclePlate', 'field-sensorLacre'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.display = isEmbarque ? 'none' : '';
-            });
-            const veiculoTitle = document.getElementById('section-veiculo-title');
-            if (veiculoTitle) veiculoTitle.textContent = isEmbarque ? 'Horário da Saída' : 'Veículo / Logística';
+            // "Novo Embarque" só faz sentido para master — seções não criam embarque
+            const btnNovo = document.getElementById('navBtnNovoEmbarque');
+            if (btnNovo) btnNovo.style.display = isSection ? 'none' : '';
 
-            // Botões exclusivos do embarque
-            [['mobileNavCarregar','flex'],['navBtnCarregar','flex']].forEach(([id, displayVal]) => {
-                const el = document.getElementById(id);
-                if (el) el.style.display = isEmbarque ? displayVal : 'none';
-            });
-
-            // Embarque: Salvar | Carregar | Limpar (3 colunas)
-            const row1 = document.getElementById('mobileNavRow1');
-            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(3,1fr)' : 'repeat(5,1fr)';
-
-            // Data e código do embarque: somente leitura para embarque
+            // Perfis de seção: campos de data/código são somente leitura
+            const dateReadOnly = isEmbarque || isSection;
             ['reportDate', 'embarqueCodigo'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                if (isEmbarque) {
+                if (dateReadOnly) {
                     el.setAttribute('disabled', 'disabled');
                     el.style.opacity = '0.6';
                     el.style.cursor = 'not-allowed';
@@ -3651,20 +4023,58 @@
                 }
             });
 
-            // badge usuário desktop
+            // Botão Carregar: embarque sim, todos os outros não (exceto os que já foram escondidos)
+            [['mobileNavCarregar','flex'],['navBtnCarregar','flex']].forEach(([id, displayVal]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.style.display = isEmbarque ? displayVal : 'none';
+            });
+
+            // Grade mobile: embarque tem 3 colunas, master 5
+            const row1 = document.getElementById('mobileNavRow1');
+            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(3,1fr)' : 'repeat(5,1fr)';
+
+            // Badge de perfil
+            const nome = currentUser.nome.split(' ')[0];
+            const cor  = _perfilBadgeColor(perfil);
+            const label = _perfilLabel(perfil);
+
             const badge = document.getElementById('userBadge');
             if (badge) {
                 badge.style.display = 'flex';
                 badge.innerHTML = `
-                    <span style="font-size:11px;font-weight:700;color:#e2e8f0;">${currentUser.nome.split(' ')[0]}</span>
-                    <span style="font-size:9px;padding:2px 7px;border-radius:999px;font-weight:800;background:${isEmbarque ? '#0ea5e9' : '#10b981'};color:#fff;text-transform:uppercase;letter-spacing:0.05em;">${isEmbarque ? 'Embarque' : 'Master'}</span>
+                    <span style="font-size:11px;font-weight:700;color:#e2e8f0;">${nome}</span>
+                    <span style="font-size:9px;padding:2px 7px;border-radius:999px;font-weight:800;background:${cor};color:#fff;text-transform:uppercase;letter-spacing:0.05em;">${label}</span>
                 `;
             }
-            // badge mobile
             const mobileLabel = document.getElementById('mobileUserLabel');
-            if (mobileLabel) {
-                mobileLabel.textContent = `${currentUser.nome.split(' ')[0]} · ${isEmbarque ? 'Embarque' : 'Master'}`;
-            }
+            if (mobileLabel) mobileLabel.textContent = `${nome} · ${label}`;
+
+            // Banners informativos para perfis de seção
+            _showSectionBanner(perfil);
+        }
+
+        function _showSectionBanner(perfil) {
+            const existing = document.getElementById('sectionProfileBanner');
+            if (existing) existing.remove();
+            if (perfil !== 'parceiros' && perfil !== 'descartes' && perfil !== 'nf') return;
+
+            const msgs = {
+                parceiros: { icon: 'layers',    color: 'amber',  text: 'Você está no modo <strong>Parceiros e Quantidades</strong>. Informe o código do embarque e preencha os pallets.' },
+                descartes: { icon: 'trash-2',   color: 'rose',   text: 'Você está no modo <strong>Descartes</strong>. Informe o código do embarque e registre os descartes.' },
+                nf:        { icon: 'file-text', color: 'violet', text: 'Você está no modo <strong>NF / Motorista</strong>. Informe o código do embarque, as NF-es e os dados do motorista.' }
+            };
+            const m = msgs[perfil];
+            if (!m) return;
+
+            const banner = document.createElement('div');
+            banner.id = 'sectionProfileBanner';
+            banner.className = `mx-4 mt-2 mb-1 p-3 rounded-xl border bg-${m.color}-50 border-${m.color}-200 text-${m.color}-800 text-xs flex items-start gap-2`;
+            banner.innerHTML = `<i data-lucide="${m.icon}" class="w-4 h-4 shrink-0 mt-0.5 text-${m.color}-600"></i><span>${m.text}</span>`;
+
+            const formCol = document.getElementById('form-column');
+            if (formCol) formCol.prepend(banner);
+            lucide.createIcons();
         }
 
         // ===== GERENCIAR USUÁRIOS =====
@@ -3696,7 +4106,7 @@
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-slate-800 truncate">${u.nome}</p>
                             <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${u.perfil === 'master' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}">${u.perfil === 'master' ? 'Master' : 'Embarque'}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${_perfilBadgeClass(u.perfil)}">${_perfilLabel(u.perfil)}</span>
                                 <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${u.status === 'ativado' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}">${u.status === 'ativado' ? 'Ativado' : 'Desativado'}</span>
                             </div>
                         </div>
