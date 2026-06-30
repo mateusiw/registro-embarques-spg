@@ -2020,6 +2020,32 @@
                         if (d.palletsData)     palletsData = d.palletsData;
                     }
                     saveToLocalStorage();
+                    // Fire-and-forget: envia apenas os campos de NF para a aba notafiscal
+                    (function() {
+                        try {
+                            const fd = collectFormData();
+                            const nfPayload = {
+                                action: 'saveSection',
+                                sectionType: 'nf',
+                                codigo: fd.embarqueCodigo || document.getElementById('embarqueCodigo')?.value || '',
+                                reportDate: fd.reportDate || document.getElementById('reportDate')?.value || '',
+                                nfeList: fd.nfeList,
+                                productSelect: fd.productSelect,
+                                customProductName: fd.customProductName,
+                                varietyInput: fd.varietyInput,
+                                inspectorSelect: fd.inspectorSelect,
+                                customInspectorName: fd.customInspectorName,
+                                shipResponsible: fd.shipResponsible,
+                                customShipResponsible: fd.customShipResponsible,
+                                driverName: fd.driverName,
+                                vehiclePlate: fd.vehiclePlate,
+                                departureTime: fd.departureTime || document.getElementById('departureTime')?.value || '',
+                                sensorNumber: fd.sensorNumber,
+                                lacreNumber: fd.lacreNumber,
+                            };
+                            fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(nfPayload) }).catch(function(){});
+                        } catch(_) {}
+                    })();
                     if (isEdit) {
                         clearEditMode();
                         // Limpa o formulário após o envio para evitar reenvio acidental do mesmo registro
@@ -5162,6 +5188,24 @@
             photosData.splice(idx, 1);
             renderPhotos();
             updatePreview();
+            // Fire-and-forget: remove a foto da planilha imediatamente
+            if (APPS_SCRIPT_URL) {
+                const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
+                if (codigo) {
+                    const payload = {
+                        action: 'saveSection',
+                        sectionType: 'midias',
+                        codigo,
+                        photosData,
+                        videosData,
+                        reportDate: document.getElementById('reportDate')?.value || '',
+                        departureTime: document.getElementById('departureTime')?.value || '',
+                        customTempsData,
+                        palletsData,
+                    };
+                    fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(){});
+                }
+            }
         }
         function updatePhotoCaption(idx, value) {
             photosData[idx].caption = value;
