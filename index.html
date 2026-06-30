@@ -4846,7 +4846,29 @@
                 updatePreview();
             });
         }
-        function removePalletPhoto(idx, pidx) { palletsData[idx].photos.splice(pidx, 1); renderPallets(); updatePreview(); }
+        function removePalletPhoto(idx, pidx) {
+            palletsData[idx].photos.splice(pidx, 1);
+            renderPallets();
+            updatePreview();
+            if (APPS_SCRIPT_URL && currentUser) {
+                const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
+                if (codigo) {
+                    const _stMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
+                    const sectionType = _stMap[currentUser.perfil];
+                    if (sectionType) {
+                        const payload = { action: 'saveSection', sectionType, codigo, palletsData };
+                        if (sectionType === 'midias') {
+                            payload.photosData      = photosData;
+                            payload.videosData      = videosData;
+                            payload.reportDate      = document.getElementById('reportDate')?.value || '';
+                            payload.departureTime   = document.getElementById('departureTime')?.value || '';
+                            payload.customTempsData = customTempsData;
+                        }
+                        fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(){});
+                    }
+                }
+            }
+        }
 
         function renderPallets() {
             const container = document.getElementById('palletsContainer');
@@ -5292,7 +5314,7 @@
                 <div class="flex gap-2 items-start bg-teal-50 rounded-xl p-2 border border-teal-100">
                     <img src="${p.dataUrl}" alt="Foto ${idx+1}" onclick="openPhotoViewer(photosData.map(p=>p.dataUrl), ${idx})" class="w-16 h-16 object-cover rounded-lg border border-teal-200 shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
                     <div class="flex-1 min-w-0">
-                        <input type="text" value="${p.caption.replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updatePhotoCaption(${idx}, this.value)" class="w-full p-2 rounded-lg border border-teal-200 text-sm bg-white focus:ring-2 focus:ring-teal-400 outline-none">
+                        <input type="text" value="${(p.caption || '').replace(/"/g,'&quot;')}" placeholder="Legenda (opcional)..." oninput="updatePhotoCaption(${idx}, this.value)" class="w-full p-2 rounded-lg border border-teal-200 text-sm bg-white focus:ring-2 focus:ring-teal-400 outline-none">
                         <span class="text-[10px] text-slate-400 ml-1">Foto ${idx+1}</span>
                     </div>
                     <button type="button" onclick="removePhoto(${idx})" class="px-1 text-rose-500 hover:text-rose-700 shrink-0 mt-1"><i data-lucide="x" class="w-4 h-4"></i></button>
