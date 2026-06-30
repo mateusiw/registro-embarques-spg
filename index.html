@@ -217,95 +217,119 @@
     </div>
 
     <!-- Navbar -->
-    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-3 flex justify-between items-center shadow-lg sticky top-0 z-40">
-        <div class="flex items-center gap-3">
-            <div>
-                <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG SEDE</h1>
-                <p class="text-[10px] text-emerald-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
+    <div class="sticky top-0 z-40">
+        <!-- Barra superior escura: logo + usuário -->
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-2.5 flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-3">
+                <div>
+                    <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG SEDE</h1>
+                    <p class="text-[10px] text-emerald-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
+                </div>
+            </div>
+
+            <!-- Tabs mobile (formulário / prévia) -->
+            <div class="flex xl:hidden items-center gap-1 bg-white/10 rounded-xl p-1">
+                <button type="button" id="tab-form-btn" onclick="switchMobileTab('form')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-white/20 transition-all">Formulário</button>
+                <button type="button" id="tab-preview-btn" onclick="switchMobileTab('preview')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white/60 transition-all">Prévia</button>
+            </div>
+
+            <!-- Desktop: badge do usuário + logout -->
+            <div class="hidden xl:flex items-center gap-2">
+                <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/15 text-sm"></div>
+                <button type="button" onclick="doLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Tabs mobile (formulário / prévia) -->
-        <div class="flex xl:hidden items-center gap-1 bg-white/10 rounded-xl p-1">
-            <button type="button" id="tab-form-btn" onclick="switchMobileTab('form')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-white/20 transition-all">Formulário</button>
-            <button type="button" id="tab-preview-btn" onclick="switchMobileTab('preview')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white/60 transition-all">Prévia</button>
-        </div>
+        <!-- Sub-barra branca com grupos de ação (somente desktop) -->
+        <div id="desktop-nav-buttons" class="hidden xl:flex items-center bg-white border-b border-slate-200 px-5 py-2 overflow-x-auto gap-0 shadow-sm">
 
-        <!-- Botões desktop -->
-        <div id="desktop-nav-buttons" class="hidden xl:flex items-center gap-1.5">
+            <!-- EMBARQUE -->
+            <div class="flex flex-col items-start pr-5 mr-1">
+                <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Embarque</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="navBtnNovoEmbarque" onclick="novoEmbarque()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 hover:border-emerald-300 transition-all active:scale-95" title="Novo Embarque">
+                        <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
+                        <span>Novo Embarque</span>
+                    </button>
+                    <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Carregar embarque">
+                        <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+                        <span>Carregar</span>
+                    </button>
+                    <button type="button" id="navBtnTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none" class="items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Trocar código do embarque">
+                        <i data-lucide="replace" class="w-3.5 h-3.5"></i>
+                        <span>Trocar Embarque</span>
+                    </button>
+                </div>
+            </div>
 
-            <!-- Usuário -->
-            <div id="userBadge" class="hidden items-center gap-2 px-3 py-2 bg-white/10 rounded-lg border border-white/15 text-sm"></div>
+            <div class="w-px h-10 bg-slate-200 self-center mx-4"></div>
 
-            <div class="w-px h-6 bg-white/15 mx-1"></div>
+            <!-- DADOS -->
+            <div class="flex flex-col items-start pr-5 mr-1">
+                <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Dados</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg border border-emerald-500 transition-all active:scale-95" title="Salvar na nuvem">
+                        <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+                        <span>Salvar</span>
+                    </button>
+                    <button type="button" id="navBtnSincronizar" onclick="sincronizarDados()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Sincronizar dados da planilha">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Atualizar</span>
+                    </button>
+                    <button type="button" id="navBtnHistorico" onclick="openHistory()" class="relative inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Histórico">
+                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                        <span>Histórico</span>
+                        <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-orange-400 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
+                    </button>
+                </div>
+            </div>
 
-            <!-- Ferramentas -->
-            <button type="button" id="navBtnSettings" onclick="openSettings()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Configurações">
-                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
-            </button>
-            <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Gerenciar usuários">
-                <i data-lucide="users" class="w-3.5 h-3.5"></i>
-            </button>
+            <div class="w-px h-10 bg-slate-200 self-center mx-4"></div>
 
-            <div class="w-px h-6 bg-white/15 mx-1"></div>
+            <!-- RELATÓRIOS -->
+            <div id="navGroupRelatorios" class="flex flex-col items-start pr-5 mr-1">
+                <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Relatórios</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="navBtnAnalisar" onclick="runAIAnalysis()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 hover:border-violet-300 transition-all active:scale-95">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                        <span>Analisar</span>
+                    </button>
+                    <button type="button" id="navBtnPdfInterno" onclick="confirmBeforeSend('interno')" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="PDF Interno">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>PDF Interno</span>
+                    </button>
+                    <button type="button" id="navBtnPdfParceiros" onclick="confirmBeforeSend('parceiros')" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="PDF Parceiros">
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                        <span>Parceiros</span>
+                    </button>
+                    <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="PDF Email">
+                        <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+                        <span>PDF Email</span>
+                    </button>
+                </div>
+            </div>
 
-            <!-- Ações principais -->
-            <button type="button" id="navBtnNovoEmbarque" onclick="novoEmbarque()" class="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/80 hover:bg-emerald-400 text-white rounded-lg text-xs font-bold border border-emerald-400/40 shadow shadow-black/20 transition-all active:scale-95" title="Novo Embarque">
-                <i data-lucide="file-plus" class="w-3.5 h-3.5"></i>
-                <span>Novo Embarque</span>
-            </button>
-            <button type="button" id="navBtnLimpar" onclick="clearForm()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Limpar formulário">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                <span>Limpar</span>
-            </button>
-            <button type="button" id="navBtnCarregar" onclick="openEmbarqueCarregar()" class="hidden items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Carregar embarque">
-                <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
-                <span>Carregar</span>
-            </button>
-            <button type="button" id="navBtnTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none" class="items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Trocar código do embarque">
-                <i data-lucide="replace" class="w-3.5 h-3.5"></i>
-                <span>Trocar Embarque</span>
-            </button>
-            <button type="button" id="saveCloudBtn" onclick="saveToCloud()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-xs font-bold shadow shadow-black/30 transition-all active:scale-95" title="Salvar na nuvem">
-                <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
-                <span>Salvar</span>
-            </button>
-            <button type="button" id="navBtnSincronizar" onclick="sincronizarDados()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Sincronizar dados da planilha">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Atualizar</span>
-            </button>
-            <button type="button" id="navBtnHistorico" onclick="openHistory()" class="relative flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="Histórico">
-                <i data-lucide="history" class="w-3.5 h-3.5"></i>
-                <span>Histórico</span>
-                <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-orange-400 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
-            </button>
+            <div class="w-px h-10 bg-slate-200 self-center mx-4"></div>
 
-            <div class="w-px h-6 bg-white/15 mx-1"></div>
+            <!-- CONFIGURAÇÃO -->
+            <div class="flex flex-col items-start">
+                <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">Configuração</span>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="navBtnSettings" onclick="openSettings()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Configurações">
+                        <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Gerenciar usuários">
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" id="navBtnLimpar" onclick="clearForm()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95" title="Limpar formulário">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span>Limpar</span>
+                    </button>
+                </div>
+            </div>
 
-            <!-- Saídas -->
-            <button type="button" id="navBtnAnalisar" onclick="runAIAnalysis()" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                <span>Analisar</span>
-            </button>
-            <button type="button" id="navBtnPdfInterno" onclick="confirmBeforeSend('interno')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Interno">
-                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-                <span>PDF Interno</span>
-            </button>
-            <button type="button" id="navBtnPdfParceiros" onclick="confirmBeforeSend('parceiros')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Parceiros e Quantidades">
-                <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                <span>Parceiros</span>
-            </button>
-            <button type="button" id="navBtnPdfEmail" onclick="confirmBeforeSend('email')" class="flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs font-semibold border border-white/15 transition-all active:scale-95" title="PDF Email">
-                <i data-lucide="mail" class="w-3.5 h-3.5"></i>
-                <span>PDF Email</span>
-            </button>
-
-            <div class="w-px h-6 bg-white/15 mx-1"></div>
-
-            <!-- Logout -->
-            <button type="button" onclick="doLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
-                <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-            </button>
         </div>
     </div>
 
@@ -1116,6 +1140,11 @@
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Carregar</span>
             </button>
 
+            <button type="button" id="mobileNavAtualizar" onclick="sincronizarDados()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="refresh-cw" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Atualizar</span>
+            </button>
+
             <button type="button" id="mobileNavTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="replace" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Trocar</span>
@@ -1850,7 +1879,7 @@
         // ===== UPLOAD DE VÍDEO EM PEDAÇOS (CHUNKS) =====
         // O Apps Script rejeita POSTs muito grandes (~50 MB). Um vídeo em base64
         // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
-        async function _doSaveSectionToCloud() {
+        async function _doSaveSectionToCloud(sectionTypeOverride = null) {
             if (!APPS_SCRIPT_URL || !currentUser) return;
             const perfil  = currentUser.perfil;
             const codigo  = (document.getElementById('embarqueCodigo')?.value || '').trim();
@@ -1860,8 +1889,9 @@
             }
 
             const sectionTypeMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
-            const sectionType = sectionTypeMap[perfil];
+            const sectionType = sectionTypeOverride || sectionTypeMap[perfil];
             if (!sectionType) return;
+            const sectionLabel = sectionType === 'nf' ? 'Nota Fiscal' : (sectionType === 'midias' ? 'Mídias' : _perfilLabel(perfil));
 
             showSaveLoadingModal();
             setSaveProgress(10, 'Salvando seção', 'Enviando dados...');
@@ -1869,9 +1899,20 @@
             let payload = { action: 'saveSection', sectionType, codigo };
 
             if (sectionType === 'nf') {
+                payload.reportDate   = document.getElementById('reportDate')?.value || '';
+                payload.productSelect = getProductName();
+                payload.customProductName = document.getElementById('customProductName')?.value || '';
+                payload.varietyInput = document.getElementById('varietyInput')?.value || '';
+                payload.inspectorSelect = document.getElementById('inspectorSelect')?.value || '';
+                payload.customInspectorName = document.getElementById('customInspectorName')?.value || '';
+                payload.shipResponsible = document.getElementById('shipResponsible')?.value || '';
+                payload.customShipResponsible = document.getElementById('customShipResponsible')?.value || '';
                 payload.nfeList      = nfeList.filter(n => n.trim());
                 payload.driverName   = document.getElementById('driverName')?.value   || '';
                 payload.vehiclePlate = document.getElementById('vehiclePlate')?.value || '';
+                payload.departureTime = document.getElementById('departureTime')?.value || '';
+                payload.sensorNumber  = document.getElementById('sensorNumber')?.value || '';
+                payload.lacreNumber   = document.getElementById('lacreNumber')?.value || '';
             } else if (sectionType === 'parceiros') {
                 payload.palletsData = palletsData;
             } else if (sectionType === 'descartes') {
@@ -1899,11 +1940,13 @@
 
                 setTimeout(() => {
                     hideSaveLoadingModal();
-                    showMessageModal('Dados salvos!', `Os dados de <strong>${_perfilLabel(perfil)}</strong> do embarque Nº ${codigo} foram salvos com sucesso.`, 'success');
+                    showMessageModal('Dados salvos!', `Os dados de <strong>${sectionLabel}</strong> do embarque Nº ${codigo} foram salvos com sucesso.`, 'success');
                 }, 400);
+                return true;
             } catch (err) {
                 hideSaveLoadingModal();
                 showMessageModal('Erro ao salvar', err.message, 'error');
+                return false;
             }
         }
 
@@ -1932,6 +1975,7 @@
 
                 // 2) Monta e envia o registro (vídeos já são URLs do Drive → payload pequeno).
                 const data = collectFormData();
+
                 if (isEdit) {
                     data.action = 'update';
                     data.originalTimestamp = editModeTimestamp;
@@ -2463,16 +2507,20 @@
                 document.getElementById('embarqueCodigo').value = row.Codigo || '';
 
                 const nfesRaw = String(row.NFes || '');
-                nfeList = nfesRaw.trim() ? nfesRaw.split(', ').filter(Boolean) : [''];
+                const nfRow = row._nf || null;
+                const nfesSource = nfRow && nfRow.NFes !== undefined && nfRow.NFes !== null && String(nfRow.NFes).trim()
+                    ? String(nfRow.NFes)
+                    : nfesRaw;
+                nfeList = nfesSource.trim() ? nfesSource.split(', ').filter(Boolean) : [''];
                 if (!nfeList.length) nfeList = [''];
 
                 _setProductFromString(String(row.Produto || ''));
 
-                document.getElementById('varietyInput').value = String(row.Cliente || '');
+                document.getElementById('varietyInput').value = String((nfRow && nfRow.Cliente) || row.Cliente || '');
 
                 const inspSel = document.getElementById('inspectorSelect');
                 const knownInsps = Array.from(inspSel.options).map(o => o.value);
-                const responsavel = String(row.Responsavel || '');
+                const responsavel = String((nfRow && nfRow.Responsavel) || row.Responsavel || '');
                 if (knownInsps.includes(responsavel)) {
                     inspSel.value = responsavel;
                     document.getElementById('customInspectorContainer').classList.add('hidden');
@@ -2486,12 +2534,22 @@
                 if (row.Termostato !== undefined && row.Termostato !== '') document.getElementById('thermostatValue').value = row.Termostato;
 
                 const fields = {
-                    Motorista: 'driverName', Placa: 'vehiclePlate',
-                    Sensor: 'sensorNumber', Lacre: 'lacreNumber',
+                    Data: 'reportDate',
+                    Produto: 'customProductName',
+                    RespEmbarque: 'shipResponsible',
+                    Motorista: 'driverName',
+                    Placa: 'vehiclePlate',
+                    HorarioSaida: 'departureTime',
+                    Sensor: 'sensorNumber',
+                    Lacre: 'lacreNumber',
                 };
                 Object.entries(fields).forEach(([col, id]) => {
                     const el = document.getElementById(id);
-                    if (el && row[col] !== undefined) el.value = row[col];
+                    if (!el) return;
+                    const nfValue = nfRow && nfRow[col] !== undefined && nfRow[col] !== null && String(nfRow[col]).trim()
+                        ? nfRow[col]
+                        : row[col];
+                    if (nfValue !== undefined) el.value = col === 'Data' ? String(nfValue).substring(0, 10) : nfValue;
                 });
 
                 // RespEmbarque com suporte a "Outro"
@@ -2911,10 +2969,18 @@
                 const d = result.data;
                 const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
                 if (sectionType === 'nf') {
-                    nfeList = d.NFes ? d.NFes.split(', ').filter(Boolean) : [''];
+                    const rd = document.getElementById('reportDate'); if (rd) rd.value = String(d.Data || '').substring(0, 10);
+                    const cp = document.getElementById('customProductName'); if (cp) cp.value = d.Produto || '';
+                    const vi = document.getElementById('varietyInput'); if (vi) vi.value = d.Cliente || '';
+                    const insp = document.getElementById('inspectorSelect'); if (insp) insp.value = d.Responsavel || '';
+                    const sh = document.getElementById('shipResponsible'); if (sh) sh.value = d.RespEmbarque || '';
+                    nfeList = d.NFes ? String(d.NFes).split(', ').filter(Boolean) : [''];
                     if (!nfeList.length) nfeList = [''];
                     const dn = document.getElementById('driverName');   if (dn) dn.value = d.Motorista || '';
                     const vp = document.getElementById('vehiclePlate'); if (vp) vp.value = d.Placa     || '';
+                    const dt = document.getElementById('departureTime'); if (dt) dt.value = d.HorarioSaida || '';
+                    const sn = document.getElementById('sensorNumber'); if (sn) sn.value = d.Sensor || '';
+                    const lc = document.getElementById('lacreNumber'); if (lc) lc.value = d.Lacre || '';
                     renderNfeInputs();
                 } else if (sectionType === 'parceiros') {
                     palletsData = tryParse(d.ParceirosData);
@@ -3996,8 +4062,8 @@
                     'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                     'section-descartes',
                     'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
-                    'navBtnPdfInterno', 'navBtnPdfEmail', 'mobileNavAnalisar',
-                    'mobileNavPdfGroup', 'mobileNavMenuGroup', 'tab-preview-btn',
+                    'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnPdfParceiros', 'navGroupRelatorios',
+                    'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup', 'tab-preview-btn',
                     'preview-column'
                 ];
                 hideForEmbarque.forEach(id => {
@@ -4065,15 +4131,15 @@
                 if (veiculoTitle) veiculoTitle.textContent = 'NF / Motorista';
             }
 
-            // Botão "Trocar Embarque": visível apenas para perfis de seção
+            // Botão "Trocar Embarque": visível para perfis de seção e embarque
             [['navBtnTrocarEmbarque', 'flex'], ['mobileNavTrocarEmbarque', 'flex']].forEach(([id, showVal]) => {
                 const el = document.getElementById(id);
-                if (el) el.style.display = isSection ? showVal : 'none';
+                if (el) el.style.display = (isSection || isEmbarque) ? showVal : 'none';
             });
 
-            // "Novo Embarque" só faz sentido para master — seções não criam embarque
+            // "Novo Embarque" só faz sentido para master — seções e embarque não criam embarque
             const btnNovo = document.getElementById('navBtnNovoEmbarque');
-            if (btnNovo) btnNovo.style.display = isSection ? 'none' : '';
+            if (btnNovo) btnNovo.style.display = (isSection || isEmbarque) ? 'none' : '';
 
             // Perfis de seção: campos de data/código são somente leitura
             const dateReadOnly = isEmbarque || isSection;
@@ -4098,9 +4164,13 @@
                 el.style.display = isEmbarque ? displayVal : 'none';
             });
 
-            // Grade mobile: embarque tem 3 colunas, master 5
+            // Botão Atualizar mobile: visível para embarque
+            const btnMobileAtualizar = document.getElementById('mobileNavAtualizar');
+            if (btnMobileAtualizar) btnMobileAtualizar.style.display = isEmbarque ? 'flex' : 'none';
+
+            // Grade mobile: embarque tem 4 colunas (Salvar, Carregar, Atualizar, Trocar), master 5
             const row1 = document.getElementById('mobileNavRow1');
-            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(3,1fr)' : 'repeat(5,1fr)';
+            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(4,1fr)' : 'repeat(5,1fr)';
 
             // Badge de perfil
             const nome = currentUser.nome.split(' ')[0];
@@ -6388,7 +6458,7 @@
             const titleEl = document.getElementById('msgTitle');
             const textEl = document.getElementById('msgText');
             titleEl.innerText = title;
-            textEl.innerText = message;
+            textEl.innerHTML = message;
             if (iconContainer) {
                 if (type === 'error') {
                     iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-xl bg-red-100 mb-4 border border-red-200";
