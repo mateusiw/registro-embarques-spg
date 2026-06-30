@@ -1899,7 +1899,21 @@
             let payload = { action: 'saveSection', sectionType, codigo };
 
             if (sectionType === 'nf') {
-                payload = Object.assign(payload, collectFormData());
+                const fd = collectFormData();
+                payload.reportDate          = fd.reportDate          || document.getElementById('reportDate')?.value || '';
+                payload.nfeList             = fd.nfeList;
+                payload.productSelect       = fd.productSelect;
+                payload.customProductName   = fd.customProductName;
+                payload.varietyInput        = fd.varietyInput;
+                payload.inspectorSelect     = fd.inspectorSelect;
+                payload.customInspectorName = fd.customInspectorName;
+                payload.shipResponsible     = fd.shipResponsible;
+                payload.customShipResponsible = fd.customShipResponsible;
+                payload.driverName          = fd.driverName;
+                payload.vehiclePlate        = fd.vehiclePlate;
+                payload.departureTime       = fd.departureTime        || document.getElementById('departureTime')?.value || '';
+                payload.sensorNumber        = fd.sensorNumber;
+                payload.lacreNumber         = fd.lacreNumber;
                 payload.sectionType = 'nf';
                 payload.codigo = codigo;
             } else if (sectionType === 'parceiros') {
