@@ -1899,20 +1899,9 @@
             let payload = { action: 'saveSection', sectionType, codigo };
 
             if (sectionType === 'nf') {
-                payload.reportDate   = document.getElementById('reportDate')?.value || '';
-                payload.productSelect = getProductName();
-                payload.customProductName = document.getElementById('customProductName')?.value || '';
-                payload.varietyInput = document.getElementById('varietyInput')?.value || '';
-                payload.inspectorSelect = document.getElementById('inspectorSelect')?.value || '';
-                payload.customInspectorName = document.getElementById('customInspectorName')?.value || '';
-                payload.shipResponsible = document.getElementById('shipResponsible')?.value || '';
-                payload.customShipResponsible = document.getElementById('customShipResponsible')?.value || '';
-                payload.nfeList      = nfeList.filter(n => n.trim());
-                payload.driverName   = document.getElementById('driverName')?.value   || '';
-                payload.vehiclePlate = document.getElementById('vehiclePlate')?.value || '';
-                payload.departureTime = document.getElementById('departureTime')?.value || '';
-                payload.sensorNumber  = document.getElementById('sensorNumber')?.value || '';
-                payload.lacreNumber   = document.getElementById('lacreNumber')?.value || '';
+                payload = Object.assign(payload, collectFormData());
+                payload.sectionType = 'nf';
+                payload.codigo = codigo;
             } else if (sectionType === 'parceiros') {
                 payload.palletsData = palletsData;
             } else if (sectionType === 'descartes') {
