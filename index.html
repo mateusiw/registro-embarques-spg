@@ -2722,6 +2722,12 @@
             const row = _findRowByTs(ts);
             if (!row) return;
 
+            // Zera o timestamp do auto-save do embarque que estava aberto antes.
+            // Sem isso, o auto-save usa _autoSaveTimestamp (embarque novo) como alvo e
+            // sobrescreve o registro novo com os dados do histórico carregado.
+            _autoSaveTimestamp = null;
+            try { localStorage.removeItem('spg_autosave_ts'); } catch(_) {}
+
             editModeTimestamp = String(row.Timestamp || '');
             _editPassword = password || null;
             _editOriginalRow = JSON.parse(JSON.stringify(row));
