@@ -3772,6 +3772,54 @@
                 return;
             }
 
+            // Perfis de seção (parceiros, descartes, nf): auto-save via saveSection apenas — nunca
+            // envia collectFormData() para a aba Embarques, pois campos ausentes no DOM desse perfil
+            // chegariam vazios e sobescreveriam dados inseridos pelo master (ex: hora de embarque).
+            const _secAutoMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
+            const _secAutoType = currentUser && _secAutoMap[currentUser.perfil];
+            if (_secAutoType) {
+                try {
+                    const codigo = codigoEl.value.trim();
+                    let payload = { action: 'saveSection', sectionType: _secAutoType, codigo };
+                    if (_secAutoType === 'parceiros') {
+                        payload.palletsData = palletsData;
+                    } else if (_secAutoType === 'descartes') {
+                        payload.discardsData = discardsData;
+                        payload.reportDate   = document.getElementById('reportDate')?.value || '';
+                    } else if (_secAutoType === 'nf') {
+                        const fd = collectFormData();
+                        payload.reportDate            = fd.reportDate            || document.getElementById('reportDate')?.value || '';
+                        payload.nfeList               = fd.nfeList;
+                        payload.productSelect         = fd.productSelect;
+                        payload.customProductName     = fd.customProductName;
+                        payload.varietyInput          = fd.varietyInput;
+                        payload.inspectorSelect       = fd.inspectorSelect;
+                        payload.customInspectorName   = fd.customInspectorName;
+                        payload.shipResponsible       = fd.shipResponsible;
+                        payload.customShipResponsible = fd.customShipResponsible;
+                        payload.driverName            = fd.driverName;
+                        payload.vehiclePlate          = fd.vehiclePlate;
+                        payload.departureTime         = fd.departureTime || document.getElementById('departureTime')?.value || '';
+                        payload.sensorNumber          = fd.sensorNumber;
+                        payload.lacreNumber           = fd.lacreNumber;
+                    }
+                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    const result = await resp.json();
+                    if (result.success) {
+                        _autoSaveDirty = false;
+                        _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
+                    } else {
+                        _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
+                    }
+                } catch(e) {
+                    _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
+                    saveToLocalStorage();
+                } finally {
+                    _isSaving = false;
+                }
+                return;
+            }
+
             try {
                 const data = collectFormData();
 
