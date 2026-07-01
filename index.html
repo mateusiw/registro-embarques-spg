@@ -4858,7 +4858,7 @@
             if (APPS_SCRIPT_URL && currentUser) {
                 const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
                 if (codigo) {
-                    const _stMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
+                    const _stMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias', master: 'midias' };
                     const sectionType = _stMap[currentUser.perfil];
                     if (sectionType) {
                         const payload = { action: 'saveSection', sectionType, codigo, palletsData };
