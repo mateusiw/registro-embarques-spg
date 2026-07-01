@@ -4197,9 +4197,14 @@
             const btnMobileAtualizar = document.getElementById('mobileNavAtualizar');
             if (btnMobileAtualizar) btnMobileAtualizar.style.display = isEmbarque ? 'flex' : 'none';
 
-            // Grade mobile: embarque tem 4 colunas (Salvar, Carregar, Atualizar, Trocar), master 5
+            // Grade mobile: conta os botões realmente visíveis em mobileNavRow1
+            // para nunca sobrar item quebrando linha (ex: embarque tem 5 visíveis:
+            // Salvar, Carregar, Atualizar, Trocar, Limpar — não 4 como antes).
             const row1 = document.getElementById('mobileNavRow1');
-            if (row1) row1.style.gridTemplateColumns = isEmbarque ? 'repeat(4,1fr)' : 'repeat(5,1fr)';
+            if (row1) {
+                const visibleCount = Array.from(row1.children).filter(el => el.style.display !== 'none').length;
+                row1.style.gridTemplateColumns = `repeat(${visibleCount || 1},1fr)`;
+            }
 
             // Badge de perfil
             const nome = currentUser.nome.split(' ')[0];
