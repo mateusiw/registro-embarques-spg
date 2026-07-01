@@ -2606,13 +2606,13 @@
                 palletsData     = parse(row.Pallets);
 
                 // Prefere dados da aba Midias (perfil embarque) sobre as colunas da aba Embarques.
-                // Fallback para colunas antigas (compatibilidade com registros anteriores).
+                // Fallback para colunas antigas só quando a seção Midias nunca foi criada
+                // para este código — uma vez que ela existe, é a fonte de verdade (mesmo
+                // vazia, ex: após apagar todas as fotos), senão a exclusão nunca "gruda".
                 const m = row._midias;
                 if (m) {
-                    const mPhotos = parse(m.Fotos);
-                    const mVideos = parse(m.Videos);
-                    photosData = mPhotos.length > 0 ? mPhotos : parse(row.Fotos);
-                    videosData = mVideos.length > 0 ? mVideos : parse(row.Videos);
+                    photosData = parse(m.Fotos);
+                    videosData = parse(m.Videos);
                     if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
                     const mTemps = parse(m.Temperaturas);
                     if (mTemps.length > 0) customTempsData = mTemps;
