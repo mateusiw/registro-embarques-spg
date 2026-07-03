@@ -697,7 +697,7 @@
                 <span class="text-slate-800 font-bold">O relatório será exportado e arquivado na planilha.</span>
             </p>
             <div class="grid grid-cols-2 gap-3 mt-6">
-                <button onclick="hideConfirmModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Revisar</button>
+                <button onclick="cancelConfirmModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Revisar</button>
                 <button onclick="executeSend()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Emitir Relatório</button>
             </div>
         </div>
@@ -1213,6 +1213,11 @@
         let currentPdfMode = 'interno';
         let currentPdfLayout = 'print';
         let editModeTimestamp = null;
+        // Guarda o UpdatedAt de cada aba de seção (Parceiros/Descartes/Midias) no momento em
+        // que o registro foi carregado. Usado para não sobrescrever a aba de seção no save do
+        // master com uma cópia desatualizada, caso outro perfil (ex: descartes) tenha salvo uma
+        // versão mais nova entre o carregamento e o save do master (ver _doSaveToCloud).
+        let _loadedSectionUpdatedAt = { parceiros: null, descartes: null, midias: null };
         let nfeList = [""];
         let partnersData = [];
         let discardsData = [];
@@ -2051,19 +2056,38 @@
                     // Sem isso, essas abas — que são a fonte de verdade ao recarregar — ficavam
                     // desatualizadas após uma edição do master, e o recarregar (loadHistoryReport)
                     // reexibia dados antigos (ex: foto de pallet já apagada "voltando").
-                    (function() {
+                    //
+                    // Guarda de conflito: antes de sobrescrever, confere se o UpdatedAt da aba no
+                    // servidor ainda é o mesmo de quando este registro foi carregado (_loadedSectionUpdatedAt).
+                    // Se outro perfil (ex: descartes) salvou uma versão mais nova enquanto o master
+                    // editava, o UpdatedAt mudou — nesse caso NÃO sobrescreve com a cópia do master,
+                    // que estaria desatualizada e apagaria o que aquele perfil acabou de enviar.
+                    (async function() {
                         try {
                             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
                             if (!codigoAtual) return;
-                            fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'saveSection', sectionType: 'parceiros', codigo: codigoAtual, palletsData }) }).catch(function(){});
-                            fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'saveSection', sectionType: 'descartes', codigo: codigoAtual, discardsData, reportDate: document.getElementById('reportDate')?.value || '' }) }).catch(function(){});
-                            fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({
-                                action: 'saveSection', sectionType: 'midias', codigo: codigoAtual,
+
+                            const pushIfUnchanged = async (sectionType, extraPayload) => {
+                                const loadedUpdatedAt = _loadedSectionUpdatedAt[sectionType];
+                                if (loadedUpdatedAt !== null) {
+                                    try {
+                                        const checkResp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType, codigo: codigoAtual }) });
+                                        const checkResult = await checkResp.json();
+                                        const serverUpdatedAt = (checkResult.success && checkResult.data) ? (checkResult.data.UpdatedAt || null) : null;
+                                        if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
+                                    } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
+                                }
+                                fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload)) }).catch(function(){});
+                            };
+
+                            pushIfUnchanged('parceiros', { palletsData });
+                            pushIfUnchanged('descartes', { discardsData, reportDate: document.getElementById('reportDate')?.value || '' });
+                            pushIfUnchanged('midias', {
                                 photosData, videosData,
                                 reportDate: document.getElementById('reportDate')?.value || '',
                                 departureTime: document.getElementById('departureTime')?.value || '',
                                 customTempsData, palletsData
-                            }) }).catch(function(){});
+                            });
                         } catch(_) {}
                     })();
                     if (isEdit) {
@@ -2625,6 +2649,19 @@
                 additionalInfoData = parse(row.InfoAdicionais);
                 palletsData     = parse(row.Pallets);
 
+                // Reseta os "carimbos" de UpdatedAt — repopulados abaixo só para as seções
+                // que efetivamente existem, para servir de baseline de conflito no save do master.
+                _loadedSectionUpdatedAt = { parceiros: null, descartes: null, midias: null };
+
+                // Prefere dados da aba Descartes (perfil descartes) sobre a coluna Descartes
+                // da aba NotaFiscal — essa aba é a fonte de verdade para descartes uma vez
+                // que existe (mesmo vazia), senão o que este perfil salva nunca "gruda".
+                const rowDescartes = row._descartes;
+                if (rowDescartes) {
+                    discardsData = parse(rowDescartes.DiscartsData);
+                    _loadedSectionUpdatedAt.descartes = rowDescartes.UpdatedAt || null;
+                }
+
                 // Prefere dados da aba Parceiros (perfil parceiros) sobre a coluna Pallets
                 // da aba NotaFiscal — essa aba é a fonte de verdade para pallets/lotes/fotos
                 // de pallet uma vez que existe (mesmo vazia), senão exclusões feitas por
@@ -2632,6 +2669,7 @@
                 const rowParceiros = row._parceiros;
                 if (rowParceiros) {
                     palletsData = parse(rowParceiros.ParceirosData);
+                    _loadedSectionUpdatedAt.parceiros = rowParceiros.UpdatedAt || null;
                 }
 
                 // Prefere dados da aba Midias (perfil embarque) sobre as colunas da aba Embarques.
@@ -2642,6 +2680,7 @@
                 if (m) {
                     photosData = parse(m.Fotos);
                     videosData = parse(m.Videos);
+                    _loadedSectionUpdatedAt.midias = m.UpdatedAt || null;
                     if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
                     const mTemps = parse(m.Temperaturas);
                     if (mTemps.length > 0) customTempsData = mTemps;
@@ -3303,6 +3342,7 @@
             _collapsedPallets = [];
             _collapsedTemps = [];
             _collapsedDiscards = [];
+            _loadedSectionUpdatedAt = { parceiros: null, descartes: null, midias: null };
 
             // Renderiza containers dinâmicos (agora vazios)
             renderNfeInputs();
@@ -5898,6 +5938,17 @@
         }
 
         function hideConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); unlockScroll(); }
+        // Cancelar (botão "Revisar"): diferente de hideConfirmModal puro, também desfaz o
+        // currentPdfMode='email'/'parceiros' setado por confirmBeforeSend(). Sem isso, a
+        // pré-visualização em tela ficava escondendo Descartes/Análise IA (showInternalSections)
+        // até o usuário gerar um PDF interno com sucesso, mesmo esses dados já salvos na planilha.
+        function cancelConfirmModal() {
+            hideConfirmModal();
+            if (currentPdfMode !== 'interno') {
+                currentPdfMode = 'interno';
+                updatePreview();
+            }
+        }
         function executeSend() {
             hideConfirmModal();
             document.getElementById('layoutModal').classList.remove('hidden');
