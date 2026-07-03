@@ -1140,6 +1140,11 @@
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Carregar</span>
             </button>
 
+            <button type="button" id="mobileNavPdfParceirosSection" onclick="confirmBeforeSend('parceiros')" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
+                <i data-lucide="users" style="width:20px;height:20px;flex-shrink:0;"></i>
+                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Parceiros</span>
+            </button>
+
             <button type="button" id="mobileNavAtualizar" onclick="sincronizarDados()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
                 <i data-lucide="refresh-cw" style="width:20px;height:20px;flex-shrink:0;"></i>
                 <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Atualizar</span>
@@ -3039,6 +3044,10 @@
                 const dateEl   = document.getElementById('reportDate');
                 if (codigoEl) codigoEl.value = emb.Codigo || codigo;
                 if (dateEl && emb.Data) dateEl.value = emb.Data;
+                // Preenche o produto (invisível para perfis de seção, já que a seção
+                // "Produto/Cliente" fica oculta) só para satisfazer a validação de
+                // "produto obrigatório" ao gerar o PDF Parceiros a partir desses perfis.
+                if (emb.Produto) _setProductFromString(String(emb.Produto));
 
                 // Carrega dados da seção já existentes (se houver)
                 await _loadSectionData(codigo);
@@ -3091,6 +3100,14 @@
                 } else if (sectionType === 'descartes') {
                     discardsData = tryParse(d.DiscartsData);
                     renderDiscards();
+                    // Carrega também Parceiros/Pallets (somente leitura) — o perfil descartes
+                    // não edita essa seção, mas precisa dela para o botão "PDF Parceiros"
+                    // (senão o PDF gerado sairia sempre vazio, sem nenhum parceiro listado).
+                    try {
+                        const respP = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'parceiros', codigo }) });
+                        const resultP = await respP.json();
+                        if (resultP.success && resultP.data) palletsData = tryParse(resultP.data.ParceirosData);
+                    } catch(_) {}
                 } else if (sectionType === 'midias') {
                     photosData = tryParse(d.Fotos);
                     videosData = tryParse(d.Videos);
@@ -4319,6 +4336,12 @@
             // Botão Atualizar mobile: visível para embarque
             const btnMobileAtualizar = document.getElementById('mobileNavAtualizar');
             if (btnMobileAtualizar) btnMobileAtualizar.style.display = isEmbarque ? 'flex' : 'none';
+
+            // Botão "PDF Parceiros" direto no mobile: o perfil descartes não tem o menu
+            // completo de PDF (Interno/Parceiros/Email), mas precisa consultar a tabela
+            // de Parceiros/Quantidades para saber quem enviou cada pallet ao registrar descartes.
+            const btnMobilePdfParceiros = document.getElementById('mobileNavPdfParceirosSection');
+            if (btnMobilePdfParceiros) btnMobilePdfParceiros.style.display = isDescartes ? 'flex' : 'none';
 
             // Grade mobile: conta os botões realmente visíveis em mobileNavRow1
             // para nunca sobrar item quebrando linha (ex: embarque tem 5 visíveis:
@@ -5912,9 +5935,16 @@
         }
 
         function confirmBeforeSend(mode) {
-            const form = document.getElementById('checklistForm');
-            if (!form.checkValidity()) { form.reportValidity(); return; }
-            if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
+            // Perfis de seção (descartes/parceiros/nf/embarque) não preenchem nem veem o
+            // formulário completo do master — campos ocultos como "Responsável pelo
+            // Cruzamento" (required) ficam inválidos e reportValidity() não consegue exibir
+            // aviso algum num campo invisível, fazendo o clique parecer que "não faz nada".
+            const isSectionProfile = currentUser && ['parceiros', 'descartes', 'nf', 'embarque'].includes(currentUser.perfil);
+            if (!isSectionProfile) {
+                const form = document.getElementById('checklistForm');
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+                if (!getProductName()) { showMessageModal('PRODUTO OBRIGATÓRIO', 'Selecione ou informe o produto do embarque.', 'error'); return; }
+            }
             if (_isSaving) {
                 showMessageModal('Envio em andamento', 'Aguarde o envio terminar antes de gerar o PDF.', 'error');
                 return;
@@ -6199,8 +6229,36 @@
                     const colStyles = { 0:{cellWidth:cw(100)}, 1:{cellWidth:cw(20),halign:'right'}, 2:{cellWidth:cw(30)}, 3:{cellWidth:cw(28)}, 4:{cellWidth:cw(26),halign:'right'} };
 
                     clientKeys.forEach((ck, ci) => {
-                        const clientRows = clientMap.get(ck).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
-                        const clientQty = clientRows.reduce((s, r) => s + (parseFloat(r.qty) || 0), 0);
+                        // Agrupa por parceiro (mesmo nome) dentro do cliente, somando a
+                        // quantidade de diferentes pallets/datas em uma única linha —
+                        // datas de colheita diferentes do mesmo parceiro não precisam de
+                        // linhas separadas, só a quantidade total daquele parceiro.
+                        const mergedMap = new Map();
+                        clientMap.get(ck).forEach(r => {
+                            const key = _normalizePartnerKey(r.name);
+                            if (mergedMap.has(key)) {
+                                const e = mergedMap.get(key);
+                                e.qty += parseFloat(r.qty) || 0;
+                                if (r.unit) r.unit.split(', ').filter(Boolean).forEach(u => e._units.add(u));
+                                if (r.harvestDate) e._dates.add(r.harvestDate);
+                            } else {
+                                mergedMap.set(key, {
+                                    name: r.name.trim(),
+                                    qty: parseFloat(r.qty) || 0,
+                                    _units: new Set(r.unit ? r.unit.split(', ').filter(Boolean) : []),
+                                    _dates: new Set(r.harvestDate ? [r.harvestDate] : []),
+                                });
+                            }
+                        });
+                        const clientRows = Array.from(mergedMap.values())
+                            .map(e => ({
+                                name: e.name,
+                                qty: e.qty,
+                                unit: Array.from(e._units).join(', '),
+                                harvestDate: e._dates.size === 1 ? Array.from(e._dates)[0] : '',
+                            }))
+                            .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
+                        const clientQty = clientRows.reduce((s, r) => s + (r.qty || 0), 0);
                         const clientPct = totalQtyPc > 0 ? ((clientQty / totalQtyPc) * 100).toFixed(1) + '%' : '100%';
 
                         // Cabeçalho do cliente
@@ -6215,9 +6273,9 @@
                         y += 7;
 
                         const tableRows = clientRows.map(r => {
-                            const pct = totalQtyPc > 0 ? ((parseFloat(r.qty) / totalQtyPc) * 100).toFixed(1) + '%' : '—';
+                            const pct = totalQtyPc > 0 ? ((r.qty / totalQtyPc) * 100).toFixed(1) + '%' : '—';
                             const hd  = r.harvestDate ? fmtDate(r.harvestDate) : '—';
-                            return [r.name, {content: parseFloat(r.qty) + ' cx', styles: {halign:'right', fontStyle:'bold'}}, r.unit || '—', hd, {content: pct, styles: {halign:'right'}}];
+                            return [r.name, {content: r.qty + ' cx', styles: {halign:'right', fontStyle:'bold'}}, r.unit || '—', hd, {content: pct, styles: {halign:'right'}}];
                         });
 
                         doc.autoTable(tbl({ startY: y,
