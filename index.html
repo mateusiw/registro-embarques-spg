@@ -1888,6 +1888,51 @@
 
         // ===== UPLOAD DE VÍDEO EM PEDAÇOS (CHUNKS) =====
         // O Apps Script rejeita POSTs muito grandes (~50 MB). Um vídeo em base64
+        // Substitui, item a item, o base64 local pelos links do Drive que o servidor
+        // devolveu após um saveSection. Sem essa troca, o próximo save (manual ou
+        // auto-save) reenviava as mesmas fotos e criava uploads duplicados no Drive.
+        // A atualização é por índice: como fotos novas sempre entram no FIM dos
+        // arrays, os índices enviados continuam válidos mesmo que o usuário tenha
+        // adicionado mais fotos enquanto o save estava em andamento.
+        function _mergeConvertedMedia(localArr, remoteArr) {
+            if (!Array.isArray(localArr) || !Array.isArray(remoteArr)) return false;
+            let changed = false;
+            remoteArr.forEach((r, i) => {
+                if (localArr[i] && r && r.dataUrl && !String(r.dataUrl).startsWith('data:') &&
+                    String(localArr[i].dataUrl || '').startsWith('data:')) {
+                    localArr[i].dataUrl = r.dataUrl;
+                    changed = true;
+                }
+            });
+            return changed;
+        }
+        function _mergeConvertedPhotoLists(localArr, remoteArr) {
+            if (!Array.isArray(localArr) || !Array.isArray(remoteArr)) return false;
+            let changed = false;
+            remoteArr.forEach((r, i) => {
+                if (localArr[i] && r && Array.isArray(r.photos) && Array.isArray(localArr[i].photos)) {
+                    r.photos.forEach((src, pi) => {
+                        if (String(localArr[i].photos[pi] || '').startsWith('data:') &&
+                            src && !String(src).startsWith('data:')) {
+                            localArr[i].photos[pi] = src;
+                            changed = true;
+                        }
+                    });
+                }
+            });
+            return changed;
+        }
+        function _applyConvertedSectionData(d) {
+            if (!d) return;
+            // Só re-renderiza o que mudou, para não roubar o foco de inputs em edição.
+            if (_mergeConvertedMedia(photosData, d.photosData)      && typeof renderPhotos      === 'function') renderPhotos();
+            if (_mergeConvertedMedia(videosData, d.videosData)      && typeof renderVideos      === 'function') renderVideos();
+            if (_mergeConvertedPhotoLists(customTempsData, d.customTempsData) && typeof renderCustomTemps === 'function') renderCustomTemps();
+            if (_mergeConvertedPhotoLists(palletsData, d.palletsData)         && typeof renderPallets     === 'function') renderPallets();
+            if (_mergeConvertedPhotoLists(discardsData, d.discardsData)       && typeof renderDiscards    === 'function') renderDiscards();
+            saveToLocalStorage();
+        }
+
         // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
         async function _doSaveSectionToCloud(sectionTypeOverride = null) {
             if (!APPS_SCRIPT_URL || !currentUser) return;
@@ -1928,6 +1973,7 @@
                 payload.codigo = codigo;
             } else if (sectionType === 'parceiros') {
                 payload.palletsData = palletsData;
+                payload.reportDate  = document.getElementById('reportDate')?.value || '';
             } else if (sectionType === 'descartes') {
                 payload.discardsData = discardsData;
                 payload.reportDate   = document.getElementById('reportDate')?.value || '';
@@ -1950,6 +1996,11 @@
                 setSaveProgress(100, 'Concluído', '');
 
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+
+                // Troca o base64 local pelos links do Drive devolvidos e marca como
+                // sincronizado — senão o auto-save de 30s reenviava tudo de novo.
+                if (result.data) _applyConvertedSectionData(result.data);
+                _autoSaveDirty = false;
 
                 setTimeout(() => {
                     hideSaveLoadingModal();
@@ -3038,6 +3089,19 @@
                     return;
                 }
 
+                // Perfil embarque só pode trabalhar em embarques Pendentes (mesma regra da tela
+                // de boas-vindas) — sem isso, "Trocar Embarque" deixava carregar qualquer código,
+                // inclusive um já Revisado, e alterar as mídias dele sem o master perceber.
+                if (currentUser && currentUser.perfil === 'embarque' &&
+                    String(result.embarque.StatusRegistro || '').toLowerCase() !== 'pendente') {
+                    errEl.textContent = `Embarque Nº ${codigo} não está pendente. Somente embarques pendentes podem ser carregados.`;
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
+                    lucide.createIcons();
+                    return;
+                }
+
                 // Embarque encontrado: preenche código/data no form e fecha modal
                 const emb = result.embarque;
                 const codigoEl = document.getElementById('embarqueCodigo');
@@ -3072,6 +3136,21 @@
         }
 
         // Carrega dados já salvos da aba de seção para o perfil atual
+        // Busca os pallets já criados pelo perfil parceiros (labels, grupos de parceiro)
+        // para este código. O perfil embarque precisa disso pra saber em qual pallet
+        // anexar as fotos — sem essa busca, "Trocar Embarque" via seção Mídias nunca
+        // enxergava os pallets que o parceiros já tinha cadastrado.
+        async function _fetchParceirosPallets(codigo) {
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'parceiros', codigo }) });
+                const result = await resp.json();
+                if (result.success && result.data) {
+                    try { return JSON.parse(result.data.ParceirosData || '[]'); } catch(_) { return []; }
+                }
+            } catch(_) {}
+            return [];
+        }
+
         async function _loadSectionData(codigo) {
             if (!APPS_SCRIPT_URL || !currentUser) return;
             const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
@@ -3084,10 +3163,25 @@
                     body: JSON.stringify({ action: 'getSection', sectionType, codigo })
                 });
                 const result = await resp.json();
-                if (!result.success || !result.data) return;
+                const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
+
+                if (!result.success || !result.data) {
+                    // Nenhuma seção salva ainda para este código: limpa os dados da seção
+                    // para não deixar resíduo do embarque anterior (ex: fotos de um código
+                    // grudadas em outro após "Trocar Embarque").
+                    if (sectionType === 'parceiros') { palletsData = []; renderPallets(); }
+                    else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); }
+                    else if (sectionType === 'midias') {
+                        photosData = []; videosData = []; customTempsData = [];
+                        // Mesmo sem Mídias salva ainda, os pallets do perfil parceiros já
+                        // podem existir — carrega para o embarque poder anexar fotos neles.
+                        palletsData = await _fetchParceirosPallets(codigo);
+                        renderPhotos(); renderVideos(); renderCustomTemps(); renderPallets();
+                    }
+                    return;
+                }
 
                 const d = result.data;
-                const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
                 if (sectionType === 'nf') {
                     const rd = document.getElementById('reportDate'); if (rd) rd.value = String(d.Data || '').substring(0, 10);
                     const cp = document.getElementById('customProductName'); if (cp) cp.value = d.Produto || '';
@@ -3117,6 +3211,10 @@
                         if (resultP.success && resultP.data) palletsData = tryParse(resultP.data.ParceirosData);
                     } catch(_) {}
                 } else if (sectionType === 'midias') {
+                    // Carrega primeiro a estrutura dos pallets (labels/parceiros) da aba
+                    // Parceiros — igual loadHistoryReport() já fazia — e só depois sobrepõe
+                    // fotos/temperatura da própria aba Mídias por índice.
+                    palletsData = await _fetchParceirosPallets(codigo);
                     photosData = tryParse(d.Fotos);
                     videosData = tryParse(d.Videos);
                     if (d.HorarioSaida) {
@@ -3161,10 +3259,14 @@
                 confirmLabel: 'Sim, trocar',
                 type: 'warning',
                 onConfirm: () => {
-                    // Limpa campos da seção antes de reabrir o modal
+                    // Limpa campos da seção antes de reabrir o modal — inclui fotos/vídeos/temperaturas
+                    // para não deixar mídia do embarque anterior grudada no código novo.
                     nfeList = [''];
                     palletsData = [];
                     discardsData = [];
+                    photosData = [];
+                    videosData = [];
+                    customTempsData = [];
                     const codigoEl = document.getElementById('embarqueCodigo');
                     const dateEl   = document.getElementById('reportDate');
                     if (codigoEl) codigoEl.value = '';
@@ -3172,6 +3274,9 @@
                     if (typeof renderNfeInputs === 'function') renderNfeInputs();
                     if (typeof renderPallets   === 'function') renderPallets();
                     if (typeof renderDiscards  === 'function') renderDiscards();
+                    if (typeof renderPhotos    === 'function') renderPhotos();
+                    if (typeof renderVideos    === 'function') renderVideos();
+                    if (typeof renderCustomTemps === 'function') renderCustomTemps();
                     welcomeSectionLoad();
                 }
             });
@@ -3530,7 +3635,7 @@
 
             fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'delete', originalTimestamp: ts, password })
+                body: JSON.stringify({ action: 'delete', originalTimestamp: ts, password, deletedBy: currentUser ? currentUser.nome : 'Desconhecido' })
             })
             .then(r => r.json())
             .then(result => {
@@ -3811,7 +3916,13 @@
             if (_isSaving || !APPS_SCRIPT_URL) return;
             const codigoEl = document.getElementById('embarqueCodigo');
             if (!codigoEl || !codigoEl.value.trim()) return;
-            if ((_autoSaveTimestamp || editModeTimestamp) && !_autoSaveDirty) return;
+            // Pula o ciclo se nada mudou desde o último save bem-sucedido. Antes essa trava só
+            // valia quando _autoSaveTimestamp/editModeTimestamp estavam setados — mas os perfis
+            // embarque/parceiros/descartes/nf nunca usam essas variáveis (salvam via saveSection),
+            // então a trava nunca segurava nada para eles: a cada 30s o app reenviava fotos/mídias
+            // já salvas, e como o servidor não devolve as URLs do Drive já geradas, cada reenvio
+            // fazia um upload NOVO e duplicado (pasta nova a cada ciclo), inflando o Drive sem parar.
+            if (!_autoSaveDirty) return;
 
             _isSaving = true;
             _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
@@ -3830,6 +3941,7 @@
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
                     if (result.success) {
+                        if (result.data) _applyConvertedSectionData(result.data);
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Mídias sincronizadas');
                     } else {
@@ -3855,6 +3967,7 @@
                     let payload = { action: 'saveSection', sectionType: _secAutoType, codigo };
                     if (_secAutoType === 'parceiros') {
                         payload.palletsData = palletsData;
+                        payload.reportDate  = document.getElementById('reportDate')?.value || '';
                     } else if (_secAutoType === 'descartes') {
                         payload.discardsData = discardsData;
                         payload.reportDate   = document.getElementById('reportDate')?.value || '';
@@ -3878,6 +3991,7 @@
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
                     if (result.success) {
+                        if (result.data) _applyConvertedSectionData(result.data);
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
                     } else {
@@ -5075,7 +5189,10 @@
                             payload.departureTime   = document.getElementById('departureTime')?.value || '';
                             payload.customTempsData = customTempsData;
                         }
-                        fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(){});
+                        fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+                            .then(r => r.json())
+                            .then(result => { if (result && result.success && result.data) _applyConvertedSectionData(result.data); })
+                            .catch(function(){});
                     }
                 }
             }
@@ -5437,7 +5554,10 @@
                         customTempsData,
                         palletsData,
                     };
-                    fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(function(){});
+                    fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+                        .then(r => r.json())
+                        .then(result => { if (result && result.success && result.data) _applyConvertedSectionData(result.data); })
+                        .catch(function(){});
                 }
             }
         }
