@@ -2000,6 +2000,7 @@
                 // Troca o base64 local pelos links do Drive devolvidos e marca como
                 // sincronizado — senão o auto-save de 30s reenviava tudo de novo.
                 if (result.data) _applyConvertedSectionData(result.data);
+                if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
                 _autoSaveDirty = false;
 
                 setTimeout(() => {
@@ -3214,7 +3215,7 @@
                     // Nenhuma seção salva ainda para este código: limpa os dados da seção
                     // para não deixar resíduo do embarque anterior (ex: fotos de um código
                     // grudadas em outro após "Trocar Embarque").
-                    if (sectionType === 'parceiros') { palletsData = []; renderPallets(); }
+                    if (sectionType === 'parceiros') { palletsData = []; renderPallets(); _snapshotSyncedPallets(); }
                     else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); }
                     else if (sectionType === 'midias') {
                         photosData = []; videosData = []; customTempsData = [];
@@ -3222,6 +3223,7 @@
                         // podem existir — carrega para o embarque poder anexar fotos neles.
                         palletsData = await _fetchParceirosPallets(codigo);
                         renderPhotos(); renderVideos(); renderCustomTemps(); renderPallets();
+                        _snapshotSyncedPallets();
                     }
                     return;
                 }
@@ -3244,6 +3246,7 @@
                 } else if (sectionType === 'parceiros') {
                     palletsData = tryParse(d.ParceirosData);
                     renderPallets();
+                    _snapshotSyncedPallets();
                 } else if (sectionType === 'descartes') {
                     discardsData = tryParse(d.DiscartsData);
                     renderDiscards();
@@ -3287,6 +3290,7 @@
                     renderVideos();
                     renderCustomTemps();
                     renderPallets();
+                    _snapshotSyncedPallets();
                 }
             } catch (_) {}
         }
@@ -3312,6 +3316,7 @@
                     photosData = [];
                     videosData = [];
                     customTempsData = [];
+                    _lastSyncedPalletsData = null;
                     const codigoEl = document.getElementById('embarqueCodigo');
                     const dateEl   = document.getElementById('reportDate');
                     if (codigoEl) codigoEl.value = '';
@@ -3518,6 +3523,7 @@
             _collapsedTemps = [];
             _collapsedDiscards = [];
             _loadedSectionUpdatedAt = { parceiros: null, descartes: null, midias: null };
+            _lastSyncedPalletsData = null;
 
             // Renderiza containers dinâmicos (agora vazios)
             renderNfeInputs();
@@ -3942,6 +3948,27 @@
         let _autoSaveTimestamp = null; // timestamp do registro já salvo no servidor
         let _autoSaveDirty = true; // true = há mudanças não salvas; false = sincronizado
 
+        // Último snapshot de palletsData confirmado no servidor (seções parceiros/midias).
+        // Usado pelo auto-save de 30s para calcular um delta em vez de reenviar o array
+        // inteiro — com fotos de todos os pallets — sempre que qualquer coisa mudar.
+        let _lastSyncedPalletsData = null;
+        function _snapshotSyncedPallets() {
+            try { _lastSyncedPalletsData = JSON.parse(JSON.stringify(palletsData)); } catch(_) { _lastSyncedPalletsData = null; }
+        }
+        // Compara palletsData atual com o último snapshot sincronizado. Se a contagem de
+        // pallets mudou (adicionado/removido) ou não há snapshot ainda, cai no envio
+        // completo — mais simples e seguro do que tentar remapear índices deslocados.
+        function _computePalletsDelta() {
+            if (!_lastSyncedPalletsData || _lastSyncedPalletsData.length !== palletsData.length) {
+                return { full: true, delta: null };
+            }
+            const delta = {};
+            palletsData.forEach((pl, i) => {
+                if (JSON.stringify(pl) !== JSON.stringify(_lastSyncedPalletsData[i])) delta[i] = pl;
+            });
+            return { full: false, delta };
+        }
+
         const _ICON_CHECK    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#34d399"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
         const _ICON_SPIN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`;
         const _ICON_WARN     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#f59e0b"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
@@ -3975,18 +4002,24 @@
             // Perfil embarque: auto-save vai para Midias, não para Embarques
             if (currentUser && currentUser.perfil === 'embarque') {
                 try {
+                    const { full, delta } = _computePalletsDelta();
                     const payload = {
                         action: 'saveSection', sectionType: 'midias',
                         codigo: codigoEl.value.trim(),
                         photosData, videosData,
                         reportDate:      document.getElementById('reportDate')?.value    || '',
                         departureTime:   document.getElementById('departureTime')?.value || '',
-                        customTempsData, palletsData
+                        customTempsData
                     };
+                    // Delta: reenvia só os pallets que mudaram desde o último sync (em vez do
+                    // array inteiro com fotos de todos os pallets a cada ciclo de 30s).
+                    if (full) payload.palletsData = palletsData;
+                    else if (Object.keys(delta).length) payload.palletsDelta = delta;
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
                     if (result.success) {
                         if (result.data) _applyConvertedSectionData(result.data);
+                        _snapshotSyncedPallets();
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Mídias sincronizadas');
                     } else {
@@ -4011,7 +4044,11 @@
                     const codigo = codigoEl.value.trim();
                     let payload = { action: 'saveSection', sectionType: _secAutoType, codigo };
                     if (_secAutoType === 'parceiros') {
-                        payload.palletsData = palletsData;
+                        // Delta: reenvia só os pallets que mudaram desde o último sync (em vez
+                        // do array inteiro com fotos de todos os pallets a cada ciclo de 30s).
+                        const { full, delta } = _computePalletsDelta();
+                        if (full) payload.palletsData = palletsData;
+                        else if (Object.keys(delta).length) payload.palletsDelta = delta;
                         payload.reportDate  = document.getElementById('reportDate')?.value || '';
                     } else if (_secAutoType === 'descartes') {
                         payload.discardsData = discardsData;
@@ -4037,6 +4074,7 @@
                     const result = await resp.json();
                     if (result.success) {
                         if (result.data) _applyConvertedSectionData(result.data);
+                        if (_secAutoType === 'parceiros') _snapshotSyncedPallets();
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
                     } else {
@@ -5135,8 +5173,10 @@
 
         // ---------- Pallets ----------
         function getPalletCount() {
-            const labels = new Set(palletsData.map(pl => (pl.label || '').trim().toLowerCase()).filter(Boolean));
-            return labels.size;
+            // Conta cada pallet preenchido individualmente — dois pallets com o mesmo
+            // nome (ex: "Pallet 1" duplicado) contam como 2, não como 1. Antes usava um
+            // Set por nome, que deduplicava pallets distintos que só coincidiam no rótulo.
+            return palletsData.filter(pl => (pl.label || '').trim() !== '').length;
         }
         function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
