@@ -2081,6 +2081,11 @@
                         if (d.palletsData)     palletsData = d.palletsData;
                     }
                     saveToLocalStorage();
+                    // Já sincronizado: evita que o auto-save de 30s reenvie os mesmos
+                    // dados logo em seguida (antes o formulário era limpo após salvar,
+                    // o que zerava isso indiretamente; agora que o formulário permanece
+                    // preenchido, precisa ser resetado explicitamente).
+                    _autoSaveDirty = false;
                     // Fire-and-forget: envia apenas os campos de NF para a aba notafiscal
                     (function() {
                         try {
@@ -2113,15 +2118,58 @@
                     // desatualizadas após uma edição do master, e o recarregar (loadHistoryReport)
                     // reexibia dados antigos (ex: foto de pallet já apagada "voltando").
                     //
-                    // Guarda de conflito: antes de sobrescrever, confere se o UpdatedAt da aba no
-                    // servidor ainda é o mesmo de quando este registro foi carregado (_loadedSectionUpdatedAt).
-                    // Se outro perfil (ex: descartes) salvou uma versão mais nova enquanto o master
-                    // editava, o UpdatedAt mudou — nesse caso NÃO sobrescreve com a cópia do master,
-                    // que estaria desatualizada e apagaria o que aquele perfil acabou de enviar.
+                    // Mídias usa merge (ver bloco abaixo) por lidar com conteúdo aditivo (fotos/
+                    // vídeos). Parceiros/Descartes ainda usam guarda de conflito: antes de
+                    // sobrescrever, conferem se o UpdatedAt da aba no servidor ainda é o mesmo de
+                    // quando este registro foi carregado (_loadedSectionUpdatedAt). Se outro
+                    // perfil salvou uma versão mais nova enquanto o master editava, o UpdatedAt
+                    // mudou — nesse caso NÃO sobrescreve com a cópia do master, que estaria
+                    // desatualizada e apagaria o que aquele perfil acabou de enviar.
                     (async function() {
                         try {
                             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
                             if (!codigoAtual) return;
+                            const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
+
+                            // Mídias: em vez de checar conflito e desistir em silêncio (o
+                            // comportamento antigo), busca o que já está salvo no servidor e
+                            // faz merge por dataUrl. Sem isso: se o perfil embarque tivesse
+                            // salvo fotos entre o carregamento do master e o clique em Salvar,
+                            // o guard de conflito abortava o envio do master sem avisar
+                            // ninguém — as fotos do master ficavam só na coluna Fotos da
+                            // NotaFiscal, que o app ignora ao recarregar (Midias é a fonte de
+                            // verdade quando existe), dando a impressão de que sumiram.
+                            try {
+                                const respM = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'midias', codigo: codigoAtual }) });
+                                const resultM = await respM.json();
+                                const serverPhotos = (resultM.success && resultM.data) ? tryParse(resultM.data.Fotos)  : [];
+                                const serverVideos = (resultM.success && resultM.data) ? tryParse(resultM.data.Videos) : [];
+                                const serverPhotoUrls = new Set(serverPhotos.map(p => p.dataUrl).filter(Boolean));
+                                const serverVideoUrls = new Set(serverVideos.map(v => v.dataUrl).filter(Boolean));
+                                const mergedPhotos = [...serverPhotos, ...photosData.filter(p => p.dataUrl && !serverPhotoUrls.has(p.dataUrl))];
+                                const mergedVideos = [...serverVideos, ...videosData.filter(v => v.dataUrl && !serverVideoUrls.has(v.dataUrl))];
+
+                                const respPush = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({
+                                    action: 'saveSection', sectionType: 'midias', codigo: codigoAtual,
+                                    photosData: mergedPhotos, videosData: mergedVideos,
+                                    reportDate: document.getElementById('reportDate')?.value || '',
+                                    departureTime: document.getElementById('departureTime')?.value || '',
+                                    customTempsData, palletsData
+                                }) });
+                                const resultPush = await respPush.json();
+                                if (resultPush && resultPush.success) {
+                                    photosData = mergedPhotos;
+                                    videosData = mergedVideos;
+                                    if (resultPush.data) _applyConvertedSectionData(resultPush.data);
+                                    renderPhotos();
+                                    renderVideos();
+                                    saveToLocalStorage();
+                                } else {
+                                    _setAutoSaveToast(_ICON_WARN, 'Fotos podem não ter sincronizado com outros perfis');
+                                }
+                            } catch(_) {
+                                _setAutoSaveToast(_ICON_WARN, 'Fotos podem não ter sincronizado com outros perfis');
+                            }
 
                             const pushIfUnchanged = async (sectionType, extraPayload) => {
                                 const loadedUpdatedAt = _loadedSectionUpdatedAt[sectionType];
@@ -2138,23 +2186,20 @@
 
                             pushIfUnchanged('parceiros', { palletsData });
                             pushIfUnchanged('descartes', { discardsData, reportDate: document.getElementById('reportDate')?.value || '' });
-                            pushIfUnchanged('midias', {
-                                photosData, videosData,
-                                reportDate: document.getElementById('reportDate')?.value || '',
-                                departureTime: document.getElementById('departureTime')?.value || '',
-                                customTempsData, palletsData
-                            });
                         } catch(_) {}
                     })();
+                    // O formulário permanece preenchido após salvar — os arquivos e demais
+                    // dados continuam visíveis. Reenvios acidentais do mesmo registro não
+                    // duplicam: o servidor já faz dedup por Código (insert) e o update usa
+                    // sempre o Timestamp original.
                     if (isEdit) {
-                        clearEditMode();
-                        // Limpa o formulário após o envio para evitar reenvio acidental do mesmo registro
-                        executeClearForm();
-                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha. O formulário foi limpo.', 'success');
+                        // Continua em modo edição (não chama clearEditMode()): atualiza só o
+                        // snapshot de comparação, senão o próximo "Atualizar" no histórico
+                        // acharia que há alterações não salvas que na verdade já foram enviadas.
+                        _editSnapshot = collectFormData();
+                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
                     } else {
-                        // Limpa o formulário após o envio para evitar reenvio acidental do mesmo registro
-                        executeClearForm();
-                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive. O formulário foi limpo.', 'success');
+                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
                     }
                 } else {
                     showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
