@@ -4008,11 +4008,30 @@
                 showResumeEditingModal();
             }
 
-            // Após F5: busca dados atuais do servidor e repopula o formulário.
-            // Garante que fotos/dados enviados por outro perfil (ex: embarque pelo celular)
-            // apareçam no formulário, sem sobrescrever o servidor com dados locais antigos.
-            if ((_autoSaveTimestamp || editModeTimestamp) && APPS_SCRIPT_URL) {
-                _syncFromServer();
+            // Após F5: busca os dados atuais do servidor e repopula o formulário —
+            // para TODOS os perfis. Antes, só o master em modo edição/auto-save
+            // sincronizava; os demais perfis (e o master fora de edição) ficavam
+            // presos aos dados locais antigos do localStorage e era preciso abrir
+            // aba anônima ou limpar o formulário para ver o que os outros perfis
+            // inseriram. Na inicialização o servidor é a fonte de verdade: nada
+            // digitado nesta sessão pode ser perdido, pois a página acabou de abrir.
+            const _codigoAtivo = _codigoEl ? _codigoEl.value.trim() : '';
+            if (APPS_SCRIPT_URL && (_codigoAtivo || _autoSaveTimestamp || editModeTimestamp)) {
+                const _perfilAtual = currentUser && currentUser.perfil;
+                if (_perfilAtual === 'master' || !_perfilAtual) {
+                    _syncFromServer(true);
+                } else if (_codigoAtivo) {
+                    // Perfis de seção/embarque: recarrega a própria seção do servidor
+                    // (inclui pallets do perfil parceiros, no caso das mídias).
+                    _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
+                    _loadSectionData(_codigoAtivo).then(() => {
+                        updatePreview();
+                        _autoSaveDirty = false;
+                        _setAutoSaveToast(_ICON_CHECK, 'Dados atualizados!');
+                    }).catch(() => {
+                        _setAutoSaveToast(_ICON_WARN, 'Sem conexão — dados locais');
+                    });
+                }
             }
         }
 
@@ -4237,10 +4256,13 @@
 
         // Busca os dados mais recentes do servidor e repopula o formulário silenciosamente.
         // Chamada após F5 para evitar que dados locais desatualizados (stale) sejam exibidos.
-        // Só sobrescreve o formulário se o usuário ainda não fez alterações (_autoSaveDirty = false).
-        async function _syncFromServer() {
+        // force=true (inicialização/F5): sempre recarrega — o _autoSaveDirty fica true nesse
+        // momento apenas por causa do updatePreview() do init, não por alteração do usuário.
+        // Sem timestamp de edição/auto-save, localiza o registro pelo Código do formulário.
+        async function _syncFromServer(force = false) {
             const targetTs = _autoSaveTimestamp || editModeTimestamp;
-            if (!APPS_SCRIPT_URL || !targetTs) return;
+            const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            if (!APPS_SCRIPT_URL || (!targetTs && !codigoAtual)) return;
             _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {
@@ -4252,11 +4274,14 @@
                 if (!result.success) throw new Error(result.error || 'Erro');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
-                if (!_autoSaveDirty) {
-                    // Usuário não fez alterações desde a recarga — seguro carregar dados do servidor
-                    loadHistoryReport(String(targetTs), { silent: true });
-                    _autoSaveDirty = false; // resetar após updatePreview() chamado pelo loadHistoryReport
-                    if (editModeTimestamp) _editSnapshot = collectFormData(); // atualiza baseline do diff
+                if (force || !_autoSaveDirty) {
+                    let row = targetTs ? historyRows.find(r => String(r.Timestamp) === String(targetTs)) : null;
+                    if (!row && codigoAtual) row = historyRows.find(r => String(r.Codigo || '').trim() === codigoAtual);
+                    if (row) {
+                        loadHistoryReport(String(row.Timestamp), { silent: true });
+                        _autoSaveDirty = false; // resetar após updatePreview() chamado pelo loadHistoryReport
+                        if (editModeTimestamp) _editSnapshot = collectFormData(); // atualiza baseline do diff
+                    }
                 }
                 _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
             } catch(e) {
