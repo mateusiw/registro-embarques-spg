@@ -130,6 +130,15 @@
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Registro de Embarque</p>
             </div>
             <div id="loginError" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold text-center"></div>
+            <!-- URL do Apps Script: preenchida uma vez por dispositivo (primeiro acesso).
+                 A URL não fica mais no código-fonte, que é público no GitHub. -->
+            <div id="loginUrlSection" class="hidden mb-4 p-3 bg-sky-50 border border-sky-200 rounded-xl">
+                <label class="text-[10px] font-bold text-sky-700 uppercase tracking-widest mb-1 block">URL de conexão (Apps Script)</label>
+                <input type="text" id="loginUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+                    class="w-full p-2.5 border border-sky-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-400 outline-none bg-white transition-colors"
+                    onkeydown="if(event.key==='Enter') document.getElementById('loginNome').focus()">
+                <p class="text-[10px] text-sky-600 mt-1.5 leading-relaxed">Cole o link de implantação fornecido pelo administrador (termina em <strong>/exec</strong>). Fica salvo apenas neste dispositivo.</p>
+            </div>
             <div class="space-y-4">
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Usuário</label>
@@ -155,6 +164,10 @@
                 <button type="button" onclick="doLogin()" id="loginBtn"
                     class="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-black rounded-xl text-sm transition-all uppercase tracking-widest shadow-lg shadow-emerald-900/30 active:scale-95 disabled:opacity-60">
                     Entrar
+                </button>
+                <button type="button" onclick="toggleLoginUrlSection()"
+                    class="w-full text-[10px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-widest transition-colors">
+                    Configurar conexão
                 </button>
             </div>
         </div>
@@ -792,6 +805,16 @@
 
             <div class="border-t border-slate-100 my-4"></div>
 
+            <!-- URL do Apps Script (conexão com a planilha) -->
+            <div class="mb-3">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-5 h-5 rounded bg-sky-100 text-sky-600 flex items-center justify-center shrink-0"><i data-lucide="link" class="w-3 h-3"></i></div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">URL do Apps Script (conexão com a planilha)</label>
+                </div>
+                <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none">
+                <p class="text-[10px] text-slate-400 mt-1">Link de implantação (termina em /exec). Fica salvo apenas neste dispositivo — não é publicado no código-fonte.</p>
+            </div>
+
             <!-- API Key Groq -->
             <div class="mb-3">
                 <div class="flex items-center gap-2 mb-1">
@@ -1206,9 +1229,40 @@
 
         // ===== FIM PWA =====
 
-        localStorage.removeItem('spg_apps_script_url');
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVf6V3oTrmyE6IB4vqz-igXkRISje091AcFzNmzeM-f9F-rJTe_lwCUYQQfNvqISTA/exec';
-        const APP_VERSION = '20250629.3'; // Versão atual — atualizada a cada deploy
+        // Segurança: a URL do Apps Script NÃO fica mais fixa no código — este HTML
+        // é público no GitHub (auto-update) e a URL exposta permitia a qualquer
+        // pessoa chamar a API diretamente. Cada dispositivo configura a URL uma
+        // única vez (tela de login → "Configurar conexão", ou ⚙️ Configurações)
+        // e ela fica salva no localStorage.
+        let APPS_SCRIPT_URL = localStorage.getItem('spg_apps_script_url') || '';
+
+        // Valida/normaliza uma URL de implantação do Apps Script.
+        // Retorna: '' se vazia, null se inválida, ou a URL normalizada.
+        function _normalizeAppsScriptUrl(url) {
+            const u = String(url || '').trim().replace(/\/+$/, '');
+            if (!u) return '';
+            return /^https:\/\/script\.google\.com\/(?:a\/)?macros\/(?:[^\/]+\/)?s\/[\w-]+\/exec$/.test(u) ? u : null;
+        }
+        function _setAppsScriptUrl(url) {
+            APPS_SCRIPT_URL = url || '';
+            try {
+                if (url) localStorage.setItem('spg_apps_script_url', url);
+                else localStorage.removeItem('spg_apps_script_url');
+            } catch(_) {}
+        }
+        function toggleLoginUrlSection() {
+            const sec = document.getElementById('loginUrlSection');
+            if (!sec) return;
+            const input = document.getElementById('loginUrlInput');
+            if (sec.classList.contains('hidden')) {
+                if (input) input.value = APPS_SCRIPT_URL;
+                sec.classList.remove('hidden');
+                setTimeout(() => input?.focus(), 50);
+            } else {
+                sec.classList.add('hidden');
+            }
+        }
+        const APP_VERSION = '20260711.1'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -1331,7 +1385,10 @@
                 videosData.push({ dataUrl: null, caption: '', name: file.name, size: file.size, tempId, uploading: true, uploadPct: 0 });
                 renderVideos();
 
-                const idx = videosData.findIndex(v => v.tempId === tempId);
+                // Busca o índice pelo tempId a cada uso: se o usuário remover outro
+                // vídeo durante o upload, um índice capturado antes apontaria para o
+                // item errado (substituiria/atualizaria o vídeo de outra posição).
+                const idxOf = () => videosData.findIndex(v => v.tempId === tempId);
                 try {
                     // 1. Pegar token OAuth do Apps Script (1 requisição rápida)
                     const infoResp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify({ action: 'getUploadInfo' }), null);
@@ -1341,15 +1398,20 @@
 
                     // 2. Upload direto para a API do Drive com progresso real
                     const driveUrl = await _uploadToDriveApi(file, info.token, info.folderId, (pct) => {
-                        if (videosData[idx]) { videosData[idx].uploadPct = pct; renderVideos(); }
+                        const i = idxOf();
+                        if (i > -1) { videosData[i].uploadPct = pct; renderVideos(); }
                     });
 
-                    videosData[idx] = { dataUrl: driveUrl, caption: '', name: file.name, size: file.size };
+                    const done = idxOf();
+                    const finished = { dataUrl: driveUrl, caption: '', name: file.name, size: file.size };
+                    if (done > -1) videosData[done] = finished;
+                    else videosData.push(finished); // placeholder removido durante o upload — não perde o vídeo já enviado
                     renderVideos();
                     updatePreview();
                     saveToLocalStorage();
                 } catch(e) {
-                    if (videosData[idx]) videosData[idx] = { ...videosData[idx], uploading: false, error: e.message };
+                    const errIdx = idxOf();
+                    if (errIdx > -1) videosData[errIdx] = { ...videosData[errIdx], uploading: false, error: e.message };
                     renderVideos();
                     showMessageModal('Erro no upload', e.message, 'error');
                 }
@@ -1444,6 +1506,13 @@
 
         function _isVideoUploading() {
             return videosData.some(v => v.uploading);
+        }
+        // Vídeos prontos para sincronizar com a planilha. Exclui uploads em
+        // andamento/com erro (dataUrl nulo) — sem esse filtro, o auto-save de 30s
+        // gravava itens "fantasma" {dataUrl:null, uploading:true} na planilha, que
+        // reapareciam como cards quebrados ao recarregar o registro.
+        function _syncableVideos() {
+            return videosData.filter(v => v.dataUrl);
         }
         function _savePhotoToGallery(dataUrl) {
             try {
@@ -1671,7 +1740,7 @@
                 additionalInfoData,
                 aiSummary,
                 photosData,
-                videosData,
+                videosData: _syncableVideos(),
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
                 departureTime: document.getElementById('departureTime').value,
@@ -1979,7 +2048,7 @@
                 payload.reportDate   = document.getElementById('reportDate')?.value || '';
             } else if (sectionType === 'midias') {
                 payload.photosData      = photosData;
-                payload.videosData      = videosData;
+                payload.videosData      = _syncableVideos();
                 payload.reportDate      = document.getElementById('reportDate')?.value    || '';
                 payload.departureTime   = document.getElementById('departureTime')?.value || '';
                 payload.customTempsData = customTempsData;
@@ -3846,12 +3915,15 @@
             lucide.createIcons();
             _initViewerGestures();
 
-            // Verifica sessão existente (persistente primeiro, depois de aba)
+            // Verifica sessão existente (persistente primeiro, depois de aba).
+            // Só restaura se a URL de conexão está configurada — após a atualização
+            // que removeu a URL do código, dispositivos com sessão antiga precisam
+            // passar pela tela de login uma vez para informar a URL.
             try {
                 const persistent = localStorage.getItem('spg_persistent_session');
                 const session = sessionStorage.getItem('spg_session');
                 const saved = persistent || session;
-                if (saved) {
+                if (saved && APPS_SCRIPT_URL) {
                     currentUser = JSON.parse(saved);
                     document.getElementById('loginOverlay').style.display = 'none';
                     document.body.style.overflow = '';
@@ -3860,7 +3932,8 @@
                 }
             } catch(e) {}
 
-            // Mostra tela de login
+            // Mostra tela de login; sem URL configurada, já abre o campo de conexão
+            if (!APPS_SCRIPT_URL) toggleLoginUrlSection();
             lucide.createIcons();
         });
 
@@ -4006,7 +4079,7 @@
                     const payload = {
                         action: 'saveSection', sectionType: 'midias',
                         codigo: codigoEl.value.trim(),
-                        photosData, videosData,
+                        photosData, videosData: _syncableVideos(),
                         reportDate:      document.getElementById('reportDate')?.value    || '',
                         departureTime:   document.getElementById('departureTime')?.value || '',
                         customTempsData
@@ -4313,6 +4386,25 @@
             const senha = document.getElementById('loginSenha').value;
             const errEl = document.getElementById('loginError');
             const btn = document.getElementById('loginBtn');
+
+            // Se o campo de URL está visível, valida e salva antes de tentar entrar.
+            const urlSection = document.getElementById('loginUrlSection');
+            if (urlSection && !urlSection.classList.contains('hidden')) {
+                const norm = _normalizeAppsScriptUrl(document.getElementById('loginUrlInput')?.value);
+                if (norm === null) {
+                    errEl.textContent = 'URL de conexão inválida. Use o link de implantação do Apps Script, que termina em /exec.';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                if (norm) _setAppsScriptUrl(norm);
+            }
+            if (!APPS_SCRIPT_URL) {
+                errEl.textContent = 'Este dispositivo ainda não tem a URL de conexão configurada. Cole acima o link fornecido pelo administrador.';
+                errEl.classList.remove('hidden');
+                if (urlSection && urlSection.classList.contains('hidden')) toggleLoginUrlSection();
+                document.getElementById('loginUrlInput')?.focus();
+                return;
+            }
 
             if (!nome || !senha) {
                 errEl.textContent = 'Preencha usuário e senha.';
@@ -5243,18 +5335,19 @@
             }).join('');
             return `${groupsHtml}<button type="button" onclick="addPalletPartnerGroup(${idx})" class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold mt-1 transition-colors"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar parceiro<\/button>`;
         }
-        function handlePalletPhotoUpload(idx, event) {
+        async function handlePalletPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!palletsData[idx].photos) palletsData[idx].photos = [];
-            files.forEach(async file => {
+            for (const file of files) {
                 const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
                 palletsData[idx].photos.push(dataUrl);
                 renderPallets();
                 updatePreview();
-            });
+            }
         }
         function removePalletPhoto(idx, pidx) {
             palletsData[idx].photos.splice(pidx, 1);
@@ -5269,7 +5362,7 @@
                         const payload = { action: 'saveSection', sectionType, codigo, palletsData };
                         if (sectionType === 'midias') {
                             payload.photosData      = photosData;
-                            payload.videosData      = videosData;
+                            payload.videosData      = _syncableVideos();
                             payload.reportDate      = document.getElementById('reportDate')?.value || '';
                             payload.departureTime   = document.getElementById('departureTime')?.value || '';
                             payload.customTempsData = customTempsData;
@@ -5297,10 +5390,10 @@
                     <div class="flex flex-col bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
                         <div class="flex items-center gap-2">
                             <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-amber-600 shrink-0"></i>
-                            <input type="text" value="${pl.label.replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="w-24 shrink-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
+                            <input type="text" value="${(pl.label || '').replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="w-24 shrink-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
                             <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 shrink-0" onclick="event.stopPropagation()">
                                 <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-                                <input type="number" step="0.1" value="${pl.temp}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-14 p-1.5 text-sm outline-none bg-transparent">
+                                <input type="number" step="0.1" value="${pl.temp ?? ''}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-14 p-1.5 text-sm outline-none bg-transparent">
                             </div>
                             <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl)}</span>
                             <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -5381,18 +5474,19 @@
             }
             updatePreview();
         }
-        function handleDiscardPhotoUpload(idx, event) {
+        async function handleDiscardPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
-            files.forEach(async file => {
+            for (const file of files) {
                 const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
                 discardsData[idx].photos.push(dataUrl);
                 renderDiscards();
                 updatePreview();
-            });
+            }
         }
         function removeDiscardPhoto(idx, pidx) {
             discardsData[idx].photos.splice(pidx, 1);
@@ -5503,18 +5597,19 @@
             }
             updatePreview();
         }
-        function handleTempPhotoUpload(idx, event) {
+        async function handleTempPhotoUpload(idx, event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
-            files.forEach(async file => {
+            for (const file of files) {
                 const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
                 customTempsData[idx].photos.push(dataUrl);
                 renderCustomTemps();
                 updatePreview();
-            });
+            }
         }
         function removeTempPhoto(idx, pidx) {
             customTempsData[idx].photos.splice(pidx, 1);
@@ -5608,17 +5703,20 @@
             });
         }
 
-        function handlePhotoUpload(event) {
+        async function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
-            files.forEach(async file => {
+            // Sequencial (for..of + await): com forEach(async), as compressões
+            // terminavam fora de ordem e as fotos entravam embaralhadas.
+            for (const file of files) {
                 const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
                 photosData.push({ dataUrl, caption: '' });
                 renderPhotos();
                 updatePreview();
-            });
+            }
         }
         function removePhoto(idx) {
             photosData.splice(idx, 1);
@@ -5633,7 +5731,7 @@
                         sectionType: 'midias',
                         codigo,
                         photosData,
-                        videosData,
+                        videosData: _syncableVideos(),
                         reportDate: document.getElementById('reportDate')?.value || '',
                         departureTime: document.getElementById('departureTime')?.value || '',
                         customTempsData,
@@ -5880,7 +5978,7 @@
                         </select>`}
                         <button type="button" onclick="removeAdditionalInfo(${idx})" class="px-1 text-rose-500 hover:text-rose-700 ml-auto"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
-                    <textarea rows="2" placeholder="Observação..." oninput="updateAdditionalInfo(${idx}, 'text', this.value)" class="w-full p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none resize-none">${a.text.replace(/</g,'&lt;')}</textarea>
+                    <textarea rows="2" placeholder="Observação..." oninput="updateAdditionalInfo(${idx}, 'text', this.value)" class="w-full p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none resize-none">${(a.text || '').replace(/</g,'&lt;')}</textarea>
                 </div>`;
             }).join('');
             lucide.createIcons();
@@ -5943,7 +6041,7 @@
             const maxDiscard = getMaxDiscardPartner();
             const thermoMode = document.getElementById('thermostatMode').value;
             const thermoValue = document.getElementById('thermostatValue').value || '0';
-            const validAdditionalInfo = additionalInfoData.filter(a => a.text.trim() !== '');
+            const validAdditionalInfo = additionalInfoData.filter(a => (a.text || '').trim() !== '');
             const validCustomTemps = getValidCustomTemps();
             let _rn = 0; const rn = () => ++_rn;
 
@@ -7055,6 +7153,7 @@
 
         // ---------- Configurações / API Key ----------
         function openSettings() {
+            document.getElementById('appsScriptUrlInput').value = APPS_SCRIPT_URL;
             document.getElementById('apiKeyInput').value = localStorage.getItem('spg_groq_key') || '';
             document.getElementById('githubRawUrlInput').value = localStorage.getItem('spg_github_raw_url') || '';
             document.getElementById('settingsModal').classList.remove('hidden');
@@ -7096,7 +7195,12 @@
         function saveSettings() {
             const key = document.getElementById('apiKeyInput').value.trim();
             const githubUrl = document.getElementById('githubRawUrlInput').value.trim();
-            localStorage.removeItem('spg_apps_script_url');
+            const scriptUrl = _normalizeAppsScriptUrl(document.getElementById('appsScriptUrlInput').value);
+            if (scriptUrl === null) {
+                showMessageModal('URL inválida', 'A URL do Apps Script deve ser o link de implantação, que termina em <strong>/exec</strong>.<br>Ex: https://script.google.com/macros/s/.../exec', 'error');
+                return;
+            }
+            _setAppsScriptUrl(scriptUrl);
             if (key) {
                 localStorage.setItem('spg_groq_key', key);
             } else {
