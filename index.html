@@ -1262,7 +1262,7 @@
                 sec.classList.add('hidden');
             }
         }
-        const APP_VERSION = '20260711.1'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20260711.2'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -1513,6 +1513,31 @@
         // reapareciam como cards quebrados ao recarregar o registro.
         function _syncableVideos() {
             return videosData.filter(v => v.dataUrl);
+        }
+        // Atualiza o baseline (UpdatedAt) usado pela trava otimista das seções.
+        function _trackSectionUpdatedAt(sectionType, updatedAt) {
+            if (updatedAt && Object.prototype.hasOwnProperty.call(_loadedSectionUpdatedAt, sectionType)) {
+                _loadedSectionUpdatedAt[sectionType] = updatedAt;
+            }
+        }
+        // Merge aditivo de mídias com o servidor: busca as fotos/vídeos já salvos
+        // e une com os locais (por dataUrl). Assim, dois usuários do perfil embarque
+        // trabalhando no mesmo código somam as fotos em vez de uma sobrescrever a
+        // da outra a cada auto-save. Retorna null se a busca falhar (envia local).
+        async function _fetchMergedMidias(codigo) {
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'midias', codigo }) });
+                const result = await resp.json();
+                const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
+                const serverPhotos = (result.success && result.data) ? tryParse(result.data.Fotos)  : [];
+                const serverVideos = (result.success && result.data) ? tryParse(result.data.Videos) : [];
+                const photoUrls = new Set(serverPhotos.map(p => p.dataUrl).filter(Boolean));
+                const videoUrls = new Set(serverVideos.map(v => v.dataUrl).filter(Boolean));
+                return {
+                    photos: [...serverPhotos, ...photosData.filter(p => p.dataUrl && !photoUrls.has(p.dataUrl))],
+                    videos: [...serverVideos, ..._syncableVideos().filter(v => !videoUrls.has(v.dataUrl))]
+                };
+            } catch(_) { return null; }
         }
         function _savePhotoToGallery(dataUrl) {
             try {
@@ -2043,12 +2068,17 @@
             } else if (sectionType === 'parceiros') {
                 payload.palletsData = palletsData;
                 payload.reportDate  = document.getElementById('reportDate')?.value || '';
+                payload.expectedUpdatedAt = _loadedSectionUpdatedAt.parceiros ?? null;
             } else if (sectionType === 'descartes') {
                 payload.discardsData = discardsData;
                 payload.reportDate   = document.getElementById('reportDate')?.value || '';
+                payload.expectedUpdatedAt = _loadedSectionUpdatedAt.descartes ?? null;
             } else if (sectionType === 'midias') {
-                payload.photosData      = photosData;
-                payload.videosData      = _syncableVideos();
+                // Une com o que já está no servidor: outro usuário do perfil embarque
+                // pode ter salvo fotos/vídeos no mesmo código enquanto este editava.
+                const merged = await _fetchMergedMidias(codigo);
+                payload.photosData      = merged ? merged.photos : photosData;
+                payload.videosData      = merged ? merged.videos : _syncableVideos();
                 payload.reportDate      = document.getElementById('reportDate')?.value    || '';
                 payload.departureTime   = document.getElementById('departureTime')?.value || '';
                 payload.customTempsData = customTempsData;
@@ -2064,11 +2094,34 @@
                 const result = await resp.json();
                 setSaveProgress(100, 'Concluído', '');
 
+                // Conflito: outro usuário do mesmo perfil salvou esta seção antes.
+                // Recarrega os dados atuais em vez de sobrescrever o trabalho dele.
+                if (result.conflict) {
+                    hideSaveLoadingModal();
+                    await _loadSectionData(codigo);
+                    updatePreview();
+                    _autoSaveDirty = false;
+                    showMessageModal('Atualizado por outro usuário',
+                        'Outro usuário salvou esta seção enquanto você editava. Os dados mais recentes foram recarregados — revise e salve novamente.', 'error');
+                    return false;
+                }
+
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+
+                // Mídias: adota o array mesclado (inclui fotos do outro usuário),
+                // preservando itens adicionados localmente durante o envio.
+                if (sectionType === 'midias' && payload.photosData) {
+                    const sentP = new Set(payload.photosData.map(p => p.dataUrl).filter(Boolean));
+                    const sentV = new Set(payload.videosData.map(v => v.dataUrl).filter(Boolean));
+                    photosData = [...payload.photosData, ...photosData.filter(p => p.dataUrl && !sentP.has(p.dataUrl))];
+                    videosData = [...payload.videosData, ...videosData.filter(v => v.uploading || (v.dataUrl && !sentV.has(v.dataUrl)))];
+                }
+                if (result.updatedAt) _trackSectionUpdatedAt(sectionType, result.updatedAt);
 
                 // Troca o base64 local pelos links do Drive devolvidos e marca como
                 // sincronizado — senão o auto-save de 30s reenviava tudo de novo.
                 if (result.data) _applyConvertedSectionData(result.data);
+                if (sectionType === 'midias') { renderPhotos(); renderVideos(); }
                 if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
                 _autoSaveDirty = false;
 
@@ -3284,6 +3337,7 @@
                     // Nenhuma seção salva ainda para este código: limpa os dados da seção
                     // para não deixar resíduo do embarque anterior (ex: fotos de um código
                     // grudadas em outro após "Trocar Embarque").
+                    if (sectionType !== 'nf') _loadedSectionUpdatedAt[sectionType] = null;
                     if (sectionType === 'parceiros') { palletsData = []; renderPallets(); _snapshotSyncedPallets(); }
                     else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); }
                     else if (sectionType === 'midias') {
@@ -3298,6 +3352,9 @@
                 }
 
                 const d = result.data;
+                // Baseline da trava otimista: se outro usuário do mesmo perfil salvar
+                // depois deste carregamento, o servidor detecta o conflito no save.
+                if (sectionType !== 'nf') _loadedSectionUpdatedAt[sectionType] = d.UpdatedAt || null;
                 if (sectionType === 'nf') {
                     const rd = document.getElementById('reportDate'); if (rd) rd.value = String(d.Data || '').substring(0, 10);
                     const cp = document.getElementById('customProductName'); if (cp) cp.value = d.Produto || '';
@@ -4095,10 +4152,14 @@
             if (currentUser && currentUser.perfil === 'embarque') {
                 try {
                     const { full, delta } = _computePalletsDelta();
+                    // Merge aditivo com o servidor: fotos/vídeos de outro usuário do
+                    // perfil embarque no mesmo código não são sobrescritos, e sim unidos.
+                    const merged = await _fetchMergedMidias(codigoEl.value.trim());
                     const payload = {
                         action: 'saveSection', sectionType: 'midias',
                         codigo: codigoEl.value.trim(),
-                        photosData, videosData: _syncableVideos(),
+                        photosData: merged ? merged.photos : photosData,
+                        videosData: merged ? merged.videos : _syncableVideos(),
                         reportDate:      document.getElementById('reportDate')?.value    || '',
                         departureTime:   document.getElementById('departureTime')?.value || '',
                         customTempsData
@@ -4110,7 +4171,16 @@
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
                     if (result.success) {
+                        if (merged) {
+                            // Adota o array mesclado, preservando itens adicionados durante o envio.
+                            const sentP = new Set(payload.photosData.map(p => p.dataUrl).filter(Boolean));
+                            const sentV = new Set(payload.videosData.map(v => v.dataUrl).filter(Boolean));
+                            photosData = [...payload.photosData, ...photosData.filter(p => p.dataUrl && !sentP.has(p.dataUrl))];
+                            videosData = [...payload.videosData, ...videosData.filter(v => v.uploading || (v.dataUrl && !sentV.has(v.dataUrl)))];
+                        }
+                        if (result.updatedAt) _trackSectionUpdatedAt('midias', result.updatedAt);
                         if (result.data) _applyConvertedSectionData(result.data);
+                        if (merged) { renderPhotos(); renderVideos(); }
                         _snapshotSyncedPallets();
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Mídias sincronizadas');
@@ -4135,6 +4205,11 @@
                 try {
                     const codigo = codigoEl.value.trim();
                     let payload = { action: 'saveSection', sectionType: _secAutoType, codigo };
+                    // Trava otimista: se outro usuário do mesmo perfil salvou esta seção
+                    // desde o último sync, o servidor devolve conflito em vez de sobrescrever.
+                    if (_secAutoType === 'parceiros' || _secAutoType === 'descartes') {
+                        payload.expectedUpdatedAt = _loadedSectionUpdatedAt[_secAutoType] ?? null;
+                    }
                     if (_secAutoType === 'parceiros') {
                         // Delta: reenvia só os pallets que mudaram desde o último sync (em vez
                         // do array inteiro com fotos de todos os pallets a cada ciclo de 30s).
@@ -4165,10 +4240,18 @@
                     const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
                     const result = await resp.json();
                     if (result.success) {
+                        if (result.updatedAt) _trackSectionUpdatedAt(_secAutoType, result.updatedAt);
                         if (result.data) _applyConvertedSectionData(result.data);
                         if (_secAutoType === 'parceiros') _snapshotSyncedPallets();
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
+                    } else if (result.conflict) {
+                        // Outro usuário salvou esta seção antes: recarrega os dados dele
+                        // em vez de sobrescrever (perde-se no máximo ~30s de edição local).
+                        await _loadSectionData(codigo);
+                        updatePreview();
+                        _autoSaveDirty = false;
+                        _setAutoSaveToast(_ICON_WARN, 'Atualizado por outro usuário — dados recarregados');
                     } else {
                         _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
                     }
@@ -5394,7 +5477,13 @@
                         }
                         fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
                             .then(r => r.json())
-                            .then(result => { if (result && result.success && result.data) _applyConvertedSectionData(result.data); })
+                            .then(result => {
+                                if (!result || !result.success) return;
+                                // Atualiza o baseline da trava otimista — senão a própria
+                                // exclusão geraria um falso conflito no próximo auto-save.
+                                if (result.updatedAt) _trackSectionUpdatedAt(sectionType, result.updatedAt);
+                                if (result.data) _applyConvertedSectionData(result.data);
+                            })
                             .catch(function(){});
                     }
                 }
