@@ -2131,6 +2131,9 @@
                 payload.departureTime   = document.getElementById('departureTime')?.value || '';
                 payload.customTempsData = customTempsData;
                 payload.palletsData     = palletsData;
+                payload.thermostatMode  = document.getElementById('thermostatMode')?.value  || '';
+                payload.thermostatValue = document.getElementById('thermostatValue')?.value || '';
+                payload.additionalInfoData = additionalInfoData;
             }
 
             try {
@@ -2331,7 +2334,10 @@
                                     photosData: mergedPhotos, videosData: mergedVideos,
                                     reportDate: document.getElementById('reportDate')?.value || '',
                                     departureTime: document.getElementById('departureTime')?.value || '',
-                                    customTempsData, palletsData
+                                    customTempsData, palletsData,
+                                    thermostatMode: document.getElementById('thermostatMode')?.value || '',
+                                    thermostatValue: document.getElementById('thermostatValue')?.value || '',
+                                    additionalInfoData
                                 }) });
                                 const resultPush = await respPush.json();
                                 if (resultPush && resultPush.success) {
@@ -2993,6 +2999,13 @@
                     if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
                     const mTemps = parse(m.Temperaturas);
                     if (mTemps.length > 0) customTempsData = mTemps;
+                    // Termostato/Informações Adicionais também podem ter sido editados pelo
+                    // perfil embarque via aba Midias — prevalece sobre a coluna da aba Embarques,
+                    // no mesmo padrão já usado acima para Temperaturas.
+                    if (m.Termostato !== undefined && m.Termostato !== '') document.getElementById('thermostatValue').value = m.Termostato;
+                    if (m.ModoTermostato) document.getElementById('thermostatMode').value = m.ModoTermostato;
+                    const mInfo = parse(m.InfoAdicionais);
+                    if (mInfo.length > 0) additionalInfoData = mInfo;
                     const mPallets = parse(m.Pallets);
                     if (mPallets.length > 0) {
                         if (palletsData.length > 0) {
@@ -3481,10 +3494,15 @@
                     else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); }
                     else if (sectionType === 'midias') {
                         photosData = []; videosData = []; customTempsData = [];
+                        additionalInfoData = [];
+                        const tmEl = document.getElementById('thermostatMode');
+                        const tvEl = document.getElementById('thermostatValue');
+                        if (tmEl) tmEl.value = 'CONTÍNUO';
+                        if (tvEl) tvEl.value = '';
                         // Mesmo sem Mídias salva ainda, os pallets do perfil parceiros já
                         // podem existir — carrega para o embarque poder anexar fotos neles.
                         palletsData = await _fetchParceirosPallets(codigo);
-                        renderPhotos(); renderVideos(); renderCustomTemps(); renderPallets();
+                        renderPhotos(); renderVideos(); renderCustomTemps(); renderPallets(); renderAdditionalInfo();
                         _snapshotSyncedPallets();
                     }
                     return;
@@ -3536,6 +3554,12 @@
                     }
                     const savedTemps = tryParse(d.Temperaturas);
                     if (savedTemps.length > 0) customTempsData = savedTemps;
+                    const tmEl = document.getElementById('thermostatMode');
+                    const tvEl = document.getElementById('thermostatValue');
+                    if (tvEl && d.Termostato !== undefined && d.Termostato !== '') tvEl.value = d.Termostato;
+                    if (tmEl && d.ModoTermostato) tmEl.value = d.ModoTermostato;
+                    const savedInfo = tryParse(d.InfoAdicionais);
+                    if (savedInfo.length > 0) additionalInfoData = savedInfo;
                     const savedPallets = tryParse(d.Pallets);
                     if (savedPallets.length > 0) {
                         if (palletsData.length > 0) {
@@ -3555,6 +3579,7 @@
                     renderVideos();
                     renderCustomTemps();
                     renderPallets();
+                    renderAdditionalInfo();
                     _snapshotSyncedPallets();
                 }
             } catch (_) {}
@@ -4345,7 +4370,10 @@
                         videosData: merged ? merged.videos : _syncableVideos(),
                         reportDate:      document.getElementById('reportDate')?.value    || '',
                         departureTime:   document.getElementById('departureTime')?.value || '',
-                        customTempsData
+                        customTempsData,
+                        thermostatMode:  document.getElementById('thermostatMode')?.value  || '',
+                        thermostatValue: document.getElementById('thermostatValue')?.value || '',
+                        additionalInfoData
                     };
                     // Delta: reenvia só os pallets que mudaram desde o último sync (em vez do
                     // array inteiro com fotos de todos os pallets a cada ciclo de 30s).
@@ -5671,6 +5699,9 @@
                             payload.reportDate      = document.getElementById('reportDate')?.value || '';
                             payload.departureTime   = document.getElementById('departureTime')?.value || '';
                             payload.customTempsData = customTempsData;
+                            payload.thermostatMode  = document.getElementById('thermostatMode')?.value  || '';
+                            payload.thermostatValue = document.getElementById('thermostatValue')?.value || '';
+                            payload.additionalInfoData = additionalInfoData;
                         }
                         fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
                             .then(r => r.json())
@@ -6047,6 +6078,9 @@
                         departureTime: document.getElementById('departureTime')?.value || '',
                         customTempsData,
                         palletsData,
+                        thermostatMode: document.getElementById('thermostatMode')?.value || '',
+                        thermostatValue: document.getElementById('thermostatValue')?.value || '',
+                        additionalInfoData,
                     };
                     fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
                         .then(r => r.json())
