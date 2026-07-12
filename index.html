@@ -696,7 +696,7 @@
             <p class="text-sm text-slate-600 mb-5">Todos os dados preenchidos serão apagados.<br><span class="font-bold text-slate-800">Esta ação não pode ser desfeita.</span></p>
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="document.getElementById('clearFormModal').classList.add('hidden')" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Cancelar</button>
-                <button onclick="executeClearForm()" class="px-4 py-2.5 bg-gradient-to-r from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Limpar Tudo</button>
+                <button onclick="executeClearFormAndReopenWelcome()" class="px-4 py-2.5 bg-gradient-to-r from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-bold rounded-xl text-xs transition-all uppercase tracking-wider">Limpar Tudo</button>
             </div>
         </div>
     </div>
@@ -2274,8 +2274,14 @@
                                 const serverVideos = (resultM.success && resultM.data) ? tryParse(resultM.data.Videos) : [];
                                 const serverPhotoUrls = new Set(serverPhotos.map(p => p.dataUrl).filter(Boolean));
                                 const serverVideoUrls = new Set(serverVideos.map(v => v.dataUrl).filter(Boolean));
-                                const mergedPhotos = [...serverPhotos, ...photosData.filter(p => p.dataUrl && !serverPhotoUrls.has(p.dataUrl))];
-                                const mergedVideos = [...serverVideos, ...videosData.filter(v => v.dataUrl && !serverVideoUrls.has(v.dataUrl))];
+                                // Para itens já presentes nos dois lados, usa a versão local (o que o
+                                // master acabou de editar) em vez da do servidor — senão uma legenda
+                                // editada no formulário era sobrescrita pela legenda antiga da aba
+                                // Midias nesse push de sincronização logo após salvar.
+                                const localPhotoByUrl = new Map(photosData.filter(p => p.dataUrl).map(p => [p.dataUrl, p]));
+                                const localVideoByUrl = new Map(videosData.filter(v => v.dataUrl).map(v => [v.dataUrl, v]));
+                                const mergedPhotos = [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ...photosData.filter(p => p.dataUrl && !serverPhotoUrls.has(p.dataUrl))];
+                                const mergedVideos = [...serverVideos.map(v => localVideoByUrl.get(v.dataUrl) || v), ...videosData.filter(v => v.dataUrl && !serverVideoUrls.has(v.dataUrl))];
 
                                 const respPush = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({
                                     action: 'saveSection', sectionType: 'midias', codigo: codigoAtual,
@@ -3671,6 +3677,16 @@
             // Persiste o estado vazio no localStorage para evitar que um reload
             // restaure o código de embarque anterior e o auto-save crie duplicatas.
             saveToLocalStorage();
+        }
+
+        // Usado pelo botão "Limpar" da barra superior/mobile: além de limpar o
+        // formulário, sai do modo edição (se houver) e reabre o popup de boas-vindas
+        // para o usuário escolher entre carregar um embarque ou criar um novo — sem
+        // isso, o formulário ficava limpo mas "preso" sem nenhuma ação clara a seguir.
+        function executeClearFormAndReopenWelcome() {
+            clearEditMode();
+            executeClearForm();
+            showWelcomeModal();
         }
 
         // ===== SENHA DE PROTEÇÃO =====
