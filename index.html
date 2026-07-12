@@ -2420,6 +2420,17 @@
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Histórico de Embarques';
 
+            // O histórico foi aberto a partir do popup "Bem-vindo de volta" (perfil
+            // embarque clicou "Carregar Outro Embarque")? Fechar sem escolher um
+            // registro deve voltar para aquele popup — não direto para o formulário —
+            // para que uma troca de embarque só aconteça passando pela validação por
+            // código exigida ali (evita trocar/perder a edição em andamento com 1 clique).
+            if (_resumeAwaitingLoad) {
+                _resumeAwaitingLoad = false;
+                showResumeEditingModal();
+                return;
+            }
+
             // Perfil embarque fechou o seletor sem carregar nenhum relatório, OU não
             // há nenhuma sessão ativa (nunca criou/carregou um embarque) → reapresenta
             // a tela de boas-vindas em vez de deixar o usuário numa página em branco.
@@ -3239,6 +3250,7 @@
 
         // ===== TELA DE BOAS-VINDAS =====
         let _welcomeAwaitingLoad = false; // true enquanto embarque ainda não carregou um relatório
+        let _resumeAwaitingLoad = false; // true enquanto o histórico foi aberto a partir do popup "Bem-vindo de volta"
 
         function showWelcomeModal() {
             if (!currentUser) return;
@@ -3736,13 +3748,15 @@
         }
 
         function _resumeEditingLoadNew() {
-            // Não marca _welcomeAwaitingLoad nem limpa o formulário aqui: o embarque
-            // que estava sendo editado já é uma sessão válida (_hasActiveSession()
-            // continua true). Se o usuário fechar a lista de "Carregar Embarque" sem
-            // escolher outro registro, closeHistoryModal() não reabre o popup de
-            // boas-vindas — ele simplesmente volta para o formulário, exatamente como
-            // estava antes de clicar aqui. A troca de fato só ocorre quando confirma
-            // a senha de um registro na lista (loadHistoryReport() substitui os dados).
+            // Não limpa o formulário aqui: o embarque que estava sendo editado já é
+            // uma sessão válida (_hasActiveSession() continua true). Marca
+            // _resumeAwaitingLoad para que, se o usuário fechar a lista de "Carregar
+            // Embarque" (X) sem escolher outro registro, closeHistoryModal() volte
+            // para ESTE popup de retomada — em vez de ir direto para o formulário —
+            // preservando a etapa de validação por código antes de trocar de embarque.
+            // A troca de fato só ocorre quando confirma a senha de um registro na
+            // lista (loadHistoryReport() substitui os dados).
+            _resumeAwaitingLoad = true;
             _closeResumeEditingModal();
             openEmbarqueCarregar();
         }
@@ -3922,6 +3936,7 @@
                     } else if (type === 'load') {
                         const row = _findRowByTs(ts);
                         _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
+                        _resumeAwaitingLoad = false;  // idem para o popup de retomada de edição
                         // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
                         // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
                         // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
