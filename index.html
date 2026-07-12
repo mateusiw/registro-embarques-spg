@@ -3077,11 +3077,18 @@
         let _editOriginalRow = null;
 
         function editHistoryReport(ts, password) {
-            closeHistoryModal();
-            loadHistoryReport(ts);
-            _editSnapshot = collectFormData();
             const row = _findRowByTs(ts);
-            if (!row) return;
+            if (!row) { closeHistoryModal(); return; }
+
+            // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
+            // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
+            // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
+            // Fechar primeiro fazia o popup de boas-vindas reaparecer por cima da
+            // confirmação de carregamento (mesmo bug já corrigido para o botão
+            // "Carregar" em submitPassword(), mas que faltava aqui no "Editar").
+            loadHistoryReport(ts);
+            closeHistoryModal();
+            _editSnapshot = collectFormData();
 
             // Zera o timestamp do auto-save do embarque que estava aberto antes.
             // Sem isso, o auto-save usa _autoSaveTimestamp (embarque novo) como alvo e
