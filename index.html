@@ -37,6 +37,57 @@
 
         /* Mobile bottom nav */
         #bottom-nav { display: none; }
+
+        /* Botões do menu inferior: em repouso mostram só o texto; ao tocar (ou
+           enquanto o submenu que abrem está aberto) viram um pill arredondado
+           com ícone + nome, no estilo do seletor de abas do app Fotos (iOS) —
+           em tom claro/azul, igual à barra de referência (app de Wi-Fi). */
+        .mnav-btn {
+            display: flex; align-items: center; justify-content: center;
+            background: none; border: none; cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            padding: 14px 4px; color: #64748b;
+        }
+        .mnav-btn.mnav-divider { border-right: 1px solid #eef2f6; }
+        .mnav-btn.mnav-danger { color: #dc2626; }
+        .mnav-pill {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 6px 4px; border-radius: 999px;
+            transition: background-color .15s ease, padding .15s ease, color .15s ease;
+        }
+        .mnav-pill .mnav-icon { display: none; width: 15px; height: 15px; flex-shrink: 0; }
+        .mnav-pill .mnav-label {
+            font-size: 9px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.05em; line-height: 1; white-space: nowrap;
+        }
+        .mnav-btn:active .mnav-pill,
+        .mnav-btn.mnav-active .mnav-pill {
+            background: rgba(37,99,235,0.1); padding: 7px 13px; color: #2563eb;
+        }
+        .mnav-btn:active .mnav-pill .mnav-icon,
+        .mnav-btn.mnav-active .mnav-pill .mnav-icon { display: inline-block; }
+        .mnav-btn.mnav-success .mnav-pill {
+            background: #10b981; padding: 7px 13px; color: #fff;
+        }
+        .mnav-btn.mnav-success .mnav-pill .mnav-icon { display: inline-block; }
+
+        /* Barra superior: clara/suave em vez do gradiente escuro, em mobile
+           e desktop. */
+        #appTopBar {
+            background: #ffffff; box-shadow: 0 1px 4px rgba(15,23,42,0.08);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        #appTopBar h1 { color: #0f172a; }
+        #appTopBar p { color: #059669; }
+        #mobileFormTabsWrap { background: #f1f5f9; }
+        #mobileFormTabsWrap .text-white { color: #0f172a; }
+        #mobileFormTabsWrap .text-white\/60 { color: #94a3b8; }
+        #mobileFormTabsWrap .bg-white\/20 { background-color: #ffffff; box-shadow: 0 1px 3px rgba(15,23,42,0.1); }
+        /* Badge de usuário + botão sair, no canto direito da barra (desktop) */
+        #desktopTopBarActions .bg-white\/10 { background-color: #f1f5f9; }
+        #desktopTopBarActions .border-white\/15 { border-color: #e2e8f0; }
+        #desktopTopBarActions .text-white\/70 { color: #64748b; }
+
         @media (max-width: 1279px) {
             #bottom-nav { display: flex; }
             #desktop-nav-buttons { display: none; }
@@ -126,7 +177,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 border border-slate-100">
             <div class="text-center mb-7">
                 <img src="https://i.imgur.com/FSUbdya.png" class="w-16 h-16 mx-auto mb-3 rounded-xl shadow-lg">
-                <h1 class="text-xl font-black text-slate-800 uppercase tracking-wide">SPG SEDE</h1>
+                <h1 class="text-xl font-black text-slate-800 uppercase tracking-wide">SPG</h1>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Registro de Embarque</p>
             </div>
             <div id="loginError" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold text-center"></div>
@@ -231,23 +282,23 @@
 
     <!-- Navbar -->
     <div class="sticky top-0 z-40">
-        <!-- Barra superior escura: logo + usuário -->
-        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-2.5 flex justify-between items-center shadow-md">
+        <!-- Barra superior: logo + usuário (clara/suave em mobile e desktop — ver #appTopBar no <style>) -->
+        <div id="appTopBar" class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-2.5 flex justify-between items-center shadow-md">
             <div class="flex items-center gap-3">
                 <div>
-                    <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG SEDE</h1>
+                    <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG</h1>
                     <p class="text-[10px] text-emerald-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
                 </div>
             </div>
 
             <!-- Tabs mobile (formulário / prévia) -->
-            <div class="flex xl:hidden items-center gap-1 bg-white/10 rounded-xl p-1">
+            <div id="mobileFormTabsWrap" class="flex xl:hidden items-center gap-1 bg-white/10 rounded-xl p-1">
                 <button type="button" id="tab-form-btn" onclick="switchMobileTab('form')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-white/20 transition-all">Formulário</button>
                 <button type="button" id="tab-preview-btn" onclick="switchMobileTab('preview')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white/60 transition-all">Prévia</button>
             </div>
 
             <!-- Desktop: badge do usuário + logout -->
-            <div class="hidden xl:flex items-center gap-2">
+            <div id="desktopTopBarActions" class="hidden xl:flex items-center gap-2">
                 <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/15 text-sm"></div>
                 <button type="button" onclick="doLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
                     <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
@@ -1084,53 +1135,46 @@
     </div>
 
     <!-- BOTTOM NAV (mobile only) -->
-    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#1e293b;border-top:1px solid #334155;box-shadow:0 -4px 20px rgba(0,0,0,0.3);">
+    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#ffffff;border-top:1px solid #e2e8f0;box-shadow:0 -2px 16px rgba(15,23,42,0.08);">
 
         <!-- Overlay para fechar popups ao clicar fora -->
         <div id="mobileNavOverlay" onclick="closeMobilePopups()" style="display:none;position:fixed;inset:0;z-index:-1;"></div>
 
         <!-- Popup: PDF Interno + PDF Email -->
-        <div id="mobilePopupPdf" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(0,0,0,0.6);">
-            <div style="padding:7px 14px;border-bottom:1px solid #334155;">
+        <div id="mobilePopupPdf" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(15,23,42,0.14);">
+            <div style="padding:7px 14px;border-bottom:1px solid #e2e8f0;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Gerar PDF</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;">
-                <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="file-text" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Interno</span>
+                <button id="mobileNavPdfInterno" type="button" onclick="confirmBeforeSend('interno');closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="file-text" class="mnav-icon"></i><span class="mnav-label">Interno</span></span>
                 </button>
-                <button id="mobileNavPdfParceiros" type="button" onclick="confirmBeforeSend('parceiros');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="users" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Parceiros</span>
+                <button id="mobileNavPdfParceiros" type="button" onclick="confirmBeforeSend('parceiros');closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="users" class="mnav-icon"></i><span class="mnav-label">Parceiros</span></span>
                 </button>
-                <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email');closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="mail" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Email</span>
+                <button id="mobileNavPdfEmail" type="button" onclick="confirmBeforeSend('email');closeMobilePopups()" class="mnav-btn">
+                    <span class="mnav-pill"><i data-lucide="mail" class="mnav-icon"></i><span class="mnav-label">Email</span></span>
                 </button>
             </div>
         </div>
 
         <!-- Popup: Histórico + Config. -->
-        <div id="mobilePopupMenu" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(0,0,0,0.6);">
-            <div style="padding:7px 14px;border-bottom:1px solid #334155;">
+        <div id="mobilePopupMenu" style="display:none;position:absolute;bottom:100%;left:12px;right:12px;margin-bottom:8px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 -8px 24px rgba(15,23,42,0.14);">
+            <div style="padding:7px 14px;border-bottom:1px solid #e2e8f0;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Mais opções</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">
-                <button type="button" onclick="novoEmbarque();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:#10b981;border:none;border-right:1px solid #334155;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="file-plus" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;line-height:1;">Novo</span>
+                <button type="button" onclick="novoEmbarque();closeMobilePopups()" class="mnav-btn mnav-divider mnav-success">
+                    <span class="mnav-pill"><i data-lucide="file-plus" class="mnav-icon"></i><span class="mnav-label">Novo</span></span>
                 </button>
-                <button id="mobileNavSincronizar" type="button" onclick="sincronizarDados();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="refresh-cw" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Atualizar</span>
+                <button id="mobileNavSincronizar" type="button" onclick="sincronizarDados();closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="refresh-cw" class="mnav-icon"></i><span class="mnav-label">Atualizar</span></span>
                 </button>
-                <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="history" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Histórico</span>
+                <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="history" class="mnav-icon"></i><span class="mnav-label">Histórico</span></span>
                 </button>
-                <button id="mobileNavSettings" type="button" onclick="openSettings();closeMobilePopups()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 8px;background:none;border:none;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                    <i data-lucide="settings" style="width:18px;height:18px;flex-shrink:0;"></i>
-                    <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Config.</span>
+                <button id="mobileNavSettings" type="button" onclick="openSettings();closeMobilePopups()" class="mnav-btn">
+                    <span class="mnav-pill"><i data-lucide="settings" class="mnav-icon"></i><span class="mnav-label">Config.</span></span>
                 </button>
             </div>
         </div>
@@ -1138,61 +1182,52 @@
         <!-- Linha única de botões -->
         <div id="mobileNavRow1" style="display:grid;grid-template-columns:repeat(5,1fr);">
 
-            <button type="button" id="saveCloudBtnMobile" onclick="saveToCloud()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="cloud-upload" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Salvar</span>
+            <button type="button" id="saveCloudBtnMobile" onclick="saveToCloud()" class="mnav-btn mnav-divider">
+                <span class="mnav-pill"><i data-lucide="cloud-upload" class="mnav-icon"></i><span class="mnav-label">Salvar</span></span>
             </button>
 
-            <button type="button" id="mobileNavPdfGroup" onclick="toggleMobilePopup('Pdf')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="file-text" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">PDF</span>
+            <button type="button" id="mobileNavPdfGroup" onclick="toggleMobilePopup('Pdf')" class="mnav-btn mnav-divider">
+                <span class="mnav-pill"><i data-lucide="file-text" class="mnav-icon"></i><span class="mnav-label">PDF</span></span>
             </button>
 
-            <button id="mobileNavAnalisar" type="button" onclick="runAIAnalysis()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="sparkles" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Analisar</span>
+            <button id="mobileNavAnalisar" type="button" onclick="runAIAnalysis()" class="mnav-btn mnav-divider">
+                <span class="mnav-pill"><i data-lucide="sparkles" class="mnav-icon"></i><span class="mnav-label">Analisar</span></span>
             </button>
 
-            <button type="button" id="mobileNavMenuGroup" onclick="toggleMobilePopup('Menu')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="more-horizontal" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Mais</span>
+            <button type="button" id="mobileNavMenuGroup" onclick="toggleMobilePopup('Menu')" class="mnav-btn mnav-divider">
+                <span class="mnav-pill"><i data-lucide="more-horizontal" class="mnav-icon"></i><span class="mnav-label">Mais</span></span>
             </button>
 
-            <button type="button" id="mobileNavCarregar" onclick="openEmbarqueCarregar()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="folder-open" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Carregar</span>
+            <button type="button" id="mobileNavCarregar" onclick="openEmbarqueCarregar()" class="mnav-btn mnav-divider" style="display:none;">
+                <span class="mnav-pill"><i data-lucide="folder-open" class="mnav-icon"></i><span class="mnav-label">Carregar</span></span>
             </button>
 
-            <button type="button" id="mobileNavPdfParceirosSection" onclick="confirmBeforeSend('parceiros')" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="users" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Parceiros</span>
+            <button type="button" id="mobileNavPdfParceirosSection" onclick="confirmBeforeSend('parceiros')" class="mnav-btn mnav-divider" style="display:none;">
+                <span class="mnav-pill"><i data-lucide="users" class="mnav-icon"></i><span class="mnav-label">Parceiros</span></span>
             </button>
 
-            <button type="button" id="mobileNavAtualizar" onclick="sincronizarDados()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="refresh-cw" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Atualizar</span>
+            <button type="button" id="mobileNavAtualizar" onclick="sincronizarDados()" class="mnav-btn mnav-divider" style="display:none;">
+                <span class="mnav-pill"><i data-lucide="refresh-cw" class="mnav-icon"></i><span class="mnav-label">Atualizar</span></span>
             </button>
 
-            <button type="button" id="mobileNavTrocarEmbarque" onclick="trocarEmbarqueSection()" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;border-right:1px solid #334155;cursor:pointer;color:#e2e8f0;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="replace" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#94a3b8;">Trocar</span>
+            <button type="button" id="mobileNavTrocarEmbarque" onclick="trocarEmbarqueSection()" class="mnav-btn mnav-divider" style="display:none;">
+                <span class="mnav-pill"><i data-lucide="replace" class="mnav-icon"></i><span class="mnav-label">Trocar</span></span>
             </button>
 
-            <button id="mobileNavLimpar" type="button" onclick="clearForm()" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:none;border:none;cursor:pointer;color:#fca5a5;-webkit-tap-highlight-color:transparent;">
-                <i data-lucide="trash-2" style="width:20px;height:20px;flex-shrink:0;"></i>
-                <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;line-height:1;color:#fca5a5;">Limpar</span>
+            <button id="mobileNavLimpar" type="button" onclick="clearForm()" class="mnav-btn mnav-danger">
+                <span class="mnav-pill"><i data-lucide="trash-2" class="mnav-icon"></i><span class="mnav-label">Limpar</span></span>
             </button>
 
         </div>
 
         <!-- Linha de logout mobile -->
-        <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid #334155;padding:10px 8px;gap:10px;">
-            <span id="mobileUserLabel" style="font-size:11px;font-weight:600;color:#94a3b8;flex:1;padding-left:12px;"></span>
-            <button type="button" onclick="doLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;cursor:pointer;color:#fca5a5;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+        <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid #e2e8f0;padding:10px 8px;gap:10px;">
+            <span id="mobileUserLabel" style="display:flex;align-items:center;color:#64748b;flex:1;padding-left:12px;"></span>
+            <button type="button" onclick="doLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
                 <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sair
             </button>
         </div>
-        <div style="height:env(safe-area-inset-bottom,0px);background:#1e293b;"></div>
+        <div style="height:env(safe-area-inset-bottom,0px);background:#ffffff;"></div>
     </nav>
 
     <script>
@@ -1211,7 +1246,7 @@
                 const manifest = {
                     name: 'Registro de Embarque - SPG',
                     short_name: 'Embarque SPG',
-                    description: 'Controle e emissão de relatórios de embarque da SPG Sede',
+                    description: 'Controle e emissão de relatórios de embarque da SPG',
                     start_url: '.',
                     display: 'standalone',
                     orientation: 'portrait-primary',
@@ -2335,6 +2370,14 @@
                     } else {
                         showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
                     }
+
+                    // Master: dispara a análise de IA automaticamente após salvar — sem
+                    // precisar clicar em "Analisar" à parte. Só gera se o registro ainda
+                    // não tem uma análise (nova ou carregada do histórico) — não substitui
+                    // uma análise já existente por uma nova a cada save.
+                    if (currentUser && currentUser.perfil === 'master' && !aiSummary) {
+                        runAIAnalysis();
+                    }
                 } else {
                     showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
                 }
@@ -3043,7 +3086,7 @@
         function novoEmbarque() {
             clearEditMode();
             executeClearForm();
-            showMessageModal('Pronto para novo embarque!', 'Formulário limpo. Pode começar o preenchimento do novo embarque.', 'success');
+            showWelcomeModal();
         }
 
         // Converte uma data (ISO do Sheets ou YYYY-MM-DD) para DD/MM/AAAA.
@@ -3124,14 +3167,19 @@
             const popup = document.getElementById('mobilePopup' + name);
             const other = document.getElementById('mobilePopup' + (name === 'Pdf' ? 'Menu' : 'Pdf'));
             const overlay = document.getElementById('mobileNavOverlay');
+            const btn = document.getElementById(name === 'Pdf' ? 'mobileNavPdfGroup' : 'mobileNavMenuGroup');
+            const otherBtn = document.getElementById(name === 'Pdf' ? 'mobileNavMenuGroup' : 'mobileNavPdfGroup');
             const isVisible = popup.style.display !== 'none';
             other.style.display = 'none';
+            if (otherBtn) otherBtn.classList.remove('mnav-active');
             if (isVisible) {
                 popup.style.display = 'none';
                 overlay.style.display = 'none';
+                if (btn) btn.classList.remove('mnav-active');
             } else {
                 popup.style.display = 'block';
                 overlay.style.display = 'block';
+                if (btn) btn.classList.add('mnav-active');
                 lucide.createIcons();
             }
         }
@@ -3140,6 +3188,8 @@
             document.getElementById('mobilePopupPdf').style.display = 'none';
             document.getElementById('mobilePopupMenu').style.display = 'none';
             document.getElementById('mobileNavOverlay').style.display = 'none';
+            document.getElementById('mobileNavPdfGroup')?.classList.remove('mnav-active');
+            document.getElementById('mobileNavMenuGroup')?.classList.remove('mnav-active');
         }
 
         // ===== TELA DE BOAS-VINDAS =====
@@ -4809,12 +4859,16 @@
             if (badge) {
                 badge.style.display = 'flex';
                 badge.innerHTML = `
-                    <span style="font-size:11px;font-weight:700;color:#e2e8f0;">${nome}</span>
+                    <span style="font-size:11px;font-weight:700;color:#0f172a;">${nome}</span>
                     <span style="font-size:9px;padding:2px 7px;border-radius:999px;font-weight:800;background:${cor};color:#fff;text-transform:uppercase;letter-spacing:0.05em;">${label}</span>
                 `;
             }
             const mobileLabel = document.getElementById('mobileUserLabel');
-            if (mobileLabel) mobileLabel.textContent = `${nome} · ${label}`;
+            if (mobileLabel) {
+                mobileLabel.innerHTML = '<i data-lucide="user-round" style="width:18px;height:18px;"></i>';
+                mobileLabel.title = `${nome} · ${label}`;
+                lucide.createIcons();
+            }
 
             // Banners informativos para perfis de seção
             _showSectionBanner(perfil);
@@ -5472,7 +5526,7 @@
                         const lotUnits = _lotUnits(lot);
                         return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" value="${lot.boxes||''}" placeholder="Cx" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx${lotUnits>0?` = ${lotUnits} un`:''}<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
                     }).join('')}<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-1 text-emerald-500 hover:text-emerald-700 text-[10px] font-bold mt-1"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button><\/div>`;
-                return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-0"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 ml-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${_qtyLabel(total, totalUnits)}<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
+                return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center flex-wrap gap-y-1.5 justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-[140px]"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">${_qtyLabel(total, totalUnits)}<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
             }).join('');
             return `${groupsHtml}<button type="button" onclick="addPalletPartnerGroup(${idx})" class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold mt-1 transition-colors"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar parceiro<\/button>`;
         }
@@ -6212,7 +6266,7 @@
                   </td>
                   <td style="padding:10px 16px;vertical-align:middle;text-align:center;border-right:1px solid rgba(255,255,255,0.15);">
                     <div style="font-weight:900;font-size:14px;color:#fff;text-transform:uppercase;letter-spacing:0.08em;line-height:1.2;">REGISTRO DE EMBARQUE</div>
-                    <div style="font-size:9.5px;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.04em;">Relatório de Controle de Embarque &nbsp;•&nbsp; SPG Sede</div>
+                    <div style="font-size:9.5px;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:0.04em;">Relatório de Controle de Embarque &nbsp;•&nbsp; SPG</div>
                   </td>
                   <td style="width:160px;padding:10px 14px;vertical-align:middle;text-align:center;">
                     <div style="font-size:8.5px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.08em;">Emissão</div>
@@ -6638,7 +6692,7 @@
             doc.text('REGISTRO DE EMBARQUE', centerX, HDR_H/2 - 1, { align:'center', charSpace: 0.5 });
             doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
             doc.setTextColor(255,255,255); doc.setGState(new doc.GState({opacity:0.75}));
-            doc.text('Relatório de Controle de Embarque  •  SPG Sede', centerX, HDR_H/2 + 4, { align:'center' });
+            doc.text('Relatório de Controle de Embarque  •  SPG', centerX, HDR_H/2 + 4, { align:'center' });
             doc.setGState(new doc.GState({opacity:1}));
 
             // Coluna EMISSÃO à direita
@@ -7461,12 +7515,12 @@ ${tempObs}
 Estruture sua resposta EXATAMENTE neste formato, com as tags:
 
 [RESUMO]
-Com base nos dados do embarque e no conhecimento técnico do produto informado, responda com bullets curtos (•) e diretos:
-1. Quais problemas ocorreram neste embarque? (cruce motivos de descarte, temperaturas, volumes e a CULTURA de cada parceiro para identificar os problemas típicos daquele produto: amarelamento, manchas, murcha, podridão, etc.)
-2. Quem foi o principal causador? (parceiro com maior descarte, qual a cultura dele e qual problema predominou nela)
-3. Com base nos problemas identificados, dê 1 ou 2 recomendações práticas e específicas para evitar a repetição nos próximos embarques (ex: temperatura ideal, ponto de colheita, tempo máximo pós-colheita, sinais de rejeição no campo)
-4. Se os dados não indicarem problemas relevantes, informe que o embarque ocorreu dentro do padrão esperado.
-Máximo 5 bullets. Seja técnico, objetivo e útil.
+Gere de 3 a 5 bullets (•) curtos e diretos. NÃO inclua título, introdução ou repita estas instruções — a resposta deve começar direto no primeiro bullet. Cubra, quando aplicável:
+- Quais problemas ocorreram neste embarque (cruze motivos de descarte, temperaturas, volumes e a CULTURA de cada parceiro para identificar os problemas típicos daquele produto: amarelamento, manchas, murcha, podridão, etc.)
+- Quem foi o principal causador (parceiro com maior descarte, qual a cultura dele e qual problema predominou nela)
+- 1 ou 2 recomendações práticas e específicas para evitar a repetição nos próximos embarques (ex: temperatura ideal, ponto de colheita, tempo máximo pós-colheita, sinais de rejeição no campo)
+- Se os dados não indicarem problemas relevantes, informe que o embarque ocorreu dentro do padrão esperado.
+Seja técnico, objetivo e útil.
 [/RESUMO]
 
 [ANÁLISE]
@@ -7516,11 +7570,17 @@ Seja objetivo mas completo. Responda em português.`;
                 // O resumo alimenta o PDF. Se a IA não retornou a tag [RESUMO],
                 // usamos a análise (ou o texto completo, sem as tags) como fallback,
                 // para que a última análise SEMPRE entre no PDF automaticamente.
+                // Rede de segurança: apesar do prompt pedir para não repetir as
+                // instruções, alguns modelos ainda ecoam a frase de comando como se
+                // fosse o primeiro bullet — filtra essa linha caso apareça.
                 const summaryForPdf = (resumoText
                     || analiseText
                     || text || '')
                     .replace(/\[\/?RESUMO\]/g, '')
                     .replace(/\[\/?ANÁLISE\]/g, '')
+                    .split('\n')
+                    .filter(l => !/responda com bullets curtos/i.test(l))
+                    .join('\n')
                     .trim();
                 aiSummary = summaryForPdf || null;
                 saveToLocalStorage();
