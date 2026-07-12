@@ -285,6 +285,32 @@
         </div>
     </div>
 
+    <!-- MODAL BACKUP (registros apagados) -->
+    <div id="backupModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-start backdrop-blur-sm overflow-y-auto p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0"><i data-lucide="archive-restore" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Registros Apagados</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Consulte e recupere embarques/seções apagados</p>
+                    </div>
+                </div>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="px-5 pt-3">
+                <input type="text" id="backupSearch" placeholder="Buscar por código..." oninput="filterBackupList(this.value)" class="w-full p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-400 outline-none">
+            </div>
+            <div class="p-5 space-y-2">
+                <div id="backupList" class="space-y-2 max-h-[60vh] overflow-y-auto">
+                    <div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <div class="sticky top-0 z-40">
         <!-- Barra superior: logo + usuário (clara/suave em mobile e desktop — ver #appTopBar no <style>) -->
@@ -391,6 +417,9 @@
                     </button>
                     <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Gerenciar usuários">
                         <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" id="navBtnBackup" onclick="openBackupModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Registros apagados (Backup)">
+                        <i data-lucide="archive-restore" class="w-3.5 h-3.5"></i>
                     </button>
                     <button type="button" id="navBtnLimpar" onclick="clearForm()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95" title="Limpar formulário">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -1171,7 +1200,7 @@
             <div style="padding:7px 14px;border-bottom:1px solid #e2e8f0;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Mais opções</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
                 <button type="button" onclick="novoEmbarque();closeMobilePopups()" class="mnav-btn mnav-divider mnav-success">
                     <span class="mnav-pill"><i data-lucide="file-plus" class="mnav-icon"></i><span class="mnav-label">Novo</span></span>
                 </button>
@@ -1180,6 +1209,9 @@
                 </button>
                 <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" class="mnav-btn mnav-divider">
                     <span class="mnav-pill"><i data-lucide="history" class="mnav-icon"></i><span class="mnav-label">Histórico</span></span>
+                </button>
+                <button id="mobileNavBackup" type="button" onclick="openBackupModal();closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="archive-restore" class="mnav-icon"></i><span class="mnav-label">Backup</span></span>
                 </button>
                 <button id="mobileNavSettings" type="button" onclick="openSettings();closeMobilePopups()" class="mnav-btn">
                     <span class="mnav-pill"><i data-lucide="settings" class="mnav-icon"></i><span class="mnav-label">Config.</span></span>
@@ -4830,7 +4862,7 @@
 
                 // Restaura botões de nav e preview exclusivos do master
                 [
-                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'tab-preview-btn',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup'
                 ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
@@ -4842,7 +4874,7 @@
                 const hideForEmbarque = [
                     'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                     'section-descartes',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnPdfParceiros', 'navGroupRelatorios',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup', 'tab-preview-btn',
                     'preview-column'
@@ -4865,7 +4897,7 @@
                     'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                     'section-resp-embarque', 'section-veiculo', 'section-temperaturas',
                     'section-descartes', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'mobileNavCarregar', 'tab-preview-btn'
@@ -4881,7 +4913,7 @@
                     'section-resp-cruzamento',
                     'section-resp-embarque', 'section-veiculo', 'section-pallets',
                     'section-temperaturas', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'mobileNavCarregar', 'tab-preview-btn'
@@ -4904,7 +4936,7 @@
                     'section-produto-cliente', 'section-resp-cruzamento',
                     'section-resp-embarque', 'section-pallets',
                     'section-temperaturas', 'section-descartes', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnCarregar',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'mobileNavCarregar', 'tab-preview-btn'
@@ -5113,6 +5145,120 @@
                 if (!result.success) throw new Error(result.error);
                 await loadUsersList();
             } catch(e) { alert('Erro: ' + e.message); }
+        }
+
+        // ---------- BACKUP (registros apagados) ----------
+        let _backupRows = [];
+        let _backupRowsFiltered = [];
+
+        function _backupOrigemInfo(origem) {
+            const map = {
+                'NotaFiscal': { label: 'Embarque completo', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+                'Parceiros':  { label: 'Parceiros',          bg: 'bg-amber-100',   text: 'text-amber-700',   border: 'border-amber-200' },
+                'Descartes':  { label: 'Descartes',          bg: 'bg-rose-100',    text: 'text-rose-700',    border: 'border-rose-200' },
+                'Midias':     { label: 'Mídias',             bg: 'bg-violet-100',  text: 'text-violet-700',  border: 'border-violet-200' }
+            };
+            return map[origem] || { label: origem || '—', bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' };
+        }
+
+        function _formatBackupDate(iso) {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '—';
+            const pad = n => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        async function openBackupModal() {
+            if (!APPS_SCRIPT_URL) {
+                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
+                return;
+            }
+            document.getElementById('backupModal').classList.remove('hidden');
+            lockScroll();
+            document.getElementById('backupSearch').value = '';
+            document.getElementById('backupList').innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>';
+            lucide.createIcons();
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'listBackup', masterPassword: 'spg@2024' }) });
+                const result = await resp.json();
+                if (!result.success) throw new Error(result.error || 'Erro ao carregar.');
+                _backupRows = result.rows || [];
+                _backupRowsFiltered = [..._backupRows];
+                renderBackupList(_backupRowsFiltered);
+            } catch (err) {
+                document.getElementById('backupList').innerHTML = `<div class="text-center py-8 text-red-400 text-sm font-bold">Erro: ${err.message}</div>`;
+            }
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupModal').classList.add('hidden');
+            unlockScroll();
+        }
+
+        function filterBackupList(query) {
+            const q = query.toLowerCase().trim();
+            _backupRowsFiltered = q
+                ? _backupRows.filter(r => String(r.Codigo||'').toLowerCase().includes(q) || String(r.Resumo||'').toLowerCase().includes(q))
+                : [..._backupRows];
+            renderBackupList(_backupRowsFiltered);
+        }
+
+        function renderBackupList(rows) {
+            const container = document.getElementById('backupList');
+            if (!rows.length) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Nenhum registro apagado.</div>';
+                return;
+            }
+            container.innerHTML = rows.map(r => {
+                const info = _backupOrigemInfo(r.Origem);
+                return `
+                <div class="border ${info.border} rounded-xl p-3.5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${info.bg} ${info.text}">${info.label}</span>
+                                <span class="text-xs font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">${r.Codigo || '—'}</span>
+                            </div>
+                            <div class="text-sm font-bold text-slate-800 truncate">${r.Resumo || '—'}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Apagado por ${r.ApagadoPor || 'Desconhecido'} · ${_formatBackupDate(r.ApagadoEm)}</div>
+                        </div>
+                        <button onclick="restoreBackupRow(${r.rowIndex})" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1 shrink-0">
+                            <i data-lucide="undo-2" class="w-3 h-3"></i> Recuperar
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function restoreBackupRow(rowIndex) {
+            const row = _backupRows.find(r => r.rowIndex === rowIndex);
+            const info = _backupOrigemInfo(row ? row.Origem : '');
+            showConfirmModal({
+                title: 'Restaurar registro?',
+                text: `O registro "${row ? row.Codigo : ''}" (${info.label}) será restaurado para a planilha de origem. Se já existir um registro com o mesmo código, ele será substituído por este.`,
+                confirmLabel: 'Restaurar',
+                type: 'info',
+                onConfirm: () => _executeRestoreBackup(rowIndex)
+            });
+        }
+
+        async function _executeRestoreBackup(rowIndex) {
+            showSaveLoadingModal();
+            setSaveProgress(30, 'Restaurando registro', 'Aguarde...');
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'restoreBackup', masterPassword: 'spg@2024', rowIndex }) });
+                const result = await resp.json();
+                setSaveProgress(100, 'Concluído', '');
+                hideSaveLoadingModal();
+                if (!result.success) throw new Error(result.error || 'Erro ao restaurar.');
+                showMessageModal('Restaurado!', 'O registro foi restaurado com sucesso.', 'success');
+                checkPendingNotifications();
+                await openBackupModal();
+            } catch (err) {
+                hideSaveLoadingModal();
+                showMessageModal('Erro ao restaurar', err.message, 'error');
+            }
         }
 
         // ---------- NFe ----------
@@ -7444,7 +7590,7 @@
         // unlockScroll esquecido travava a página), o estado é derivado dos modais
         // realmente visíveis. unlockScroll só libera quando nenhum modal está aberto.
         const _MODAL_IDS = [
-            'usersModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
+            'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
             'photoSourceModal','videoSourceModal','videoLinkModal','genericConfirmModal','conflictModal','passwordModal',
             'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
