@@ -4583,34 +4583,12 @@
             }
         }
 
-        async function sincronizarDados() {
-            if (!APPS_SCRIPT_URL) return;
-            const btns = [
-                document.getElementById('navBtnSincronizar'),
-                document.getElementById('mobileNavSincronizar'),
-            ];
-            btns.forEach(b => { if (b) { b.disabled = true; b.style.opacity = '0.5'; } });
-            _setAutoSaveToast(_ICON_SPIN, 'Sincronizando dados...', false);
-            try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const result = await resp.json();
-                if (!result.success) throw new Error(result.error || 'Erro');
-                historyRows = result.rows || [];
-                historyRowsFiltered = [...historyRows];
-                if (typeof _updatePendingUI === 'function') _updatePendingUI();
-                const targetTs = _autoSaveTimestamp || editModeTimestamp;
-                if (targetTs && !_autoSaveDirty) {
-                    loadHistoryReport(String(targetTs), { silent: true });
-                    _autoSaveDirty = false;
-                    if (editModeTimestamp) _editSnapshot = collectFormData();
-                }
-                _setAutoSaveToast(_ICON_CHECK, 'Dados atualizados!');
-            } catch(e) {
-                _setAutoSaveToast(_ICON_WARN, 'Sem conexão — dados locais');
-            } finally {
-                btns.forEach(b => { if (b) { b.disabled = false; b.style.opacity = ''; } });
-            }
+        function sincronizarDados() {
+            // Recarrega a página de verdade (igual ao botão de atualizar do navegador),
+            // em vez de só buscar a lista da planilha em segundo plano. O estado do
+            // formulário sobrevive normalmente via localStorage/IndexedDB (ver initApp()),
+            // e initApp() já resincroniza com o servidor logo após o reload.
+            window.location.reload();
         }
         // ===== FIM AUTO-SAVE =====
 
