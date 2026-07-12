@@ -1533,9 +1533,14 @@
                 const serverVideos = (result.success && result.data) ? tryParse(result.data.Videos) : [];
                 const photoUrls = new Set(serverPhotos.map(p => p.dataUrl).filter(Boolean));
                 const videoUrls = new Set(serverVideos.map(v => v.dataUrl).filter(Boolean));
+                // Para itens já presentes nos dois lados, usa a versão LOCAL (não a do
+                // servidor): sem isso, a legenda editada localmente após o upload da foto
+                // era sobrescrita pela legenda antiga/vazia do servidor a cada auto-save.
+                const localPhotoByUrl = new Map(photosData.filter(p => p.dataUrl).map(p => [p.dataUrl, p]));
+                const localVideoByUrl = new Map(_syncableVideos().map(v => [v.dataUrl, v]));
                 return {
-                    photos: [...serverPhotos, ...photosData.filter(p => p.dataUrl && !photoUrls.has(p.dataUrl))],
-                    videos: [...serverVideos, ..._syncableVideos().filter(v => !videoUrls.has(v.dataUrl))]
+                    photos: [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ...photosData.filter(p => p.dataUrl && !photoUrls.has(p.dataUrl))],
+                    videos: [...serverVideos.map(v => localVideoByUrl.get(v.dataUrl) || v), ..._syncableVideos().filter(v => !videoUrls.has(v.dataUrl))]
                 };
             } catch(_) { return null; }
         }
