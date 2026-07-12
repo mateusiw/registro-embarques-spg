@@ -3736,9 +3736,14 @@
         }
 
         function _resumeEditingLoadNew() {
-            _welcomeAwaitingLoad = true;
+            // Não marca _welcomeAwaitingLoad nem limpa o formulário aqui: o embarque
+            // que estava sendo editado já é uma sessão válida (_hasActiveSession()
+            // continua true). Se o usuário fechar a lista de "Carregar Embarque" sem
+            // escolher outro registro, closeHistoryModal() não reabre o popup de
+            // boas-vindas — ele simplesmente volta para o formulário, exatamente como
+            // estava antes de clicar aqui. A troca de fato só ocorre quando confirma
+            // a senha de um registro na lista (loadHistoryReport() substitui os dados).
             _closeResumeEditingModal();
-            executeClearForm();
             openEmbarqueCarregar();
         }
 
