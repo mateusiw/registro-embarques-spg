@@ -37,6 +37,11 @@
 
         /* Mobile bottom nav */
         #bottom-nav { display: none; }
+        /* Some/aparece suavemente conforme o sentido do scroll (ver _initBottomNavAutoHide) */
+        @media (max-width: 1279px) {
+            #bottom-nav { transition: transform 0.28s ease; }
+            #bottom-nav.mnav-bar-hidden { transform: translateY(100%); }
+        }
 
         /* Botões do menu inferior: em repouso mostram só o texto; ao tocar (ou
            enquanto o submenu que abrem está aberto) viram um pill arredondado
@@ -173,7 +178,7 @@
     </div>
 
     <!-- ===== LOGIN OVERLAY ===== -->
-    <div id="loginOverlay" class="fixed inset-0 z-[300] flex items-center justify-center p-4" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#064e3b 100%);">
+    <div id="loginOverlay" class="fixed inset-0 z-[300] flex items-center justify-center p-4" style="background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#ecfdf5 100%);">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 border border-slate-100">
             <div class="text-center mb-7">
                 <img src="https://i.imgur.com/FSUbdya.png" class="w-16 h-16 mx-auto mb-3 rounded-xl shadow-lg">
@@ -300,7 +305,7 @@
             <!-- Desktop: badge do usuário + logout -->
             <div id="desktopTopBarActions" class="hidden xl:flex items-center gap-2">
                 <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg border border-white/15 text-sm"></div>
-                <button type="button" onclick="doLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
+                <button type="button" onclick="confirmLogout()" class="flex items-center justify-center w-8 h-8 bg-white/10 hover:bg-rose-500/70 text-white/70 hover:text-white rounded-lg border border-white/15 transition-all active:scale-95" title="Sair">
                     <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -725,7 +730,10 @@
 
     <!-- MODAL BOAS-VINDAS / SELEÇÃO DE AÇÃO -->
     <div id="welcomeModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.90);backdrop-filter:blur(8px);">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center relative">
+            <button type="button" id="welcomeCloseBtn" onclick="_closeWelcomeModal()" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="Fechar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
             <div id="welcomeContent"></div>
         </div>
     </div>
@@ -1135,7 +1143,7 @@
     </div>
 
     <!-- BOTTOM NAV (mobile only) -->
-    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:#ffffff;border-top:1px solid #e2e8f0;box-shadow:0 -2px 16px rgba(15,23,42,0.08);">
+    <nav id="bottom-nav" class="xl:hidden fixed bottom-0 left-0 right-0 z-50" style="background:rgba(255,255,255,0.75);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(226,232,240,0.7);box-shadow:0 -2px 16px rgba(15,23,42,0.08);">
 
         <!-- Overlay para fechar popups ao clicar fora -->
         <div id="mobileNavOverlay" onclick="closeMobilePopups()" style="display:none;position:fixed;inset:0;z-index:-1;"></div>
@@ -1221,13 +1229,13 @@
         </div>
 
         <!-- Linha de logout mobile -->
-        <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid #e2e8f0;padding:10px 8px;gap:10px;">
+        <div id="mobileNavLogout" style="display:flex;align-items:center;justify-content:center;border-top:1px solid rgba(226,232,240,0.7);padding:10px 8px;gap:10px;">
             <span id="mobileUserLabel" style="display:flex;align-items:center;color:#64748b;flex:1;padding-left:12px;"></span>
-            <button type="button" onclick="doLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
+            <button type="button" onclick="confirmLogout()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;cursor:pointer;color:#dc2626;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">
                 <i data-lucide="log-out" style="width:14px;height:14px;"></i> Sair
             </button>
         </div>
-        <div style="height:env(safe-area-inset-bottom,0px);background:#ffffff;"></div>
+        <div style="height:env(safe-area-inset-bottom,0px);background:rgba(255,255,255,0.75);"></div>
     </nav>
 
     <script>
@@ -3084,8 +3092,11 @@
         }
 
         function novoEmbarque() {
+            // Não limpa aqui: se o usuário fechar o popup (X) sem escolher uma opção,
+            // o formulário atual continua intacto. A limpeza de fato só acontece
+            // quando ele confirma "Novo Embarque" (welcomeConfirmNew) ou carrega
+            // outro registro.
             clearEditMode();
-            executeClearForm();
             showWelcomeModal();
         }
 
@@ -3192,6 +3203,40 @@
             document.getElementById('mobileNavMenuGroup')?.classList.remove('mnav-active');
         }
 
+        // Menu inferior soma/some conforme o sentido do scroll: rolando a tela pra
+        // cima (dedo desliza pra cima, conteúdo sobe — ou seja, descendo na página)
+        // o menu esconde para dar mais espaço; rolando pro lado contrário (voltando
+        // pro topo) ele reaparece. Sempre visível perto do topo da página.
+        (function _initBottomNavAutoHide() {
+            let lastY = window.scrollY || 0;
+            let ticking = false;
+            const THRESHOLD = 6;   // ignora tremores/scrolls minúsculos
+            const TOP_MARGIN = 40; // sempre mostra perto do topo, mesmo rolando pra baixo
+
+            function onScroll() {
+                const bar = document.getElementById('bottom-nav');
+                ticking = false;
+                if (!bar) return;
+                const y = window.scrollY || document.documentElement.scrollTop || 0;
+                const diff = y - lastY;
+                if (y <= TOP_MARGIN) {
+                    bar.classList.remove('mnav-bar-hidden');
+                } else if (diff > THRESHOLD) {
+                    bar.classList.add('mnav-bar-hidden');
+                } else if (diff < -THRESHOLD) {
+                    bar.classList.remove('mnav-bar-hidden');
+                }
+                lastY = y;
+            }
+
+            window.addEventListener('scroll', function() {
+                if (!ticking) {
+                    window.requestAnimationFrame(onScroll);
+                    ticking = true;
+                }
+            }, { passive: true });
+        })();
+
         // ===== TELA DE BOAS-VINDAS =====
         let _welcomeAwaitingLoad = false; // true enquanto embarque ainda não carregou um relatório
 
@@ -3248,6 +3293,15 @@
                         <i data-lucide="hash" class="w-4 h-4"></i> Informar Código do Embarque
                     </button>`;
             }
+
+            // X só aparece se já havia um embarque carregado (código preenchido, modo
+            // edição ou auto-save ativo) — como o formulário não é mais limpo antes de
+            // abrir este popup, fechar aqui é seguro (nada se perde). Numa sessão nova,
+            // sem nenhum embarque carregado ainda, o X fica oculto: sem ele, a pessoa
+            // poderia fechar o popup e preencher/enviar dados sem nenhum código de
+            // embarque associado.
+            const closeBtn = document.getElementById('welcomeCloseBtn');
+            if (closeBtn) closeBtn.style.display = _hasActiveSession() ? '' : 'none';
 
             document.getElementById('welcomeModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -3507,25 +3561,12 @@
                 confirmLabel: 'Sim, trocar',
                 type: 'warning',
                 onConfirm: () => {
-                    // Limpa campos da seção antes de reabrir o modal — inclui fotos/vídeos/temperaturas
-                    // para não deixar mídia do embarque anterior grudada no código novo.
-                    nfeList = [''];
-                    palletsData = [];
-                    discardsData = [];
-                    photosData = [];
-                    videosData = [];
-                    customTempsData = [];
-                    _lastSyncedPalletsData = null;
-                    const codigoEl = document.getElementById('embarqueCodigo');
-                    const dateEl   = document.getElementById('reportDate');
-                    if (codigoEl) codigoEl.value = '';
-                    if (dateEl)   dateEl.value   = '';
-                    if (typeof renderNfeInputs === 'function') renderNfeInputs();
-                    if (typeof renderPallets   === 'function') renderPallets();
-                    if (typeof renderDiscards  === 'function') renderDiscards();
-                    if (typeof renderPhotos    === 'function') renderPhotos();
-                    if (typeof renderVideos    === 'function') renderVideos();
-                    if (typeof renderCustomTemps === 'function') renderCustomTemps();
+                    // Não limpa os campos aqui — só pede o novo código. Se o usuário
+                    // fechar o popup (X) sem informar um código novo, os dados do
+                    // embarque atual continuam intactos (nada é perdido à toa).
+                    // A troca de fato só acontece quando confirmSectionCodigo() valida
+                    // o novo código e chama _loadSectionData(), que substitui os dados
+                    // da seção — inclusive fotos/vídeos/temperaturas do código anterior.
                     welcomeSectionLoad();
                 }
             });
@@ -3625,11 +3666,32 @@
             openEmbarqueCarregar();
         }
 
+        // Código de confirmação do "Continuar Editando": evita que a pessoa
+        // prossiga sem querer (toque acidental) — precisa digitar de volta as
+        // letras mostradas na tela antes do botão liberar.
+        let _resumeChallengeCode = '';
+        function _genResumeChallengeCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // sem I/O, evita confusão com 1/0
+            let code = '';
+            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+            return code;
+        }
+        function _checkResumeChallenge() {
+            const input = document.getElementById('resumeChallengeInput');
+            const btn = document.getElementById('resumeContinueBtn');
+            if (!input || !btn) return;
+            const ok = input.value.trim().toUpperCase() === _resumeChallengeCode;
+            btn.disabled = !ok;
+            btn.classList.toggle('opacity-40', !ok);
+            btn.classList.toggle('cursor-not-allowed', !ok);
+        }
+
         function showResumeEditingModal() {
             if (!currentUser || currentUser.perfil !== 'embarque') return;
             const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '—';
             const content = document.getElementById('resumeEditingContent');
             if (!content) return;
+            _resumeChallengeCode = _genResumeChallengeCode();
             content.innerHTML = `
                 <div class="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <i data-lucide="clipboard-list" class="w-7 h-7 text-sky-600"></i>
@@ -3639,9 +3701,15 @@
                 <div class="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4">
                     <span class="text-2xl font-black text-sky-700">Nº ${codigo}</span>
                 </div>
-                <p class="text-xs text-slate-400 mb-5">Deseja continuar de onde parou ou carregar um novo embarque?</p>
+                <p class="text-xs text-slate-400 mb-4">Deseja continuar de onde parou ou carregar um novo embarque?</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Para confirmar, digite as letras abaixo</p>
+                    <div class="text-2xl font-black text-slate-800 tracking-[0.5em] text-center select-none mb-2" style="font-family:monospace;">${_resumeChallengeCode}</div>
+                    <input type="text" id="resumeChallengeInput" oninput="_checkResumeChallenge()" onkeydown="if(event.key==='Enter') _resumeEditingContinue()" placeholder="Digite aqui" maxlength="4" autocomplete="off" autocapitalize="characters"
+                        class="w-full p-2.5 border border-slate-200 rounded-lg text-sm text-center font-bold uppercase tracking-[0.3em] focus:ring-2 focus:ring-sky-400 outline-none bg-white">
+                </div>
                 <div class="flex flex-col gap-3">
-                    <button onclick="_resumeEditingContinue()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+                    <button id="resumeContinueBtn" onclick="_resumeEditingContinue()" disabled class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95 opacity-40 cursor-not-allowed">
                         <i data-lucide="play-circle" class="w-4 h-4"></i> Continuar Editando
                     </button>
                     <button onclick="_resumeEditingLoadNew()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
@@ -3651,6 +3719,7 @@
             document.getElementById('resumeEditingModal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             lucide.createIcons();
+            setTimeout(() => document.getElementById('resumeChallengeInput')?.focus(), 100);
         }
 
         function _closeResumeEditingModal() {
@@ -3659,6 +3728,10 @@
         }
 
         function _resumeEditingContinue() {
+            // Trava de segurança: só prossegue se o código de confirmação bater
+            // (o botão já fica desabilitado até aqui, isto é reforço).
+            const input = document.getElementById('resumeChallengeInput');
+            if (!input || input.value.trim().toUpperCase() !== _resumeChallengeCode) return;
             _closeResumeEditingModal();
         }
 
@@ -3741,10 +3814,13 @@
             saveToLocalStorage();
         }
 
-        // Usado pelo botão "Limpar" da barra superior/mobile: além de limpar o
-        // formulário, sai do modo edição (se houver) e reabre o popup de boas-vindas
-        // para o usuário escolher entre carregar um embarque ou criar um novo — sem
-        // isso, o formulário ficava limpo mas "preso" sem nenhuma ação clara a seguir.
+        // Usado pelo botão "Limpar" da barra superior/mobile: já passou pelo
+        // aviso "Limpar Tudo... não pode ser desfeita" (confirmado pelo usuário),
+        // então limpa de verdade na hora — diferente de Novo Embarque/Trocar
+        // Embarque, aqui não faz sentido oferecer um X pra "desfazer", já que o
+        // próprio botão de confirmação já avisou que é irreversível. Depois de
+        // limpar, sai do modo edição e abre o popup de boas-vindas (sem código
+        // carregado, o X de fechar fica oculto automaticamente).
         function executeClearFormAndReopenWelcome() {
             clearEditMode();
             executeClearForm();
@@ -3841,8 +3917,12 @@
                     } else if (type === 'load') {
                         const row = _findRowByTs(ts);
                         _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
-                        closeHistoryModal();
+                        // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
+                        // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
+                        // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
+                        // Fechar primeiro fazia o popup reaparecer mesmo com o carregamento ok.
                         loadHistoryReport(ts);
+                        closeHistoryModal();
                         _editSnapshot = collectFormData();
                         if (row && row.Timestamp) {
                             editModeTimestamp = String(row.Timestamp);
@@ -4638,6 +4718,16 @@
 
             btn.disabled = false;
             btn.textContent = 'Entrar';
+        }
+
+        function confirmLogout() {
+            showConfirmModal({
+                title: 'Sair da conta?',
+                text: 'Você precisará fazer login novamente para continuar de onde parou.',
+                confirmLabel: 'Sim, sair',
+                type: 'warning',
+                onConfirm: () => doLogout()
+            });
         }
 
         function doLogout() {
