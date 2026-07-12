@@ -2348,6 +2348,16 @@
         let _historyTab = 'todos';
         let _embarqueHistoryMode = false;
 
+        // Verdadeiro se há uma sessão de trabalho ativa (código preenchido, modo
+        // edição ou auto-save já iniciado no servidor). Usado para decidir se é
+        // seguro fechar um modal sem deixar o usuário numa tela vazia sem nenhuma
+        // ação disponível (ex: fechar o Histórico sem nunca ter carregado/criado
+        // um embarque).
+        function _hasActiveSession() {
+            const codigoEl = document.getElementById('embarqueCodigo');
+            return !!((codigoEl && codigoEl.value.trim()) || editModeTimestamp || _autoSaveTimestamp);
+        }
+
         function closeHistoryModal() {
             document.getElementById('historyModal').classList.add('hidden');
             unlockScroll();
@@ -2359,8 +2369,10 @@
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Histórico de Embarques';
 
-            // Perfil embarque fechou o seletor sem carregar nenhum relatório → reapresenta a tela de boas-vindas
-            if (_welcomeAwaitingLoad) {
+            // Perfil embarque fechou o seletor sem carregar nenhum relatório, OU não
+            // há nenhuma sessão ativa (nunca criou/carregou um embarque) → reapresenta
+            // a tela de boas-vindas em vez de deixar o usuário numa página em branco.
+            if (_welcomeAwaitingLoad || !_hasActiveSession()) {
                 showWelcomeModal();
             }
         }
