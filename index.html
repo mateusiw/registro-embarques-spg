@@ -3037,6 +3037,7 @@
                                 if (palletsData[i]) {
                                     if (mp.photos && mp.photos.length > 0) palletsData[i].photos = mp.photos;
                                     if (mp.temp !== undefined && mp.temp !== '') palletsData[i].temp = mp.temp;
+                                    if (mp.client !== undefined && mp.client !== '') palletsData[i].client = mp.client;
                                 } else {
                                     palletsData.push(mp);
                                 }
@@ -3598,6 +3599,7 @@
                                 if (palletsData[i]) {
                                     if (sp.photos && sp.photos.length > 0) palletsData[i].photos = sp.photos;
                                     if (sp.temp !== undefined && sp.temp !== '') palletsData[i].temp = sp.temp;
+                                    if (sp.client !== undefined && sp.client !== '') palletsData[i].client = sp.client;
                                 } else {
                                     palletsData.push(sp);
                                 }
