@@ -2388,7 +2388,17 @@
                                         if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
                                     } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
                                 }
-                                fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload)) }).catch(function(){});
+                                // Atualiza o carimbo local com o UpdatedAt devolvido por este push — senão,
+                                // o próximo "Salvar" desta mesma sessão comparava com o UpdatedAt antigo
+                                // (anterior a este push), via detectava divergência e desistia em silêncio,
+                                // travando a sincronização com Parceiros a partir do 2º save em diante.
+                                try {
+                                    const pushResp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload)) });
+                                    const pushResult = await pushResp.json();
+                                    if (pushResult && pushResult.success && pushResult.updatedAt) {
+                                        _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
+                                    }
+                                } catch(_) {}
                             };
 
                             pushIfUnchanged('parceiros', { palletsData });
