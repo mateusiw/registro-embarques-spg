@@ -2284,8 +2284,11 @@
                     // o que zerava isso indiretamente; agora que o formulário permanece
                     // preenchido, precisa ser resetado explicitamente).
                     _autoSaveDirty = false;
-                    // Fire-and-forget: envia apenas os campos de NF para a aba notafiscal
-                    (function() {
+                    // Envia os campos de NF para a aba notafiscal. Aguardado (não é mais
+                    // fire-and-forget) pelo mesmo motivo do bloco abaixo: se o usuário
+                    // atualizar a página logo após ver "Salvo!", uma requisição ainda em
+                    // voo é cancelada pelo navegador e a sincronização nunca se completa.
+                    await (async function() {
                         try {
                             const fd = collectFormData();
                             const nfPayload = {
@@ -2307,14 +2310,16 @@
                                 sensorNumber: fd.sensorNumber,
                                 lacreNumber: fd.lacreNumber,
                             };
-                            fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(nfPayload) }).catch(function(){});
+                            await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(nfPayload) });
                         } catch(_) {}
                     })();
-                    // Fire-and-forget: mantém as abas de seção (Parceiros/Descartes/Midias)
-                    // sincronizadas com o que o master acabou de salvar no formulário completo.
-                    // Sem isso, essas abas — que são a fonte de verdade ao recarregar — ficavam
-                    // desatualizadas após uma edição do master, e o recarregar (loadHistoryReport)
-                    // reexibia dados antigos (ex: foto de pallet já apagada "voltando").
+                    // Mantém as abas de seção (Parceiros/Descartes/Midias) sincronizadas com o
+                    // que o master acabou de salvar no formulário completo. Aguardado (não é
+                    // mais fire-and-forget): essas abas são a fonte de verdade ao recarregar
+                    // (loadHistoryReport), então se o usuário der F5 logo após ver "Salvo!" e
+                    // essa sincronização ainda estiver em voo, o navegador cancela as
+                    // requisições pendentes e o recarregar reexibe dados antigos (ex: pallet
+                    // sem a temperatura que acabou de ser digitada).
                     //
                     // Mídias usa merge (ver bloco abaixo) por lidar com conteúdo aditivo (fotos/
                     // vídeos). Parceiros/Descartes ainda usam guarda de conflito: antes de
@@ -2323,7 +2328,7 @@
                     // perfil salvou uma versão mais nova enquanto o master editava, o UpdatedAt
                     // mudou — nesse caso NÃO sobrescreve com a cópia do master, que estaria
                     // desatualizada e apagaria o que aquele perfil acabou de enviar.
-                    (async function() {
+                    await (async function() {
                         try {
                             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
                             if (!codigoAtual) return;
@@ -2401,8 +2406,10 @@
                                 } catch(_) {}
                             };
 
-                            pushIfUnchanged('parceiros', { palletsData });
-                            pushIfUnchanged('descartes', { discardsData, reportDate: document.getElementById('reportDate')?.value || '' });
+                            await Promise.all([
+                                pushIfUnchanged('parceiros', { palletsData }),
+                                pushIfUnchanged('descartes', { discardsData, reportDate: document.getElementById('reportDate')?.value || '' })
+                            ]);
                         } catch(_) {}
                     })();
                     // O formulário permanece preenchido após salvar — os arquivos e demais
@@ -5637,11 +5644,16 @@
                     const products = Array.from(new Set(lots
                         .map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim())
                         .filter(Boolean)));
-                    const dates = Array.from(new Set(lots.map(l => l.harvestDate).filter(Boolean)));
+                    // Guarda TODAS as datas de colheita dos lotes deste grupo — antes, quando
+                    // havia mais de uma data distinta (ex: dois lotes do mesmo parceiro colhidos
+                    // em dias diferentes), a informação era descartada (virava '') em vez de
+                    // preservada, e a data acabava não aparecendo em nenhum relatório.
+                    const dates = Array.from(new Set(lots.map(l => l.harvestDate).filter(Boolean))).sort();
                     rows.push({
                         name, qty, unitsQty, palletLabel: plLabel, client: (pl.client || '').trim(),
                         unit: products.join(', '),
-                        harvestDate: dates.length === 1 ? dates[0] : ''
+                        harvestDates: dates,
+                        harvestDate: dates.join(',')
                     });
                 });
             });
@@ -5651,28 +5663,31 @@
         function getGroupedPartners() {
             const map = new Map();
 
+            // harvestDate aceita tanto uma data única (string) quanto várias (array) —
+            // todas são somadas ao Set do parceiro, nunca descartadas por haver mais de uma.
             const add = (name, qty, palletLabel, unit, harvestDate, unitsQty = 0) => {
                 if (!name || !(qty > 0)) return;
                 const key = _normalizePartnerKey(name);
+                const datesToAdd = Array.isArray(harvestDate) ? harvestDate.filter(Boolean) : (harvestDate ? [harvestDate] : []);
                 if (map.has(key)) {
                     const e = map.get(key);
                     e.qtyNum += qty;
                     e.unitsQty += unitsQty;
                     if (palletLabel) e._pallets.add(palletLabel);
                     if (unit) unit.split(', ').filter(Boolean).forEach(u => e._units.add(u));
-                    if (harvestDate) e._dates.add(harvestDate);
+                    datesToAdd.forEach(d => e._dates.add(d));
                 } else {
                     map.set(key, {
                         name: name.trim(), nameCustom: '', qtyNum: qty, unitsQty,
                         _pallets: new Set(palletLabel ? [palletLabel] : []),
                         _units: new Set(unit ? unit.split(', ').filter(Boolean) : []),
-                        _dates: new Set(harvestDate ? [harvestDate] : [])
+                        _dates: new Set(datesToAdd)
                     });
                 }
             };
 
             // Fonte primária: grupos de parceiro dentro dos pallets (com lotes)
-            _flattenPalletPartnerGroups().forEach(r => add(r.name, r.qty, r.palletLabel, r.unit, r.harvestDate, r.unitsQty));
+            _flattenPalletPartnerGroups().forEach(r => add(r.name, r.qty, r.palletLabel, r.unit, r.harvestDates, r.unitsQty));
 
             // Retrocompatibilidade: registros antigos guardavam parceiros em pl.partners
             palletsData.forEach(pl => {
@@ -5695,13 +5710,13 @@
                     if (!isNaN(na) && !isNaN(nb)) return na - nb;
                     return String(a).localeCompare(String(b), 'pt-BR');
                 });
-                const dates = Array.from(e._dates);
+                const dates = Array.from(e._dates).sort();
                 return {
                     name: e.name, nameCustom: '',
                     qty: String(e.qtyNum),
                     unitsQty: e.unitsQty || 0,
                     unit: Array.from(e._units).join(', '), unitCustom: '',
-                    harvestDate: dates.length === 1 ? dates[0] : '',
+                    harvestDate: dates.join(','),
                     palletLabel: labels.join(', ')
                 };
             });
@@ -6618,7 +6633,9 @@
                 const pct = totalQty>0 ? (parseFloat(p.qty)/totalQty*100).toFixed(1)+'%' : '—';
                 const isMax = maxPartner && getPartnerName(p).trim()+'|'+getPartnerUnit(p)+'|'+(p.harvestDate||'') === getPartnerName(maxPartner).trim()+'|'+getPartnerUnit(maxPartner)+'|'+(maxPartner.harvestDate||'');
                 const bg = i%2===0?'':'background:#f0f6ff;';
-                const dateDisplay = p.harvestDate ? (() => { const d=p.harvestDate.split('-'); return d[2]+'/'+d[1]; })() : '—';
+                const dateDisplay = p.harvestDate
+                    ? p.harvestDate.split(',').map(hd => { const d = hd.split('-'); return d[2]+'/'+d[1]; }).join(', ')
+                    : '—';
                 return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(_qtyLabel(p.qty, p.unitsQty||0),'font-weight:700;text-align:center;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
             ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(_qtyLabel(totalQty, validPartners.reduce((s,p)=>s+(p.unitsQty||0),0)),'font-weight:900;text-align:center;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
@@ -7304,7 +7321,9 @@
                 y += 2; sec('Parceiros / Quantidades');
                 const pRows = validPartners.map(p => {
                     const pct  = totalQty>0 ? ((parseFloat(p.qty)/totalQty)*100).toFixed(1)+'%' : '—';
-                    const hd   = p.harvestDate ? (hd=>{const pp=hd.split('-');return `${pp[2]}/${pp[1]}/${pp[0]}`;}) (p.harvestDate) : '—';
+                    const hd   = p.harvestDate
+                        ? p.harvestDate.split(',').map(dd => { const pp = dd.split('-'); return `${pp[2]}/${pp[1]}/${pp[0]}`; }).join(', ')
+                        : '—';
                     const nm   = getPartnerName(p);
                     const star = maxPartner && getPartnerName(maxPartner)===nm;
                     return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:(p.palletLabel||'—').replace(/, /g,'\n'),styles:{halign:'center',fontStyle:'bold'}}, _qtyLabel(parseFloat(p.qty), p.unitsQty||0), getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
