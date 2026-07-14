@@ -588,7 +588,11 @@
                             <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Pallets</h2>
                             <div id="palletQtyDisplay" class="w-6 h-6 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center shrink-0">0</div>
                         </div>
-                        <button type="button" id="addPalletBtn" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                        <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1">
+                            <button type="button" onclick="openPhotoSourceModal(extractPalletsFromPhoto)" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="scan-text" class="w-3.5 h-3.5"></i> Extrair da foto</button>
+                            <button type="button" onclick="openPastePalletsModal()" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i> Colar dados do pallet</button>
+                            <button type="button" id="addPalletBtn" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                        </div>
                     </div>
                     <div id="palletsContainer" class="space-y-2"></div>
                 </div>
@@ -1068,6 +1072,29 @@
                 </div>
                 <button onclick="confirmPasteDiscard()" class="w-full py-3 bg-gradient-to-r from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
                     <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Adicionar Descarte(s)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL COLAR DADOS DO PALLET -->
+    <div id="pastePalletsModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-center justify-center backdrop-blur-sm p-4" onclick="if(event.target===this) closePastePalletsModal()">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Colar dados do pallet</p>
+                <button onclick="closePastePalletsModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Dados copiados / extraídos da foto</label>
+                    <textarea id="pastePalletsText" rows="8" placeholder="Cole aqui (Ctrl+V) ou use &quot;Extrair da foto&quot;. Uma linha por parceiro: Sítio, Caixas e Data da colheita. Separe pallets diferentes por linha em branco (ou comece o bloco com &quot;Pallet 1&quot;)."
+                        class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-slate-50 focus:bg-white transition-colors font-mono"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Cada bloco separado por linha em branco vira um <strong>Pallet novo</strong>. Dentro do bloco, cada linha (Sítio / Caixas / Data) vira um parceiro com as caixas e a data de colheita preenchidas.</p>
+                </div>
+                <button onclick="confirmPastePallets()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
+                    <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Adicionar Pallet(s)
                 </button>
             </div>
         </div>
@@ -5490,6 +5517,32 @@
         // ---------- Parceiros ----------
         const UNIT_PRESETS = ['Brócolis Filetado', 'Brócolis Inteiro'];
         const PARTNER_PRESETS = ['Agrotech Pinheiro','Fazenda Oásis','P.Q Oásis','P.Q Parceiros','Sítio Valdir','Sítio Leitão','Sítio Márcia','Sítio Filho','Sítio Evandro','Sítio Edivan','Sítio Araçá','Raimundo','Nelinho'];
+        // Abreviações usadas nas planilhas de campo preenchidas à mão (ex: "F.O", "S.L")
+        // -> nome completo do parceiro cadastrado no sistema.
+        const PARTNER_ABBREVIATIONS = {
+            'fo': 'Fazenda Oásis',
+            'pq': 'P.Q Parceiros',
+            'pqfo': 'P.Q Oásis',
+            'sl': 'Sítio Leitão',
+            'sed': 'Sítio Edivan',
+            'sev': 'Sítio Evandro',
+            'sa': 'Sítio Araçá',
+            'sv': 'Sítio Valdir',
+            'sm': 'Sítio Márcia',
+            'sf': 'Sítio Filho',
+            'sn': 'Sítio Nelinho',
+            'sr': 'Sítio Raimundo'
+        };
+        function _resolvePartnerAbbrev(raw) {
+            const key = String(raw || '').trim().toLowerCase().replace(/[.\s]/g, '');
+            return PARTNER_ABBREVIATIONS[key] || null;
+        }
+        function _matchPartnerPresetOrAbbrev(value) {
+            if (!value) return { sel: '', custom: '' };
+            const target = _resolvePartnerAbbrev(value) || value;
+            const found = PARTNER_PRESETS.find(p => p.toLowerCase() === target.toLowerCase());
+            return found ? { sel: found, custom: '' } : { sel: 'Outro', custom: target };
+        }
         function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) {
@@ -5789,6 +5842,134 @@
             return palletsData.filter(pl => (pl.label || '').trim() !== '').length;
         }
         function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
+
+        // ---------- Extrair / colar dados do pallet (planilha de campo) ----------
+        function openPastePalletsModal() {
+            const ta = document.getElementById('pastePalletsText');
+            ta.value = '';
+            ta.disabled = false;
+            const modal = document.getElementById('pastePalletsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lockScroll();
+            lucide.createIcons();
+            setTimeout(async () => {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.readText) {
+                        const clip = await navigator.clipboard.readText();
+                        if (clip && clip.trim()) ta.value = clip.trim();
+                    }
+                } catch (e) { /* sem permissão de leitura da área de transferência: usuário cola manualmente */ }
+                ta.focus();
+            }, 100);
+        }
+        function closePastePalletsModal() {
+            document.getElementById('pastePalletsModal').classList.add('hidden');
+            document.getElementById('pastePalletsModal').classList.remove('flex');
+            unlockScroll();
+        }
+        async function extractPalletsFromPhoto(event) {
+            const file = (event.target.files || [])[0];
+            event.target.value = '';
+            if (!file) return;
+            const apiKey = localStorage.getItem('spg_groq_key');
+            if (!apiKey) { openSettings(); return; }
+            openPastePalletsModal();
+            const ta = document.getElementById('pastePalletsText');
+            ta.value = 'Lendo imagem, aguarde...';
+            ta.disabled = true;
+            try {
+                const dataUrl = await _compressImage(file, 1600, 0.85);
+                if (!dataUrl) throw new Error('Não foi possível processar a foto.');
+                const prompt = 'Esta imagem mostra uma planilha de controle de pallets preenchida à mão. As linhas numeradas (1, 2, 3...) na coluna da esquerda representam PALLETS. Cada pallet pode ter um ou mais parceiros/sítios, cada um com uma quantidade de caixas (CXS) e uma data de colheita (DATA).\n\n'
+                    + 'Transcreva EXATAMENTE o que está escrito à mão, sem corrigir, sem expandir abreviações (ex: mantenha "F.O", "PQ", "S.L" como estão escritos) e sem inventar informação. Se um campo estiver ilegível ou vazio, deixe em branco.\n\n'
+                    + 'Retorne APENAS texto simples (sem markdown, sem explicações), um bloco por pallet, separado por uma linha em branco, neste formato exato:\n\n'
+                    + 'Pallet <número>\n<sítio>\t<caixas>\t<data>\n<sítio>\t<caixas>\t<data>\n\nPallet <número>\n<sítio>\t<caixas>\t<data>';
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({
+                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        messages: [{ role: 'user', content: [
+                            { type: 'text', text: prompt },
+                            { type: 'image_url', image_url: { url: dataUrl } }
+                        ] }],
+                        max_tokens: 2000
+                    })
+                });
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error?.message || `Erro ${response.status}`);
+                }
+                const data = await response.json();
+                ta.value = (data.choices?.[0]?.message?.content || '').trim();
+            } catch (e) {
+                ta.value = '';
+                showMessageModal('Falha ao ler a imagem', e.message || 'Não foi possível processar a imagem. Tente novamente ou digite manualmente.', 'error');
+            } finally {
+                ta.disabled = false;
+            }
+        }
+        // Converte "dd/mm" ou "dd/mm/yyyy" (formato brasileiro, sem ano na planilha)
+        // para "yyyy-mm-dd", usando o ano da data do relatório como referência.
+        function _parseHarvestDateForPaste(raw) {
+            if (!raw) return '';
+            const m = String(raw).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/);
+            if (!m) return '';
+            const day = m[1].padStart(2, '0');
+            const month = m[2].padStart(2, '0');
+            let year = m[3];
+            if (!year) {
+                const reportDateVal = document.getElementById('reportDate')?.value || '';
+                year = reportDateVal ? reportDateVal.slice(0, 4) : String(new Date().getFullYear());
+            } else if (year.length === 2) {
+                year = '20' + year;
+            }
+            return `${year}-${month}-${day}`;
+        }
+        function _parsePalletsPasteText(raw) {
+            const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+            const newPallets = [];
+            blocks.forEach(block => {
+                const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+                if (!lines.length) return;
+                let dataLines = lines;
+                const headerMatch = lines[0].match(/^pallet\s*(\d+)?\s*:?\s*$/i);
+                const label = 'Pallet ' + (headerMatch && headerMatch[1] ? headerMatch[1] : (palletsData.length + newPallets.length + 1));
+                if (headerMatch) dataLines = lines.slice(1);
+                const groups = [];
+                dataLines.forEach(line => {
+                    let parts = line.split('\t').map(s => s.trim()).filter(s => s !== '');
+                    if (parts.length < 2) parts = line.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
+                    if (parts.length < 2) return;
+                    const [partnerRaw, boxesRaw, dateRaw] = parts;
+                    const boxesClean = (boxesRaw || '').replace(/\./g, '').replace(',', '.');
+                    const boxes = boxesClean ? (parseFloat(boxesClean) || '') : '';
+                    const harvestDate = _parseHarvestDateForPaste(dateRaw);
+                    const match = _matchPartnerPresetOrAbbrev(partnerRaw);
+                    const groupKey = (match.sel === 'Outro' ? match.custom : match.sel).toLowerCase();
+                    let g = groups.find(gr => (gr.name === 'Outro' ? gr.nameCustom : gr.name).toLowerCase() === groupKey);
+                    if (!g) { g = { name: match.sel, nameCustom: match.custom, collapsed: false, lots: [] }; groups.push(g); }
+                    g.lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: boxes === '' ? '' : String(boxes), harvestDate });
+                });
+                if (!groups.length) return;
+                newPallets.push({ label, client: '', temp: '', partnerGroups: groups, photos: [] });
+            });
+            return newPallets;
+        }
+        function confirmPastePallets() {
+            const raw = document.getElementById('pastePalletsText').value;
+            if (!raw || !raw.trim()) { showMessageModal('Nada para colar', 'Cole ou extraia as informações dos pallets antes de confirmar.', 'error'); return; }
+            const newPallets = _parsePalletsPasteText(raw);
+            if (!newPallets.length) {
+                showMessageModal('Não foi possível ler os dados', 'Não encontrei parceiro, caixas ou data de colheita no texto colado. Verifique o formato e tente novamente.', 'error');
+                return;
+            }
+            newPallets.forEach(pl => { palletsData.push(pl); _collapsedPallets.push(true); });
+            closePastePalletsModal();
+            renderPallets();
+            updatePreview();
+        }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
@@ -7747,7 +7928,7 @@
         const _MODAL_IDS = [
             'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
-            'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','genericConfirmModal','conflictModal','passwordModal',
+            'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','pastePalletsModal','genericConfirmModal','conflictModal','passwordModal',
             'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
         ];
         function _anyModalOpen() {
