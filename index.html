@@ -628,7 +628,10 @@
                             </div>
                             <h2 class="text-sm font-black text-slate-800 uppercase tracking-wide">Descartes</h2>
                         </div>
-                        <button type="button" onclick="addDiscard()" class="text-rose-600 hover:text-rose-800 flex items-center gap-1 normal-case text-[10px] font-bold"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                        <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1">
+                            <button type="button" onclick="openPasteDiscardModal()" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i> Colar informação do descarte</button>
+                            <button type="button" onclick="addDiscard()" class="text-rose-600 hover:text-rose-800 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
+                        </div>
                     </div>
                     <div id="discardsContainer" class="space-y-2"></div>
                 </div>
@@ -1042,6 +1045,29 @@
                 </div>
                 <button onclick="confirmVideoLink()" class="w-full py-3 bg-gradient-to-r from-violet-500 to-violet-700 hover:from-violet-600 hover:to-violet-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
                     <i data-lucide="plus-circle" class="w-4 h-4 inline mr-2"></i> Adicionar Vídeo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL COLAR INFORMAÇÃO DO DESCARTE -->
+    <div id="pasteDiscardModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-center justify-center backdrop-blur-sm p-4" onclick="if(event.target===this) closePasteDiscardModal()">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Colar informação do descarte</p>
+                <button onclick="closePasteDiscardModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-3">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Dados copiados</label>
+                    <textarea id="pasteDiscardText" rows="6" placeholder="Cole aqui (Ctrl+V) as informações copiadas: parceiro, cultura, motivo e kg do descarte..."
+                        class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-400 outline-none bg-slate-50 focus:bg-white transition-colors font-mono"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Cole diretamente linhas de uma tabela copiada (colunas <strong>Parceiro</strong>, <strong>Kg</strong>, <strong>Motivo</strong>, <strong>Cultura</strong>, uma por linha) ou o formato <strong>Parceiro:</strong>/<strong>Cultura:</strong>/<strong>Motivo:</strong>/<strong>Descarte (kg):</strong>. Vários descartes podem ser colados de uma vez.</p>
+                </div>
+                <button onclick="confirmPasteDiscard()" class="w-full py-3 bg-gradient-to-r from-rose-500 to-rose-700 hover:from-rose-600 hover:to-rose-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
+                    <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Adicionar Descarte(s)
                 </button>
             </div>
         </div>
@@ -5948,6 +5974,103 @@
             'Talo com Fungo e Passado'
         ];
         function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
+
+        // ---------- Colar informação do descarte ----------
+        function openPasteDiscardModal() {
+            const ta = document.getElementById('pasteDiscardText');
+            ta.value = '';
+            const modal = document.getElementById('pasteDiscardModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lockScroll();
+            lucide.createIcons();
+            setTimeout(async () => {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.readText) {
+                        const clip = await navigator.clipboard.readText();
+                        if (clip && clip.trim()) ta.value = clip.trim();
+                    }
+                } catch (e) { /* sem permissão de leitura da área de transferência: usuário cola manualmente */ }
+                ta.focus();
+            }, 100);
+        }
+        function closePasteDiscardModal() {
+            document.getElementById('pasteDiscardModal').classList.add('hidden');
+            document.getElementById('pasteDiscardModal').classList.remove('flex');
+            unlockScroll();
+        }
+        function _matchDiscardPreset(value, presets) {
+            if (!value) return { sel: '', custom: '' };
+            const found = presets.find(p => p.toLowerCase() === value.toLowerCase());
+            return found ? { sel: found, custom: '' } : { sel: 'Outro', custom: value };
+        }
+        function _buildDiscardEntry(partnerRaw, weightRaw, reasonRaw, culturaRaw) {
+            partnerRaw = (partnerRaw || '').trim();
+            reasonRaw  = (reasonRaw  || '').trim();
+            culturaRaw = (culturaRaw || '').trim();
+            weightRaw  = (weightRaw  || '').replace(/kg/i, '').trim().replace(/\./g, '').replace(',', '.');
+            if (!partnerRaw && !culturaRaw && !reasonRaw && !weightRaw) return null;
+            const weight = weightRaw ? (parseFloat(weightRaw) || '') : '';
+            const partner = _matchDiscardPreset(partnerRaw, PARTNER_PRESETS);
+            const cultura = _matchDiscardPreset(culturaRaw, DISCARD_CULTURA_PRESETS);
+            const reason  = _matchDiscardPreset(reasonRaw, DISCARD_REASON_PRESETS);
+            return {
+                partner: partner.sel === 'Outro' ? partner.custom : partner.sel,
+                partnerSel: partner.sel,
+                cultura: cultura.sel === 'Outro' ? cultura.custom : cultura.sel,
+                cultSel: cultura.sel,
+                reason: reason.sel === 'Outro' ? reason.custom : reason.sel,
+                reasonSel: reason.sel,
+                weight: weight === '' ? '' : String(weight),
+                photos: []
+            };
+        }
+        function _parseDiscardBlock(block) {
+            const get = (label) => {
+                const re = new RegExp('^\\s*(?:' + label + ')\\s*:\\s*(.+)$', 'im');
+                const m = block.match(re);
+                return m ? m[1].trim() : '';
+            };
+            const partnerRaw = get('Parceiro');
+            const culturaRaw = get('Cultura');
+            const reasonRaw  = get('Motivo');
+            const weightRaw  = get('Descarte(?:\\s*\\(?kg\\)?)?|Kg|Quantidade');
+            return _buildDiscardEntry(partnerRaw, weightRaw, reasonRaw, culturaRaw);
+        }
+        // Linha "tabular" copiada direto de uma tabela: colunas separadas por TAB
+        // (ou 2+ espaços) na ordem Parceiro / Kg / Motivo / Cultura.
+        function _parseDiscardTabularLine(line) {
+            line = line.trim();
+            if (!line) return null;
+            let parts = line.split('\t').map(s => s.trim()).filter(s => s !== '');
+            if (parts.length < 2) parts = line.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
+            if (parts.length < 2) return null;
+            const [partnerRaw, weightRaw, reasonRaw, culturaRaw] = parts;
+            return _buildDiscardEntry(partnerRaw, weightRaw, reasonRaw, culturaRaw);
+        }
+        function confirmPasteDiscard() {
+            const raw = document.getElementById('pasteDiscardText').value;
+            if (!raw || !raw.trim()) { showMessageModal('Nada para colar', 'Cole as informações do descarte no campo antes de confirmar.', 'error'); return; }
+            let entries;
+            if (/parceiro\s*:/i.test(raw)) {
+                const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+                entries = blocks.map(_parseDiscardBlock).filter(Boolean);
+            } else {
+                const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+                entries = lines.map(_parseDiscardTabularLine).filter(Boolean);
+            }
+            if (!entries.length) {
+                showMessageModal('Não foi possível ler os dados', 'Não encontrei Parceiro, Cultura, Motivo ou Descarte (kg) no texto colado. Verifique o formato e tente novamente.', 'error');
+                return;
+            }
+            entries.forEach(entry => {
+                discardsData.push(entry);
+                _collapsedDiscards.push(true);
+            });
+            closePasteDiscardModal();
+            renderDiscards();
+            updatePreview();
+        }
         function updateDiscardPartnerName(idx, value) {
             discardsData[idx].partnerSel = value;
             if (value !== 'Outro') discardsData[idx].partner = value;
@@ -7624,7 +7747,7 @@
         const _MODAL_IDS = [
             'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
-            'photoSourceModal','videoSourceModal','videoLinkModal','genericConfirmModal','conflictModal','passwordModal',
+            'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','genericConfirmModal','conflictModal','passwordModal',
             'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
         ];
         function _anyModalOpen() {
