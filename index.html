@@ -5860,7 +5860,7 @@
         function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
 
         // ---------- Extrair / colar dados do pallet (planilha de campo) ----------
-        function openPastePalletsModal() {
+        function openPastePalletsModal(autoPaste = true) {
             const ta = document.getElementById('pastePalletsText');
             ta.value = '';
             ta.disabled = false;
@@ -5869,6 +5869,9 @@
             modal.classList.add('flex');
             lockScroll();
             lucide.createIcons();
+            // "Extrair da foto" chama este modal só para exibir o resultado da IA — não
+            // deve colar o que estiver na área de transferência (Ctrl+V) por cima disso.
+            if (!autoPaste) { setTimeout(() => ta.focus(), 100); return; }
             setTimeout(async () => {
                 try {
                     if (navigator.clipboard && navigator.clipboard.readText) {
@@ -5920,7 +5923,7 @@
             if (!file) return;
             const apiKey = localStorage.getItem('spg_gemini_key');
             if (!apiKey) { openSettings(); return; }
-            openPastePalletsModal();
+            openPastePalletsModal(false);
             const ta = document.getElementById('pastePalletsText');
             ta.value = 'Lendo imagem, aguarde...';
             ta.disabled = true;
