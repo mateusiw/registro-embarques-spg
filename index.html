@@ -5881,9 +5881,10 @@
             try {
                 const dataUrl = await _compressImage(file, 1600, 0.85);
                 if (!dataUrl) throw new Error('Não foi possível processar a foto.');
-                const prompt = 'Esta imagem mostra uma planilha de controle de pallets preenchida à mão. As linhas numeradas (1, 2, 3...) na coluna da esquerda representam PALLETS. Cada pallet pode ter um ou mais parceiros/sítios, cada um com uma quantidade de caixas (CXS) e uma data de colheita (DATA).\n\n'
-                    + 'Transcreva EXATAMENTE o que está escrito à mão, sem corrigir, sem expandir abreviações (ex: mantenha "F.O", "PQ", "S.L" como estão escritos) e sem inventar informação. Se um campo estiver ilegível ou vazio, deixe em branco.\n\n'
-                    + 'Retorne APENAS texto simples (sem markdown, sem explicações), um bloco por pallet, separado por uma linha em branco, neste formato exato:\n\n'
+                const prompt = 'Esta imagem mostra anotações manuscritas de controle de pallets, usadas para registrar quais parceiros/sítios entraram em cada pallet, com data de colheita e quantidade de caixas.\n\n'
+                    + 'Cada PALLET é identificado por um número — pode estar circulado, entre parênteses "(1)", numa coluna à esquerda, ou de qualquer outra forma de destaque. Use esse número como identificador do pallet. Um pallet pode ter uma ou mais linhas, cada uma com um sítio/parceiro, uma quantidade de caixas e uma data de colheita, em QUALQUER formato ou ordem em que estiverem escritos na imagem (ex: "SEU: DATA:07/07 CAIXA:4", "F.O DATA:06/07 CAIXA:60", ou colunas separadas Sítio/Caixas/Data). Ignore qualquer anotação que não siga esse padrão (títulos, dias da semana, chaves/somas ao lado, rabiscos, etc.) — não inclua essas anotações na resposta.\n\n'
+                    + 'Transcreva os valores EXATAMENTE como estão escritos à mão (não corrija, não expanda abreviações — ex: mantenha "F.O", "S.U", "SED", "SA" como estão) e sem inventar informação. Se um campo estiver ilegível ou vazio, deixe em branco nessa posição.\n\n'
+                    + 'IMPORTANTE: independente de como os dados estão organizados na imagem, SEMPRE normalize a saída para o formato abaixo — nunca copie o layout original da planilha. Retorne APENAS texto simples (sem markdown, sem explicações), um bloco por pallet, separado por uma linha em branco, com as 3 colunas (sítio, caixas, data) sempre separadas por um caractere TAB, neste formato exato:\n\n'
                     + 'Pallet <número>\n<sítio>\t<caixas>\t<data>\n<sítio>\t<caixas>\t<data>\n\nPallet <número>\n<sítio>\t<caixas>\t<data>';
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -5931,6 +5932,19 @@
         // da posição sequencial do bloco) e os grupos de parceiro/lote daquele bloco.
         // Não cria pallets novos — os pallets já existem no formulário (criados
         // manualmente); aqui só preenchemos os parceiros dentro deles.
+        // Reconhece uma linha no formato "livre" com rótulos embutidos, ex:
+        // "SEU: DATA:07/07 CAIXA:4" ou "F.O DATA:06/07 CAIXA:60" (qualquer ordem),
+        // usado como alternativa quando a linha não vem separada por TAB/colunas.
+        function _extractLabeledPalletLine(line) {
+            const dateMatch  = line.match(/data\s*:?\s*(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?)/i);
+            const boxesMatch = line.match(/caix(?:a|as)\s*:?\s*(\d+(?:[.,]\d+)?)/i);
+            if (!dateMatch && !boxesMatch) return null;
+            let partnerRaw = line;
+            if (dateMatch) partnerRaw = partnerRaw.replace(dateMatch[0], ' ');
+            if (boxesMatch) partnerRaw = partnerRaw.replace(boxesMatch[0], ' ');
+            partnerRaw = partnerRaw.replace(/:/g, ' ').replace(/\s{2,}/g, ' ').trim();
+            return { partnerRaw, boxesRaw: boxesMatch ? boxesMatch[1] : '', dateRaw: dateMatch ? dateMatch[1] : '' };
+        }
         function _parsePalletsPasteText(raw) {
             const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
             const parsed = [];
@@ -5939,16 +5953,23 @@
                 const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
                 if (!lines.length) return;
                 let dataLines = lines;
-                const headerMatch = lines[0].match(/^pallet\s*(\d+)?\s*:?\s*$/i);
+                const headerMatch = lines[0].match(/^\(?pallet\s*(\d+)?\)?\s*:?\s*$/i) || lines[0].match(/^\(?(\d{1,2})\)?\.?\s*$/);
                 seq++;
                 const palletNum = (headerMatch && headerMatch[1]) ? parseInt(headerMatch[1], 10) : seq;
                 if (headerMatch) dataLines = lines.slice(1);
                 const groups = [];
                 dataLines.forEach(line => {
-                    let parts = line.split('\t').map(s => s.trim()).filter(s => s !== '');
-                    if (parts.length < 2) parts = line.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
-                    if (parts.length < 2) return;
-                    const [partnerRaw, boxesRaw, dateRaw] = parts;
+                    let partnerRaw, boxesRaw, dateRaw;
+                    const labeled = _extractLabeledPalletLine(line);
+                    if (labeled) {
+                        ({ partnerRaw, boxesRaw, dateRaw } = labeled);
+                    } else {
+                        let parts = line.split('\t').map(s => s.trim()).filter(s => s !== '');
+                        if (parts.length < 2) parts = line.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
+                        if (parts.length < 2) return;
+                        [partnerRaw, boxesRaw, dateRaw] = parts;
+                    }
+                    if (!partnerRaw) return;
                     const boxesClean = (boxesRaw || '').replace(/\./g, '').replace(',', '.');
                     const boxes = boxesClean ? (parseFloat(boxesClean) || '') : '';
                     const harvestDate = _parseHarvestDateForPaste(dateRaw);
