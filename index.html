@@ -1091,10 +1091,10 @@
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Dados copiados / extraídos da foto</label>
                     <textarea id="pastePalletsText" rows="8" placeholder="Cole aqui (Ctrl+V) ou use &quot;Extrair da foto&quot;. Uma linha por parceiro: Sítio, Caixas e Data da colheita. Separe pallets diferentes por linha em branco (ou comece o bloco com &quot;Pallet 1&quot;)."
                         class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-slate-50 focus:bg-white transition-colors font-mono"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-1">Cada bloco separado por linha em branco vira um <strong>Pallet novo</strong>. Dentro do bloco, cada linha (Sítio / Caixas / Data) vira um parceiro com as caixas e a data de colheita preenchidas.</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Os <strong>Pallets já precisam existir</strong> no formulário (crie-os com "Adicionar" antes). Cada bloco separado por linha em branco (ou iniciado com "Pallet 1", "Pallet 2"...) preenche o Pallet já criado com esse número — não cria pallets novos. Dentro do bloco, cada linha (Sítio / Caixas / Data) vira um parceiro dentro daquele pallet.</p>
                 </div>
                 <button onclick="confirmPastePallets()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
-                    <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Adicionar Pallet(s)
+                    <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Preencher Pallet(s)
                 </button>
             </div>
         </div>
@@ -5927,15 +5927,21 @@
             }
             return `${year}-${month}-${day}`;
         }
+        // Retorna, por bloco colado, o número do pallet (do cabeçalho "Pallet N" ou
+        // da posição sequencial do bloco) e os grupos de parceiro/lote daquele bloco.
+        // Não cria pallets novos — os pallets já existem no formulário (criados
+        // manualmente); aqui só preenchemos os parceiros dentro deles.
         function _parsePalletsPasteText(raw) {
             const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
-            const newPallets = [];
+            const parsed = [];
+            let seq = 0;
             blocks.forEach(block => {
                 const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
                 if (!lines.length) return;
                 let dataLines = lines;
                 const headerMatch = lines[0].match(/^pallet\s*(\d+)?\s*:?\s*$/i);
-                const label = 'Pallet ' + (headerMatch && headerMatch[1] ? headerMatch[1] : (palletsData.length + newPallets.length + 1));
+                seq++;
+                const palletNum = (headerMatch && headerMatch[1]) ? parseInt(headerMatch[1], 10) : seq;
                 if (headerMatch) dataLines = lines.slice(1);
                 const groups = [];
                 dataLines.forEach(line => {
@@ -5953,22 +5959,58 @@
                     g.lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: boxes === '' ? '' : String(boxes), harvestDate });
                 });
                 if (!groups.length) return;
-                newPallets.push({ label, client: '', temp: '', partnerGroups: groups, photos: [] });
+                parsed.push({ palletNum, groups });
             });
-            return newPallets;
+            return parsed;
+        }
+        // Localiza o Pallet já criado no formulário: primeiro por rótulo exato
+        // ("Pallet N"), senão pela posição N-1 na lista (fallback para rótulos
+        // customizados). Retorna null se não achar nenhum candidato.
+        function _findExistingPalletByNumber(palletNum) {
+            const wanted = ('pallet ' + palletNum).toLowerCase();
+            const byLabel = palletsData.find(pl => (pl.label || '').trim().toLowerCase() === wanted);
+            if (byLabel) return byLabel;
+            return palletsData[palletNum - 1] || null;
+        }
+        // Mescla os grupos de parceiro parseados dentro de um Pallet já existente:
+        // se o parceiro já tem um grupo naquele pallet, soma os lotes; senão cria um grupo novo.
+        function _mergePartnerGroupsIntoPallet(pl, groups) {
+            if (!pl.partnerGroups) pl.partnerGroups = [];
+            groups.forEach(g => {
+                const key = (g.name === 'Outro' ? g.nameCustom : g.name).trim().toLowerCase();
+                let existing = pl.partnerGroups.find(eg => (eg.name === 'Outro' ? eg.nameCustom : eg.name).trim().toLowerCase() === key);
+                if (existing) {
+                    if (!existing.lots) existing.lots = [];
+                    existing.lots.push(...g.lots);
+                    existing.collapsed = false;
+                } else {
+                    pl.partnerGroups.push(g);
+                }
+            });
         }
         function confirmPastePallets() {
             const raw = document.getElementById('pastePalletsText').value;
             if (!raw || !raw.trim()) { showMessageModal('Nada para colar', 'Cole ou extraia as informações dos pallets antes de confirmar.', 'error'); return; }
-            const newPallets = _parsePalletsPasteText(raw);
-            if (!newPallets.length) {
+            const parsed = _parsePalletsPasteText(raw);
+            if (!parsed.length) {
                 showMessageModal('Não foi possível ler os dados', 'Não encontrei parceiro, caixas ou data de colheita no texto colado. Verifique o formato e tente novamente.', 'error');
                 return;
             }
-            newPallets.forEach(pl => { palletsData.push(pl); _collapsedPallets.push(true); });
+            const missing = [];
+            let filledCount = 0;
+            parsed.forEach(({ palletNum, groups }) => {
+                const pl = _findExistingPalletByNumber(palletNum);
+                if (!pl) { missing.push(palletNum); return; }
+                _mergePartnerGroupsIntoPallet(pl, groups);
+                filledCount++;
+            });
             closePastePalletsModal();
             renderPallets();
             updatePreview();
+            if (missing.length) {
+                showMessageModal('Alguns pallets não foram encontrados',
+                    `Não encontrei o(s) Pallet ${missing.join(', ')} já criado(s) no formulário. Crie esses pallets primeiro (botão "Adicionar") e cole novamente.${filledCount ? ' Os demais pallets foram preenchidos normalmente.' : ''}`, 'error');
+            }
         }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
