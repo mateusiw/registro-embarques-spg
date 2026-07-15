@@ -1079,23 +1079,31 @@
 
     <!-- MODAL COLAR DADOS DO PALLET -->
     <div id="pastePalletsModal" class="fixed inset-0 bg-black/70 z-[95] hidden flex items-center justify-center backdrop-blur-sm p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
                 <p class="text-sm font-black text-slate-700 uppercase tracking-wide">Colar dados do pallet</p>
                 <button onclick="closePastePalletsModal()" class="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 transition-colors">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
-            <div class="p-4 space-y-3">
+            <div class="p-4 space-y-3 overflow-y-auto">
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Dados copiados / extraídos da foto</label>
-                    <textarea id="pastePalletsText" rows="8" placeholder="Cole aqui (Ctrl+V) ou use &quot;Extrair da foto&quot;. Uma linha por parceiro: Sítio, Caixas e Data da colheita. Separe pallets diferentes por linha em branco (ou comece o bloco com &quot;Pallet 1&quot;)."
+                    <textarea id="pastePalletsText" rows="5" placeholder="Cole aqui (Ctrl+V) ou use &quot;Extrair da foto&quot;. Uma linha por parceiro: Sítio, Caixas e Data da colheita. Separe pallets diferentes por linha em branco (ou comece o bloco com &quot;Pallet 1&quot;)."
                         class="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-slate-50 focus:bg-white transition-colors font-mono"></textarea>
-                    <p class="text-[10px] text-slate-400 mt-1">Os <strong>Pallets já precisam existir</strong> no formulário (crie-os com "Adicionar" antes). Cada bloco separado por linha em branco (ou iniciado com "Pallet 1", "Pallet 2"...) preenche o Pallet já criado com esse número — não cria pallets novos. Dentro do bloco, cada linha (Sítio / Caixas / Data) vira um parceiro dentro daquele pallet.</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Clique em <strong>Analisar Texto</strong> e confira/corrija cada linha na tabela antes de registrar. Os <strong>Pallets já precisam existir</strong> no formulário (crie-os com "Adicionar" antes).</p>
                 </div>
-                <button onclick="confirmPastePallets()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95">
-                    <i data-lucide="clipboard-check" class="w-4 h-4 inline mr-2"></i> Preencher Pallet(s)
+                <button onclick="analisarTextoPallets()" class="w-full py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="search" class="w-4 h-4"></i> Analisar Texto
                 </button>
+                <div id="pastePalletsResults" class="hidden space-y-2">
+                    <div id="pastePalletsSummary" class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center"></div>
+                    <div id="pastePalletsCards" class="space-y-3"></div>
+                </div>
+            </div>
+            <div class="p-4 pt-3 border-t border-slate-100 grid grid-cols-2 gap-3 shrink-0">
+                <button onclick="closePastePalletsModal()" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors">Cancelar</button>
+                <button id="pastePalletsRegisterBtn" onclick="registrarPastePallets()" disabled class="py-3 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold rounded-xl text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">Registrar (0)</button>
             </div>
         </div>
     </div>
@@ -5531,6 +5539,7 @@
         // Abreviações usadas nas planilhas de campo preenchidas à mão (ex: "F.O", "S.L")
         // -> nome completo do parceiro cadastrado no sistema.
         const PARTNER_ABBREVIATIONS = {
+            'agp': 'Agrotech Pinheiro',
             'fo': 'Fazenda Oásis',
             'pq': 'P.Q Parceiros',
             'pqfo': 'P.Q Oásis',
@@ -5861,6 +5870,9 @@
             const ta = document.getElementById('pastePalletsText');
             ta.value = '';
             ta.disabled = false;
+            _pendingPalletRows = [];
+            const resultsEl = document.getElementById('pastePalletsResults');
+            if (resultsEl) resultsEl.classList.add('hidden');
             const modal = document.getElementById('pastePalletsModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
@@ -5913,6 +5925,7 @@
                     + 'Faça isso em duas etapas. ETAPA 1: percorra a imagem de cima para baixo e liste TODAS as linhas que casam com o padrão sítio/caixas/data, uma por uma, sem pular nenhuma — inclusive linhas soltas, próximas da margem, ou que pareçam "extras" antes de um número circulado. Não descarte uma linha só porque não tem certeza a qual pallet ela pertence.\n\n'
                     + 'ETAPA 2: agrupe essas linhas em pallets. O sinal MAIS CONFIÁVEL de onde um grupo começa e termina é uma chave "}" ou colchete à direita das linhas com um número total ao lado (normalmente 60, a capacidade cheia de um pallet) — as linhas abrangidas por essa chave são exatamente as desse pallet, e a soma das caixas delas deve bater com esse total; use isso como delimitador principal do grupo, não só como conferência posterior. Quando não houver chave visível, use como delimitador uma linha pautada em branco (vazia) separando os grupos. O número circulado do pallet pode estar ao lado de QUALQUER linha do grupo — do topo, do meio ou de baixo —, não presuma que ele marca a primeira nem a última linha; use-o só para saber o número do grupo inteiro que está mais próximo dele (geralmente alinhado com a chave "}" daquele grupo). Se a soma das caixas de um grupo não bater com o total da chave, revise se alguma linha foi atribuída ao grupo errado antes de decidir — não invente nem remova linha válida que você já tenha listado na ETAPA 1.\n\n'
                     + 'Transcreva os valores EXATAMENTE como estão escritos à mão (não corrija, não expanda abreviações — ex: mantenha "F.O", "S.U", "SED", "SA" como estão) e sem inventar informação. Se um campo estiver ilegível ou vazio, deixe em branco nessa posição. Preste atenção especial para não confundir dígitos parecidos na caligrafia (1/7, 0/6, 4/9) — em caso de dúvida real, prefira deixar o campo levemente incerto a inventar um valor que não está na imagem.\n\n'
+                    + 'A data SEMPRE tem exatamente 4 dígitos numéricos no formato DD/MM (dois dígitos, uma barra "/", mais dois dígitos) — nunca a transcreva com 5 dígitos ou mais. Cuidado especial para não confundir a barra "/" (um traço fino diagonal separando dia e mês) com o número "1": se a data que você transcreveu tiver mais de 4 dígitos numéricos (ex: "08107" em vez de "08/07"), você confundiu a barra com um dígito — corrija antes de responder.\n\n'
                     + 'CUIDADO com códigos de sítio compostos, como "PQ.FO", "PQ.F.O" ou "PQ:F.O" — é UM ÚNICO código (site diferente de "PQ" sozinho e de "F.O" sozinho) e deve ser transcrito junto, como um só valor de sítio numa única linha. Nunca separe esse tipo de código em duas linhas distintas ("PQ" numa linha e "F.O"/"FO" noutra).\n\n'
                     + 'IMPORTANTE: independente de como os dados estão organizados na imagem, SEMPRE normalize a saída para o formato abaixo — nunca copie o layout original da planilha. Retorne APENAS texto simples (sem markdown, sem explicações), um bloco por pallet, separado por uma linha em branco, com as 3 colunas (sítio, caixas, data) sempre separadas por um caractere TAB, neste formato exato:\n\n'
                     + 'Pallet <número>\n<sítio>\t<caixas>\t<data>\n<sítio>\t<caixas>\t<data>\n\nPallet <número>\n<sítio>\t<caixas>\t<data>';
@@ -5940,6 +5953,7 @@
                 const text = (data.choices?.[0]?.message?.content || '').trim();
                 if (!text) throw new Error('A IA não retornou texto (resposta vazia ou cortada). Tente novamente.');
                 ta.value = text;
+                analisarTextoPallets();
             } catch (e) {
                 ta.value = '';
                 showMessageModal('Falha ao ler a imagem', e.message || 'Não foi possível processar a imagem. Tente novamente ou digite manualmente.', 'error');
@@ -6002,8 +6016,26 @@
                     } else {
                         let parts = line.split('\t').map(s => s.trim()).filter(s => s !== '');
                         if (parts.length < 2) parts = line.split(/\s{2,}/).map(s => s.trim()).filter(s => s !== '');
+                        // Fallback final: um espaço só entre parceiro/caixas/data (ex: "S.L 08/07 7"),
+                        // formato comum quando o texto é digitado à mão em vez de colado de planilha.
+                        if (parts.length < 2) parts = line.split(/\s+/).map(s => s.trim()).filter(s => s !== '');
                         if (parts.length < 2) return;
-                        [partnerRaw, boxesRaw, dateRaw] = parts;
+                        if (parts.length === 3) {
+                            // Não presume a ordem (parceiro/caixas/data) — identifica pelo conteúdo,
+                            // já que formatos digitados à mão às vezes trazem a data antes das caixas.
+                            const DATE_RE = /^\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?$/;
+                            const dateIdx = parts.findIndex(p => DATE_RE.test(p));
+                            const boxesIdx = parts.findIndex((p, i) => i !== dateIdx && /^\d+(?:[.,]\d+)?$/.test(p));
+                            if (dateIdx !== -1 && boxesIdx !== -1) {
+                                dateRaw = parts[dateIdx];
+                                boxesRaw = parts[boxesIdx];
+                                partnerRaw = parts.find((_, i) => i !== dateIdx && i !== boxesIdx);
+                            } else {
+                                [partnerRaw, boxesRaw, dateRaw] = parts;
+                            }
+                        } else {
+                            [partnerRaw, boxesRaw, dateRaw] = parts;
+                        }
                     }
                     if (!partnerRaw) return;
                     const boxesClean = (boxesRaw || '').replace(/\./g, '').replace(',', '.');
@@ -6020,14 +6052,15 @@
             });
             return parsed;
         }
-        // Localiza o Pallet já criado no formulário: primeiro por rótulo exato
-        // ("Pallet N"), senão pela posição N-1 na lista (fallback para rótulos
-        // customizados). Retorna null se não achar nenhum candidato.
-        function _findExistingPalletByNumber(palletNum) {
+        // Localiza o índice do Pallet já criado no formulário: primeiro por rótulo
+        // exato ("Pallet N"), senão pela posição N-1 na lista (fallback para rótulos
+        // customizados). Retorna -1 se não achar nenhum candidato.
+        function _findExistingPalletIndexByNumber(palletNum) {
             const wanted = ('pallet ' + palletNum).toLowerCase();
-            const byLabel = palletsData.find(pl => (pl.label || '').trim().toLowerCase() === wanted);
-            if (byLabel) return byLabel;
-            return palletsData[palletNum - 1] || null;
+            const byLabelIdx = palletsData.findIndex(pl => (pl.label || '').trim().toLowerCase() === wanted);
+            if (byLabelIdx !== -1) return byLabelIdx;
+            const seqIdx = palletNum - 1;
+            return (seqIdx >= 0 && seqIdx < palletsData.length) ? seqIdx : -1;
         }
         // Mescla os grupos de parceiro parseados dentro de um Pallet já existente:
         // se o parceiro já tem um grupo naquele pallet, soma os lotes; senão cria um grupo novo.
@@ -6045,29 +6078,175 @@
                 }
             });
         }
-        function confirmPastePallets() {
+        // Linhas parseadas do texto colado/extraído, pendentes de revisão na tabela
+        // do modal "Colar dados do pallet" antes de serem gravadas em palletsData.
+        let _pendingPalletRows = [];
+
+        function analisarTextoPallets() {
             const raw = document.getElementById('pastePalletsText').value;
-            if (!raw || !raw.trim()) { showMessageModal('Nada para colar', 'Cole ou extraia as informações dos pallets antes de confirmar.', 'error'); return; }
+            if (!raw || !raw.trim()) { showMessageModal('Nada para analisar', 'Cole ou extraia as informações dos pallets antes de analisar.', 'error'); return; }
             const parsed = _parsePalletsPasteText(raw);
             if (!parsed.length) {
                 showMessageModal('Não foi possível ler os dados', 'Não encontrei parceiro, caixas ou data de colheita no texto colado. Verifique o formato e tente novamente.', 'error');
                 return;
             }
-            const missing = [];
-            let filledCount = 0;
+            _pendingPalletRows = [];
             parsed.forEach(({ palletNum, groups }) => {
-                const pl = _findExistingPalletByNumber(palletNum);
-                if (!pl) { missing.push(palletNum); return; }
+                const palletIdx = _findExistingPalletIndexByNumber(palletNum);
+                groups.forEach(g => {
+                    (g.lots || []).forEach(lot => {
+                        _pendingPalletRows.push({
+                            checked: true,
+                            palletIdx,
+                            siteSel: g.name,
+                            siteCustom: g.nameCustom,
+                            boxes: lot.boxes,
+                            harvestDate: lot.harvestDate,
+                            // Marca quando o código do texto/foto não bateu com nenhum parceiro
+                            // cadastrado nem abreviação conhecida (caiu em "Outro" sem o usuário
+                            // ter escolhido) — destaca a linha em vermelho para revisão manual.
+                            unresolved: g.name === 'Outro'
+                        });
+                    });
+                });
+            });
+            document.getElementById('pastePalletsResults').classList.remove('hidden');
+            _renderPastePalletsTable();
+        }
+
+        // Agrupa as linhas pendentes por pallet (um card por pallet) — bem mais fácil
+        // de revisar do que uma tabela única onde o mesmo "Pallet 1" se repete em
+        // toda linha. -1 = pallet não identificado, vira um card de alerta à parte.
+        function _renderPastePalletsTable() {
+            const container = document.getElementById('pastePalletsCards');
+            const groups = new Map();
+            _pendingPalletRows.forEach((row, idx) => {
+                if (!groups.has(row.palletIdx)) groups.set(row.palletIdx, []);
+                groups.get(row.palletIdx).push(idx);
+            });
+            const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === -1) return 1;
+                if (b === -1) return -1;
+                return a - b;
+            });
+            container.innerHTML = sortedKeys.map(key => {
+                const rowIdxs = groups.get(key);
+                const isUnassigned = key === -1;
+                const label = isUnassigned ? 'Sem pallet identificado' : (palletsData[key]?.label || ('Pallet ' + (key + 1)));
+                const checkedInGroup = rowIdxs.filter(idx => _pendingPalletRows[idx].checked);
+                const subtotal = checkedInGroup.reduce((s, idx) => s + (parseFloat(_pendingPalletRows[idx].boxes) || 0), 0);
+                const rowsHtml = rowIdxs.map(idx => {
+                    const row = _pendingPalletRows[idx];
+                    const palletOptions = palletsData.map((pl, i) => `<option value="${i}" ${i===row.palletIdx?'selected':''}>${(pl.label||'Pallet '+(i+1)).replace(/"/g,'&quot;')}</option>`).join('');
+                    const palletSel = `<select onchange="updatePendingPalletRow(${idx},'palletIdx',this.value)" title="Mover para outro pallet" class="w-full p-1.5 rounded-lg border ${row.palletIdx===-1?'border-rose-300':'border-slate-200'} text-[11px] bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="-1" ${row.palletIdx===-1?'selected':''}>—</option>${palletOptions}</select>`;
+                    const siteSel = row.siteSel || '';
+                    const siteBorder = row.unresolved ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-200';
+                    const siteSelEl = `<select onchange="updatePendingPalletRow(${idx},'siteSel',this.value)" class="w-full p-1.5 rounded-lg border ${siteBorder} text-xs bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Parceiro</option>${PARTNER_PRESETS.map(n => `<option value="${n}" ${siteSel===n?'selected':''}>${n}</option>`).join('')}<option value="Outro" ${siteSel==='Outro'?'selected':''}>Outro...</option></select>`;
+                    const siteCustomEl = siteSel === 'Outro'
+                        ? `<input type="text" value="${(row.siteCustom||'').replace(/"/g,'&quot;')}" placeholder="Nome parceiro" oninput="updatePendingPalletRow(${idx},'siteCustom',this.value,true)" class="w-full mt-1 p-1.5 rounded-lg border ${siteBorder} text-xs bg-white focus:ring-2 focus:ring-amber-400 outline-none">`
+                        : '';
+                    const unresolvedHint = row.unresolved ? `<p class="text-[9px] text-rose-500 font-bold mt-0.5">Não reconhecido</p>` : '';
+                    return `<tr class="border-t border-slate-100 align-top ${row.unresolved ? 'bg-rose-50' : ''}">
+                        <td class="p-2"><input type="checkbox" ${row.checked?'checked':''} onchange="togglePendingPalletRow(${idx})" class="w-4 h-4"></td>
+                        <td class="p-2 min-w-[150px]">${siteSelEl}${siteCustomEl}${unresolvedHint}</td>
+                        <td class="p-2 min-w-[80px]"><input type="number" min="0" value="${row.boxes}" oninput="updatePendingPalletRow(${idx},'boxes',this.value,true)" class="w-full p-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-amber-400 outline-none"></td>
+                        <td class="p-2 min-w-[130px]"><input type="date" value="${row.harvestDate||''}" oninput="updatePendingPalletRow(${idx},'harvestDate',this.value,true)" class="w-full p-1.5 rounded-lg border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-amber-400 outline-none"></td>
+                        <td class="p-2 min-w-[90px]">${palletSel}</td>
+                        <td class="p-2"><button type="button" onclick="removePendingPalletRow(${idx})" class="text-rose-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>
+                    </tr>`;
+                }).join('');
+                return `<div class="border ${isUnassigned ? 'border-rose-300' : 'border-slate-200'} rounded-xl overflow-hidden">
+                    <div class="px-3 py-2 ${isUnassigned ? 'bg-rose-50' : 'bg-amber-50'} flex items-center justify-between gap-2">
+                        <span class="text-xs font-black ${isUnassigned ? 'text-rose-700' : 'text-slate-700'} uppercase tracking-wide">${label}</span>
+                        <span class="text-[10px] font-bold text-slate-500 shrink-0">${checkedInGroup.length} parceiro(s) • ${subtotal} cx</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs" style="min-width:480px;">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px]">
+                                    <th class="p-2 w-8"></th>
+                                    <th class="p-2 text-left">Parceiro</th>
+                                    <th class="p-2 text-left">Caixas</th>
+                                    <th class="p-2 text-left">Data</th>
+                                    <th class="p-2 text-left">Pallet</th>
+                                    <th class="p-2 w-8"></th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+            _updatePastePalletsSummary();
+        }
+
+        function _updatePastePalletsSummary() {
+            const checkedRows = _pendingPalletRows.filter(r => r.checked);
+            const total = checkedRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0);
+            const unresolvedCount = _pendingPalletRows.filter(r => r.unresolved).length;
+            const summaryEl = document.getElementById('pastePalletsSummary');
+            if (summaryEl) {
+                summaryEl.textContent = `${checkedRows.length} parceiro(s) • ${total} caixa(s) no total`
+                    + (unresolvedCount ? ` • ${unresolvedCount} não reconhecido(s)` : '');
+                summaryEl.className = unresolvedCount
+                    ? 'p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center'
+                    : 'p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center';
+            }
+            const btn = document.getElementById('pastePalletsRegisterBtn');
+            if (btn) {
+                btn.textContent = `Registrar (${checkedRows.length})`;
+                btn.disabled = checkedRows.length === 0;
+            }
+        }
+
+        function togglePendingPalletRow(idx) {
+            _pendingPalletRows[idx].checked = !_pendingPalletRows[idx].checked;
+            _updatePastePalletsSummary();
+        }
+
+        // skipRerender evita recriar a tabela inteira (e perder o foco/cursor) em
+        // inputs de texto/número/data — só os selects (pallet/parceiro), que mudam
+        // a UI da linha (ex: exibir campo "Outro"), forçam um re-render completo.
+        function updatePendingPalletRow(idx, field, value, skipRerender) {
+            _pendingPalletRows[idx][field] = field === 'palletIdx' ? parseInt(value, 10) : value;
+            // Usuário mexeu manualmente no parceiro (select ou nome customizado) — o alerta
+            // de "não reconhecido" já cumpriu seu papel, não precisa mais destacar a linha.
+            if (field === 'siteSel' || field === 'siteCustom') _pendingPalletRows[idx].unresolved = false;
+            if (skipRerender) { _updatePastePalletsSummary(); return; }
+            _renderPastePalletsTable();
+        }
+
+        function removePendingPalletRow(idx) {
+            _pendingPalletRows.splice(idx, 1);
+            _renderPastePalletsTable();
+        }
+
+        function registrarPastePallets() {
+            const validRows = _pendingPalletRows.filter(r => r.checked && r.palletIdx !== -1 && palletsData[r.palletIdx] && (r.siteSel || '').trim());
+            if (!validRows.length) {
+                showMessageModal('Nada para registrar', 'Marque ao menos uma linha com Pallet e Parceiro selecionados.', 'error');
+                return;
+            }
+            const byPallet = new Map();
+            validRows.forEach(r => {
+                if (!byPallet.has(r.palletIdx)) byPallet.set(r.palletIdx, []);
+                byPallet.get(r.palletIdx).push(r);
+            });
+            byPallet.forEach((rowsForPallet, palletIdx) => {
+                const pl = palletsData[palletIdx];
+                const groups = [];
+                rowsForPallet.forEach(r => {
+                    const key = (r.siteSel === 'Outro' ? r.siteCustom : r.siteSel).trim().toLowerCase();
+                    let g = groups.find(gr => (gr.name === 'Outro' ? gr.nameCustom : gr.name).trim().toLowerCase() === key);
+                    if (!g) { g = { name: r.siteSel, nameCustom: r.siteCustom, collapsed: false, lots: [] }; groups.push(g); }
+                    g.lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: r.boxes, harvestDate: r.harvestDate });
+                });
                 _mergePartnerGroupsIntoPallet(pl, groups);
-                filledCount++;
             });
             closePastePalletsModal();
             renderPallets();
             updatePreview();
-            if (missing.length) {
-                showMessageModal('Alguns pallets não foram encontrados',
-                    `Não encontrei o(s) Pallet ${missing.join(', ')} já criado(s) no formulário. Crie esses pallets primeiro (botão "Adicionar") e cole novamente.${filledCount ? ' Os demais pallets foram preenchidos normalmente.' : ''}`, 'error');
-            }
         }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
