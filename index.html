@@ -591,6 +591,7 @@
                         <div class="flex items-center flex-wrap justify-end gap-x-3 gap-y-1">
                             <button type="button" onclick="openPhotoSourceModal(extractPalletsFromPhoto)" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="scan-text" class="w-3.5 h-3.5"></i> Extrair da foto</button>
                             <button type="button" onclick="openPastePalletsModal()" class="text-slate-500 hover:text-slate-700 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="clipboard-paste" class="w-3.5 h-3.5"></i> Colar dados do pallet</button>
+                            <button type="button" onclick="confirmClearAllPalletPartners()" class="text-slate-500 hover:text-rose-600 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="eraser" class="w-3.5 h-3.5"></i> Limpar parceiros</button>
                             <button type="button" id="addPalletBtn" onclick="addPallet()" class="text-amber-600 hover:text-amber-800 flex items-center gap-1 normal-case text-[10px] font-bold whitespace-nowrap"><i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Adicionar</button>
                         </div>
                     </div>
@@ -5562,7 +5563,7 @@
             'su': 'Sítio Valdir'
         };
         function _resolvePartnerAbbrev(raw) {
-            const key = String(raw || '').trim().toLowerCase().replace(/[.\s]/g, '');
+            const key = String(raw || '').trim().toLowerCase().replace(/[.\s:]/g, '');
             return PARTNER_ABBREVIATIONS[key] || null;
         }
         function _matchPartnerPresetOrAbbrev(value) {
@@ -6141,6 +6142,7 @@
                 const label = isUnassigned ? 'Sem pallet identificado' : (palletsData[key]?.label || ('Pallet ' + (key + 1)));
                 const checkedInGroup = rowIdxs.filter(idx => _pendingPalletRows[idx].checked);
                 const subtotal = checkedInGroup.reduce((s, idx) => s + (parseFloat(_pendingPalletRows[idx].boxes) || 0), 0);
+                const uniquePartnersInGroup = new Set(checkedInGroup.map(idx => _pendingRowPartnerKey(_pendingPalletRows[idx])).filter(Boolean));
                 const rowsHtml = rowIdxs.map(idx => {
                     const row = _pendingPalletRows[idx];
                     const palletOptions = palletsData.map((pl, i) => `<option value="${i}" ${i===row.palletIdx?'selected':''}>${(pl.label||'Pallet '+(i+1)).replace(/"/g,'&quot;')}</option>`).join('');
@@ -6164,7 +6166,7 @@
                 return `<div class="border ${isUnassigned ? 'border-rose-300' : 'border-slate-200'} rounded-xl overflow-hidden">
                     <div class="px-3 py-2 ${isUnassigned ? 'bg-rose-50' : 'bg-amber-50'} flex items-center justify-between gap-2">
                         <span class="text-xs font-black ${isUnassigned ? 'text-rose-700' : 'text-slate-700'} uppercase tracking-wide">${label}</span>
-                        <span class="text-[10px] font-bold text-slate-500 shrink-0">${checkedInGroup.length} parceiro(s) • ${subtotal} cx</span>
+                        <span class="text-[10px] font-bold text-slate-500 shrink-0">${uniquePartnersInGroup.size} parceiro(s) • ${subtotal} cx</span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs" style="min-width:480px;">
@@ -6187,13 +6189,21 @@
             _updatePastePalletsSummary();
         }
 
+        // Chave do parceiro de uma linha pendente (nome resolvido, sem acento/maiúsculas)
+        // -- usada para não contar o mesmo parceiro mais de uma vez quando ele aparece
+        // em pallets diferentes (ou em lotes diferentes do mesmo pallet).
+        function _pendingRowPartnerKey(row) {
+            const name = row.siteSel === 'Outro' ? (row.siteCustom || '') : (row.siteSel || '');
+            return _normalizePartnerKey(name);
+        }
         function _updatePastePalletsSummary() {
             const checkedRows = _pendingPalletRows.filter(r => r.checked);
             const total = checkedRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0);
+            const uniquePartners = new Set(checkedRows.map(_pendingRowPartnerKey).filter(Boolean));
             const unresolvedCount = _pendingPalletRows.filter(r => r.unresolved).length;
             const summaryEl = document.getElementById('pastePalletsSummary');
             if (summaryEl) {
-                summaryEl.textContent = `${checkedRows.length} parceiro(s) • ${total} caixa(s) no total`
+                summaryEl.textContent = `${uniquePartners.size} parceiro(s) • ${total} caixa(s) no total`
                     + (unresolvedCount ? ` • ${unresolvedCount} não reconhecido(s)` : '');
                 summaryEl.className = unresolvedCount
                     ? 'p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center'
@@ -6264,6 +6274,21 @@
             renderPallets();
         }
         function removePalletPartnerGroup(pIdx, gIdx) { palletsData[pIdx].partnerGroups.splice(gIdx, 1); renderPallets(); updatePreview(); }
+        function confirmClearAllPalletPartners() {
+            if (!palletsData.length) return;
+            showConfirmModal({
+                title: 'Limpar parceiros de todos os pallets?',
+                text: 'Todos os parceiros, lotes e quantidades cadastrados em cada pallet serão removidos. Os pallets em si (e suas fotos/temperatura) permanecem. Esta ação não pode ser desfeita.',
+                confirmLabel: 'Limpar',
+                type: 'danger',
+                onConfirm: clearAllPalletPartners
+            });
+        }
+        function clearAllPalletPartners() {
+            palletsData.forEach(pl => { pl.partnerGroups = []; });
+            renderPallets();
+            updatePreview();
+        }
         function togglePalletPartnerGroup(pIdx, gIdx) { const g = palletsData[pIdx].partnerGroups[gIdx]; g.collapsed = !g.collapsed; renderPallets(); }
         function updatePalletPartnerGroupName(pIdx, gIdx, value) {
             palletsData[pIdx].partnerGroups[gIdx].name = value;
