@@ -5516,6 +5516,12 @@
         function _qtyLabel(qty, unitsQty) {
             return qty + ' cx' + (unitsQty > 0 ? ` (${unitsQty} un)` : '');
         }
+        // Formata número no padrão brasileiro (milhar com ".", decimal com ",") —
+        // usado nos totais em kg do relatório/PDF (ex: 1173.3 -> "1.173,3").
+        function _fmtBR(n) {
+            const num = parseFloat(n);
+            return isNaN(num) ? String(n ?? '') : num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+        }
         async function fetchProductUnits() {
             if (!APPS_SCRIPT_URL) return;
             try {
@@ -7200,7 +7206,7 @@
             })())}
 
             <!-- 4. RESUMO (só no PDF interno) -->
-            ${showInternalSections ? rpSH(rn(),'Resumo do Embarque') + rpTable('<tr>'+rpTH('Total Caixas/Unid.')+rpTH('Parceiros')+rpTH('Total Descarte')+rpTH('Maior Envio')+rpTH('Maior Descarte')+'</tr><tr>'+rpTD(totalQty,'font-weight:900;font-size:13px;')+rpTD(validPartners.length,'font-size:13px;font-weight:700;')+rpTD(totalDiscard+' kg','font-weight:900;font-size:13px;color:#b91c1c;')+rpTD(maxPartner?getPartnerName(maxPartner):'—')+rpTD(maxDiscard?maxDiscard.partner+' ('+maxDiscard.total+' kg)':'—')+'</tr>') : ''}
+            ${showInternalSections ? rpSH(rn(),'Resumo do Embarque') + rpTable('<tr>'+rpTH('Total Caixas/Unid.')+rpTH('Parceiros')+rpTH('Total Descarte')+rpTH('Maior Envio')+rpTH('Maior Descarte')+'</tr><tr>'+rpTD(totalQty,'font-weight:900;font-size:13px;')+rpTD(validPartners.length,'font-size:13px;font-weight:700;')+rpTD(_fmtBR(totalDiscard)+' kg','font-weight:900;font-size:13px;color:#b91c1c;')+rpTD(maxPartner?getPartnerName(maxPartner):'—')+rpTD(maxDiscard?maxDiscard.partner+' ('+_fmtBR(maxDiscard.total)+' kg)':'—')+'</tr>') : ''}
 
             <!-- 5. TEMPERATURAS -->
             ${rpSH(rn(),'Temperaturas')}
@@ -7228,9 +7234,9 @@
             ${validDiscards.length ? validDiscards.map((d,i)=>{
                 const pct = totalDiscard>0 ? (parseFloat(d.weight)/totalDiscard*100).toFixed(1)+'%' : '—';
                 const bg = i%2===0?'':'background:#fff5f5;';
-                return `<tr style="${bg}">${rpTD(d.partner)}${rpTD(d.cultura||'—')}${rpTD(d.weight+' kg','font-weight:700;color:#b91c1c;text-align:right;')}${rpTD(d.reason||'—')}${rpTD(pct,'text-align:right;')}</tr>`;
+                return `<tr style="${bg}">${rpTD(d.partner)}${rpTD(d.cultura||'—')}${rpTD(_fmtBR(d.weight)+' kg','font-weight:700;color:#b91c1c;text-align:right;')}${rpTD(d.reason||'—')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="5" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum descarte registrado.</td></tr>`}
-            ${validDiscards.length?`<tr style="background:#fee2e2;">${rpTH('TOTAL DESCARTE')}${rpTD('')}${rpTD(totalDiscard+' kg','font-weight:900;color:#b91c1c;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ${validDiscards.length?`<tr style="background:#fee2e2;">${rpTH('TOTAL DESCARTE')}${rpTD('')}${rpTD(_fmtBR(totalDiscard)+' kg','font-weight:900;color:#b91c1c;text-align:right;')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
             ` : ''}
 
             ${showInternalSections && aiSummary ? `
@@ -7881,7 +7887,7 @@
                     body: [[
                         totalQty ? totalQty+' cx' : '---',
                         String(validPartners.length || 0),
-                        {content:(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
+                        {content:_fmtBR(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
                         maxPartner ? getPartnerName(maxPartner) : '—',
                         maxD ? (maxD.partnerSel==='Outro'?maxD.partner:maxD.partnerSel)||'—' : '—',
                     ]],
@@ -7931,12 +7937,12 @@
                 const dRows = validDiscards.map(d => {
                     const pct = totalDiscard>0 ? ((parseFloat(d.weight)/totalDiscard)*100).toFixed(1)+'%' : '—';
                     const nm  = d.partnerSel==='Outro' ? d.partner : (d.partnerSel||d.partner||'—');
-                    return [nm, d.cultura||'—', {content:parseFloat(d.weight)+' kg',styles:{halign:'right'}}, d.reason||'—', {content:pct,styles:{halign:'right'}}];
+                    return [nm, d.cultura||'—', {content:_fmtBR(d.weight)+' kg',styles:{halign:'right'}}, d.reason||'—', {content:pct,styles:{halign:'right'}}];
                 });
                 if (dRows.length) dRows.push([
                     {content:'TOTAL DESCARTE',styles:{fontStyle:'bold'}},
                     '',
-                    {content:totalDiscard+' kg',styles:{fontStyle:'bold',halign:'right',textColor:C.red}},
+                    {content:_fmtBR(totalDiscard)+' kg',styles:{fontStyle:'bold',halign:'right',textColor:C.red}},
                     '',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
                 ]);
                 doc.autoTable(tbl({ startY: y,
