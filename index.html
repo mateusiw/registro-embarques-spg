@@ -5507,10 +5507,19 @@
             return Array.from(new Set([...DEFAULT_LOT_PRODUCTS, ...Object.keys(PRODUCT_UNITS)]));
         }
         // Unidades = caixas x unidades-por-caixa do produto (0 se o produto não
-        // tiver fator cadastrado na aba Produtos).
-        function _lotUnits(lot) {
+        // tiver fator cadastrado na aba Produtos). O usuário pode sobrescrever esse
+        // fator manualmente por lote (lot.unitsPerBoxManual), já que a quantidade de
+        // unidades por caixa às vezes varia entre lotes do mesmo produto.
+        function _lotAutoFactor(lot) {
             const name = (lot.product === 'Outro' ? (lot.productCustom || '') : (lot.product || '')).trim();
-            const factor = parseFloat(PRODUCT_UNITS[name]) || 0;
+            return parseFloat(PRODUCT_UNITS[name]) || 0;
+        }
+        function _lotFactor(lot) {
+            const manual = parseFloat(lot.unitsPerBoxManual);
+            return manual > 0 ? manual : _lotAutoFactor(lot);
+        }
+        function _lotUnits(lot) {
+            const factor = _lotFactor(lot);
             const boxes = parseFloat(lot.boxes) || 0;
             return (factor > 0 && boxes > 0) ? Math.round(boxes * factor) : 0;
         }
@@ -6305,16 +6314,67 @@
             renderPallets();
         }
         function removePalletLot(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots.splice(lIdx, 1); renderPallets(); updatePreview(); }
+        function _refreshPalletTotalDisplay(pIdx) {
+            const total = (palletsData[pIdx].partnerGroups || []).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0);
+            const el = document.getElementById('pallet-total-' + pIdx);
+            if (el) el.textContent = total + ' cx';
+        }
         function updatePalletLot(pIdx, gIdx, lIdx, field, value) {
             palletsData[pIdx].partnerGroups[gIdx].lots[lIdx][field] = value;
-            if (field === 'boxes') {
-                const total = (palletsData[pIdx].partnerGroups || []).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0);
-                const el = document.getElementById('pallet-total-' + pIdx);
-                if (el) el.textContent = total + ' cx';
-            }
+            if (field === 'boxes') _refreshPalletTotalDisplay(pIdx);
             updatePreview();
         }
-        function handlePalletLotProductChange(pIdx, gIdx, lIdx, sel) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = sel.value; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); updatePreview(); }
+        // Un/caixa pode ser digitado manualmente por lote (lot.unitsPerBoxManual),
+        // sobrescrevendo o fator padrão do produto — necessário porque a mesma
+        // mercadoria às vezes vem com uma quantidade diferente de unidades por caixa.
+        function updatePalletLotFactor(pIdx, gIdx, lIdx, value) {
+            const lot = palletsData[pIdx].partnerGroups[gIdx].lots[lIdx];
+            lot.unitsPerBoxManual = value;
+            if (lot.qtyUnit === 'un' && lot.unitsRaw !== '' && lot.unitsRaw != null) {
+                const factor = _lotFactor(lot);
+                lot.boxes = factor > 0 ? (parseFloat(lot.unitsRaw) || 0) / factor : '';
+                _refreshPalletTotalDisplay(pIdx);
+            }
+            // Não chama renderPallets() aqui: isso recriaria o input a cada tecla
+            // digitada e tiraria o foco do campo. Os rótulos calculados (= X cx/un)
+            // são atualizados quando o campo perde o foco (onblur, no HTML do input).
+            updatePreview();
+        }
+        function handlePalletLotProductChange(pIdx, gIdx, lIdx, sel) {
+            const lot = palletsData[pIdx].partnerGroups[gIdx].lots[lIdx];
+            lot.product = sel.value;
+            lot.productCustom = '';
+            // Se o usuário já tinha digitado a quantidade em unidades antes de
+            // escolher o produto, recalcula as caixas agora que o fator é conhecido.
+            if (lot.qtyUnit === 'un' && lot.unitsRaw) {
+                const factor = _lotFactor(lot);
+                lot.boxes = factor > 0 ? (parseFloat(lot.unitsRaw) || 0) / factor : '';
+            }
+            renderPallets();
+            updatePreview();
+        }
+        // Quantidade pode ser digitada em caixas ou em unidades; internamente sempre
+        // guardamos em caixas (lot.boxes), convertendo pelo fator do produto quando o
+        // modo for "un", para não precisar alterar os cálculos de totais/relatório.
+        // Se o produto ainda não tiver fator definido, guardamos o valor digitado em
+        // lot.unitsRaw e recalculamos assim que o produto (e seu fator) for escolhido.
+        function updatePalletLotQty(pIdx, gIdx, lIdx, rawValue) {
+            const lot = palletsData[pIdx].partnerGroups[gIdx].lots[lIdx];
+            const mode = lot.qtyUnit === 'un' ? 'un' : 'cx';
+            let boxesValue = rawValue;
+            if (mode === 'un') {
+                lot.unitsRaw = rawValue;
+                const factor = _lotFactor(lot);
+                boxesValue = (rawValue === '' || factor <= 0) ? '' : (parseFloat(rawValue) || 0) / factor;
+            }
+            updatePalletLot(pIdx, gIdx, lIdx, 'boxes', boxesValue);
+            // Sem renderPallets() aqui (recriaria o input a cada tecla e tiraria o
+            // foco); os rótulos calculados atualizam no blur do campo.
+        }
+        function updatePalletLotQtyUnit(pIdx, gIdx, lIdx, unit) {
+            palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].qtyUnit = unit;
+            renderPallets();
+        }
         function clearPalletLotProduct(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); }
 
         function _renderPalletGroups(idx, pl) {
@@ -6337,7 +6397,21 @@
                             ? `<div class="relative"><input type="text" value="${(lot.productCustom||'').replace(/"/g,'&quot;')}" placeholder="Qual?" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'productCustom', this.value)" class="w-full p-1.5 pr-7 rounded-lg border border-amber-400 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><button type="button" onclick="clearPalletLotProduct(${idx}, ${gIdx}, ${lIdx})" class="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"><\/i><\/button><\/div>`
                             : `<select onchange="handlePalletLotProductChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Produto<\/option>${getLotProductOptions().map(p => `<option value="${p}" ${lot.product===p?'selected':''}>${p}<\/option>`).join('')}<option value="Outro">Outro...<\/option><\/select>`;
                         const lotUnits = _lotUnits(lot);
-                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" value="${lot.boxes||''}" placeholder="Cx" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2">cx${lotUnits>0?` = ${lotUnits} un`:''}<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div><div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
+                        const lotFactor = _lotFactor(lot);
+                        const qtyMode = lot.qtyUnit === 'un' ? 'un' : 'cx';
+                        const boxesNum = parseFloat(lot.boxes) || 0;
+                        const qtyInputVal = qtyMode === 'un'
+                            ? (lotFactor > 0 ? (lotUnits || '') : (lot.unitsRaw || ''))
+                            : (lot.boxes === '' || lot.boxes == null ? '' : lot.boxes);
+                        const qtyOtherLabel = qtyMode === 'un'
+                            ? (lotFactor > 0
+                                ? (boxesNum > 0 ? ` = ${_fmtBR(boxesNum)} cx` : '')
+                                : (lot.unitsRaw ? ' (defina produto ou un/caixa p/ calcular cx)' : ''))
+                            : (lotUnits > 0 ? ` = ${lotUnits} un` : '');
+                        const qtyUnitSelect = `<select onchange="event.stopPropagation(); updatePalletLotQtyUnit(${idx}, ${gIdx}, ${lIdx}, this.value)" onclick="event.stopPropagation()" class="text-[11px] font-bold text-amber-600 bg-transparent border-none outline-none p-0 pr-0.5"><option value="cx" ${qtyMode==='cx'?'selected':''}>cx</option><option value="un" ${qtyMode==='un'?'selected':''}>un</option></select>`;
+                        const lotAutoFactor = _lotAutoFactor(lot);
+                        const factorRow = `<div class="flex items-center gap-2 pl-1"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Un\/caixa<\/label><input type="number" min="0" step="any" value="${lot.unitsPerBoxManual||''}" placeholder="${lotAutoFactor>0?lotAutoFactor:'manual'}" oninput="updatePalletLotFactor(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-20 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center" title="Unidades por caixa deste lote (substitui o padrão do produto quando preenchido)"><\/div>`;
+                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" value="${qtyInputVal}" placeholder="${qtyMode==='un'?'Un':'Cx'}" oninput="updatePalletLotQty(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2 flex items-center">${qtyUnitSelect}${qtyOtherLabel}<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div>${factorRow}<div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
                     }).join('')}<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-1 text-emerald-500 hover:text-emerald-700 text-[10px] font-bold mt-1"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button><\/div>`;
                 return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center flex-wrap gap-y-1.5 justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-[140px]"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">${_qtyLabel(total, totalUnits)}<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
             }).join('');
