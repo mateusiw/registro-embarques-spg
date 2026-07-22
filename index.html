@@ -3553,7 +3553,12 @@
             const codigoEl = document.getElementById('embarqueCodigo');
             const dateEl   = document.getElementById('reportDate');
             if (codigoEl) codigoEl.value = emb.Codigo || codigo;
-            if (dateEl && emb.Data) dateEl.value = emb.Data;
+            // A planilha devolve Data como string ISO completa (ex: 2026-07-22T00:00:00.000Z)
+            // — um <input type="date"> só aceita "YYYY-MM-DD" e ignora silenciosamente
+            // qualquer outro formato, deixando o campo em branco. Por isso, sempre corta
+            // para os 10 primeiros caracteres antes de atribuir (mesmo padrão já usado em
+            // loadHistoryReport() e em _loadSectionData() para o perfil NF).
+            if (dateEl && emb.Data) dateEl.value = String(emb.Data).substring(0, 10);
             // Preenche produto (usado também para validação do PDF Parceiros),
             // NFe(s) e cliente — perfis de seção não editam esses campos, mas
             // o perfil Descartes precisa poder consultá-los (ver seção
