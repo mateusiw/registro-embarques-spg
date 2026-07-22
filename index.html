@@ -446,6 +446,22 @@
         </div>
     </div>
 
+    <!-- BANNER DE NOTIFICAÇÃO (descartes pendentes) -->
+    <div id="descartesPendingBanner" class="hidden mx-4 mt-3 max-w-[1700px] xl:mx-auto">
+        <div class="bg-rose-50 border border-rose-300 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-rose-400 flex items-center justify-center shrink-0">
+                <i data-lucide="bell-ring" class="w-4 h-4 text-white"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-black text-rose-800"><span id="descartesPendingCount">0</span> embarque(s) sem descarte preenchido</p>
+                <p class="text-xs text-rose-600 mt-0.5">Toque para ver a lista e preencher os que faltam.</p>
+            </div>
+            <button onclick="openDescartesPendingListModal()" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0">
+                Ver Pendentes
+            </button>
+        </div>
+    </div>
+
     <div id="main-layout" class="w-full max-w-[1700px] mx-auto p-4 flex flex-col xl:flex-row gap-6 mt-4 items-start">
 
         <!-- COLUNA DA ESQUERDA: FORMULÁRIO -->
@@ -1110,7 +1126,7 @@
     </div>
 
     <!-- MODAL CONFIRMAÇÃO GENÉRICO -->
-    <div id="genericConfirmModal" class="fixed inset-0 bg-black/80 z-[95] hidden flex justify-center items-center backdrop-blur-sm">
+    <div id="genericConfirmModal" class="fixed inset-0 bg-black/80 z-[250] hidden flex justify-center items-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-6 flex flex-col gap-5">
             <div class="flex flex-col items-center text-center gap-3">
                 <div id="genericConfirmIcon" class="w-12 h-12 rounded-2xl flex items-center justify-center"></div>
@@ -2261,6 +2277,9 @@
                 if (sectionType === 'midias') { renderPhotos(); renderVideos(); }
                 if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
                 _autoSaveDirty = false;
+                // O código atual acabou de ser salvo: some da lista de "Descartes Pendentes"
+                // (ver checkDescartesPendingNotifications) sem precisar de F5.
+                if (sectionType === 'descartes') checkDescartesPendingNotifications();
 
                 setTimeout(() => {
                     hideSaveLoadingModal();
@@ -3473,6 +3492,14 @@
             };
             const si = sectionInfo[perfil] || { icon: 'hash', color: 'slate', title: 'Seção' };
 
+            const pendingCount = perfil === 'descartes' ? _descartesPendingRows.length : 0;
+            const pendingAlert = pendingCount > 0 ? `
+                <button type="button" onclick="openDescartesPendingList()" class="w-full mb-3 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left transition-colors">
+                    <i data-lucide="bell-ring" class="w-4 h-4 text-rose-500 shrink-0"></i>
+                    <span class="text-xs font-bold text-rose-700 flex-1">${pendingCount} embarque${pendingCount !== 1 ? 's' : ''} sem descarte preenchido — toque para ver a lista</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-rose-400 shrink-0"></i>
+                </button>` : '';
+
             content.innerHTML = `
                 <button onclick="showWelcomeModal()" class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-4 transition-colors">
                     <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar
@@ -3482,6 +3509,7 @@
                 </div>
                 <h2 class="text-xl font-black text-slate-800 mb-1">Código do Embarque</h2>
                 <p class="text-sm text-slate-500 mb-4">Informe o número do embarque para carregar sua seção.</p>
+                ${pendingAlert}
                 <input id="welcomeSectionCodigoInput" type="text" inputmode="numeric" placeholder="Ex: 910"
                     class="w-full border-2 border-slate-200 focus:border-${si.color}-400 rounded-xl px-4 py-3 text-lg font-bold text-center text-slate-800 outline-none mb-2 transition-colors"
                     onkeydown="if(event.key==='Enter') confirmSectionCodigo()" />
@@ -3492,6 +3520,57 @@
                 </button>`;
             lucide.createIcons();
             setTimeout(() => document.getElementById('welcomeSectionCodigoInput')?.focus(), 100);
+        }
+
+        // Núcleo do carregamento de um embarque já existente para perfis de seção
+        // (parceiros/descartes/nf). Usado tanto pelo campo manual de código quanto
+        // pela lista de "Descartes Pendentes" — evita duplicar a validação/carga.
+        // Retorna {ok:true} em caso de sucesso ou {ok:false, message} em caso de erro
+        // esperado (código inexistente, não pendente etc.); erros de rede propagam.
+        async function _loadExistingSectionCodigo(codigo) {
+            const resp = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'checkCodigo', codigo })
+            });
+            const result = await resp.json();
+
+            if (!result.success) throw new Error(result.error || 'Erro desconhecido.');
+
+            if (!result.exists) {
+                return { ok: false, message: `Embarque Nº ${codigo} não encontrado. Verifique o número com o master.` };
+            }
+
+            // Perfil embarque só pode trabalhar em embarques Pendentes (mesma regra da tela
+            // de boas-vindas) — sem isso, "Trocar Embarque" deixava carregar qualquer código,
+            // inclusive um já Revisado, e alterar as mídias dele sem o master perceber.
+            if (currentUser && currentUser.perfil === 'embarque' &&
+                String(result.embarque.StatusRegistro || '').toLowerCase() !== 'pendente') {
+                return { ok: false, message: `Embarque Nº ${codigo} não está pendente. Somente embarques pendentes podem ser carregados.` };
+            }
+
+            // Embarque encontrado: preenche código/data no form
+            const emb = result.embarque;
+            const codigoEl = document.getElementById('embarqueCodigo');
+            const dateEl   = document.getElementById('reportDate');
+            if (codigoEl) codigoEl.value = emb.Codigo || codigo;
+            if (dateEl && emb.Data) dateEl.value = emb.Data;
+            // Preenche produto (usado também para validação do PDF Parceiros),
+            // NFe(s) e cliente — perfis de seção não editam esses campos, mas
+            // o perfil Descartes precisa poder consultá-los (ver seção
+            // "section-nfe"/"section-produto-cliente" em applyProfileRestrictions).
+            if (emb.Produto) _setProductFromString(String(emb.Produto));
+            const viEl = document.getElementById('varietyInput');
+            if (viEl && emb.Cliente) viEl.value = String(emb.Cliente);
+            if (emb.NFes) {
+                nfeList = String(emb.NFes).split(', ').filter(Boolean);
+                if (!nfeList.length) nfeList = [''];
+                renderNfeInputs();
+            }
+
+            // Carrega dados da seção já existentes (se houver)
+            await _loadSectionData(codigo);
+            updatePreview();
+            return { ok: true };
         }
 
         async function confirmSectionCodigo() {
@@ -3514,66 +3593,194 @@
             btn.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Verificando...';
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'checkCodigo', codigo })
-                });
-                const result = await resp.json();
-
-                if (!result.success) throw new Error(result.error || 'Erro desconhecido.');
-
-                if (!result.exists) {
-                    errEl.textContent = `Embarque Nº ${codigo} não encontrado. Verifique o número com o master.`;
+                const r = await _loadExistingSectionCodigo(codigo);
+                if (!r.ok) {
+                    errEl.textContent = r.message;
                     errEl.classList.remove('hidden');
                     btn.disabled = false;
                     btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
                     lucide.createIcons();
                     return;
                 }
-
-                // Perfil embarque só pode trabalhar em embarques Pendentes (mesma regra da tela
-                // de boas-vindas) — sem isso, "Trocar Embarque" deixava carregar qualquer código,
-                // inclusive um já Revisado, e alterar as mídias dele sem o master perceber.
-                if (currentUser && currentUser.perfil === 'embarque' &&
-                    String(result.embarque.StatusRegistro || '').toLowerCase() !== 'pendente') {
-                    errEl.textContent = `Embarque Nº ${codigo} não está pendente. Somente embarques pendentes podem ser carregados.`;
-                    errEl.classList.remove('hidden');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
-                    lucide.createIcons();
-                    return;
-                }
-
-                // Embarque encontrado: preenche código/data no form e fecha modal
-                const emb = result.embarque;
-                const codigoEl = document.getElementById('embarqueCodigo');
-                const dateEl   = document.getElementById('reportDate');
-                if (codigoEl) codigoEl.value = emb.Codigo || codigo;
-                if (dateEl && emb.Data) dateEl.value = emb.Data;
-                // Preenche produto (usado também para validação do PDF Parceiros),
-                // NFe(s) e cliente — perfis de seção não editam esses campos, mas
-                // o perfil Descartes precisa poder consultá-los (ver seção
-                // "section-nfe"/"section-produto-cliente" em applyProfileRestrictions).
-                if (emb.Produto) _setProductFromString(String(emb.Produto));
-                const viEl = document.getElementById('varietyInput');
-                if (viEl && emb.Cliente) viEl.value = String(emb.Cliente);
-                if (emb.NFes) {
-                    nfeList = String(emb.NFes).split(', ').filter(Boolean);
-                    if (!nfeList.length) nfeList = [''];
-                    renderNfeInputs();
-                }
-
-                // Carrega dados da seção já existentes (se houver)
-                await _loadSectionData(codigo);
-
                 _closeWelcomeModal();
-                updatePreview();
             } catch (err) {
                 errEl.textContent = 'Erro ao verificar: ' + err.message;
                 errEl.classList.remove('hidden');
                 btn.disabled = false;
                 btn.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário';
                 lucide.createIcons();
+            }
+        }
+
+        // ===== DESCARTES PENDENTES (perfil descartes) =====
+        // Lista, em memória, dos embarques sem nenhum lançamento com Parceiro, Cultura
+        // ou Kg preenchido na aba Descarte. Atualizada no login, após salvar a seção
+        // de Descartes, e após o auto-save — ver checkDescartesPendingNotifications().
+        let _descartesPendingRows = [];
+
+        // Um embarque é considerado "com descarte registrado" quando a aba Descarte
+        // (perfil Descartes) tem ao menos um lançamento com Parceiro, Cultura ou Kg
+        // preenchido. Ter uma linha na aba não basta: o auto-save de 30s pode ter
+        // criado a linha só com o placeholder vazio (addDiscard()), sem ninguém ter
+        // realmente preenchido nada — por isso sempre confere o conteúdo, nunca só
+        // a existência da linha (esse era o bug: embarque 935 tinha linha vazia na
+        // aba e por isso não aparecia no aviso, mesmo sem parceiro/cultura/kg).
+        function _hasRealDiscardEntry(arr) {
+            return Array.isArray(arr) && arr.some(d =>
+                (d.partner || d.partnerSel || '').toString().trim() ||
+                (d.cultura || '').toString().trim() ||
+                (d.weight || '').toString().trim()
+            );
+        }
+        function _rowHasDescartesFilled(row) {
+            if (!row._descartes) return false;
+            try {
+                return _hasRealDiscardEntry(JSON.parse(row._descartes.DiscartsData || '[]'));
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function checkDescartesPendingNotifications() {
+            if (!APPS_SCRIPT_URL || !currentUser || currentUser.perfil !== 'descartes') return;
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
+                const result = await resp.json();
+                if (!result.success) return;
+                _descartesPendingRows = (result.rows || []).filter(r => !_rowHasDescartesFilled(r));
+                _updateDescartesPendingUI();
+            } catch (e) { /* sem conexão: mantém a última lista conhecida */ }
+        }
+
+        function _updateDescartesPendingUI() {
+            const banner = document.getElementById('descartesPendingBanner');
+            const count  = _descartesPendingRows.length;
+            if (banner) {
+                if (count > 0 && currentUser && currentUser.perfil === 'descartes') {
+                    banner.classList.remove('hidden');
+                    const countEl = document.getElementById('descartesPendingCount');
+                    if (countEl) countEl.textContent = count;
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+            // Se a lista de pendentes estiver aberta no modal, re-renderiza com a
+            // contagem atual (ex: outro dispositivo acabou de preencher um descarte).
+            if (document.getElementById('descartesPendingListView')) openDescartesPendingList();
+            // Se o modal de boas-vindas estiver parado na tela de código, sem nada
+            // digitado ainda, atualiza o aviso de pendentes nela também.
+            _refreshWelcomeSectionIfIdle();
+        }
+
+        function _refreshWelcomeSectionIfIdle() {
+            const modal = document.getElementById('welcomeModal');
+            if (!modal || modal.classList.contains('hidden')) return;
+            const input = document.getElementById('welcomeSectionCodigoInput');
+            if (!input || input.value.trim()) return; // não está nessa tela, ou já começou a digitar
+            welcomeSectionLoad();
+        }
+
+        function _renderDescartesPendingItems() {
+            if (!_descartesPendingRows.length) {
+                return `<div class="text-center py-8 text-slate-400 text-sm">Nenhum embarque pendente. Tudo preenchido! 🎉</div>`;
+            }
+            const sorted = [..._descartesPendingRows].reverse();
+            return sorted.map(row => {
+                const code = String(row.Codigo || '').trim();
+                const codeAttr = code.replace(/'/g, "\\'");
+                const product = row.Produto || '—';
+                const client = row.Cliente || '';
+                const rawDate = row.Data ? String(row.Data) : '';
+                const dateOnly = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                const parts = dateOnly.split('-');
+                const dateDisplay = parts.length === 3 ? parts[2]+'/'+parts[1]+'/'+parts[0] : dateOnly;
+                return `
+                <button type="button" onclick="_loadDescartesPendingCodigo('${codeAttr}')" class="w-full text-left border border-slate-200 hover:border-rose-300 hover:bg-rose-50 rounded-xl p-3 transition-all">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-lg">${code || '—'}</span>
+                        <span class="text-xs text-slate-400">${dateDisplay}</span>
+                    </div>
+                    <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
+                    ${client ? `<div class="text-xs text-slate-500">${client}</div>` : ''}
+                </button>`;
+            }).join('');
+        }
+
+        // Mostra, dentro do modal de boas-vindas, a lista de embarques sem descarte
+        // preenchido. Chamada tanto a partir da tela de código (link de aviso)
+        // quanto diretamente pelo banner no topo da página (openDescartesPendingListModal).
+        function openDescartesPendingList() {
+            const content = document.getElementById('welcomeContent');
+            if (!content) return;
+            content.innerHTML = `
+                <button onclick="welcomeSectionLoad()" class="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 mb-4 transition-colors">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Voltar
+                </button>
+                <div class="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="trash-2" class="w-7 h-7 text-rose-600"></i>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-1 text-center">Descartes Pendentes</h2>
+                <p class="text-sm text-slate-500 mb-4 text-center">Toque em um embarque para preencher o descarte.</p>
+                <div id="descartesPendingListView" class="space-y-2 max-h-[50vh] overflow-y-auto">
+                    ${_renderDescartesPendingItems()}
+                </div>`;
+            lucide.createIcons();
+        }
+
+        // Abre o modal de boas-vindas diretamente na lista de pendentes — usado pelo
+        // banner do topo, que pode aparecer mesmo com um embarque já carregado (o X
+        // de fechar o modal continua disponível pois _hasActiveSession() é true).
+        function openDescartesPendingListModal() {
+            const welcomeModal = document.getElementById('welcomeModal');
+            if (welcomeModal) welcomeModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            const closeBtn = document.getElementById('welcomeCloseBtn');
+            if (closeBtn) closeBtn.style.display = _hasActiveSession() ? '' : 'none';
+            openDescartesPendingList();
+        }
+
+        // Pede confirmação antes de trocar para o embarque escolhido na lista de
+        // pendentes — igual ao fluxo de "Trocar Embarque" (trocarEmbarqueSection()),
+        // pois dados não salvos da seção atual seriam perdidos na troca.
+        function _loadDescartesPendingCodigo(codigo) {
+            if (!APPS_SCRIPT_URL || !currentUser) return;
+            const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            const text = codigoAtual && codigoAtual !== codigo
+                ? `Você está no embarque Nº ${codigoAtual}. Deseja editar o embarque Nº ${codigo} para preencher o descarte? Dados não salvos da seção atual serão perdidos.`
+                : `Deseja editar o embarque Nº ${codigo} para preencher o descarte?`;
+            showConfirmModal({
+                title: 'Editar embarque?',
+                text,
+                confirmLabel: 'Sim, editar',
+                type: 'warning',
+                onConfirm: () => _confirmLoadDescartesPendingCodigo(codigo)
+            });
+        }
+
+        async function _confirmLoadDescartesPendingCodigo(codigo) {
+            // Troca o conteúdo do popup por uma tela de carregamento assim que a pessoa
+            // confirma — sem isso, a lista antiga ficava parada na tela enquanto o
+            // fetch rodava por baixo, dando impressão de que o clique travou.
+            const content = document.getElementById('welcomeContent');
+            if (content) {
+                content.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12">
+                        <span class="animate-spin inline-block w-9 h-9 border-4 border-rose-200 border-t-rose-500 rounded-full mb-4"></span>
+                        <p class="text-sm font-bold text-slate-600">Carregando embarque Nº ${codigo}...</p>
+                    </div>`;
+            }
+            try {
+                const r = await _loadExistingSectionCodigo(codigo);
+                if (!r.ok) {
+                    showMessageModal('Não foi possível carregar', r.message, 'error');
+                    checkDescartesPendingNotifications();
+                    openDescartesPendingList(); // volta pra lista (atualizada) em vez de ficar preso na tela de carregamento
+                    return;
+                }
+                _closeWelcomeModal();
+            } catch (err) {
+                showMessageModal('Erro', 'Erro ao carregar o embarque: ' + err.message, 'error');
+                openDescartesPendingList();
             }
         }
 
@@ -4369,6 +4576,7 @@
             applyProfileRestrictions();
             _restoreEditMode();
             checkPendingNotifications();
+            checkDescartesPendingNotifications();
             _restoreAutoSaveTimestamp();
             // Se o modo edição foi restaurado (sem auto-save), também marca como sincronizado
             // para não sobrescrever o registro do servidor com dados locais antigos após F5
@@ -4593,6 +4801,7 @@
                         if (result.updatedAt) _trackSectionUpdatedAt(_secAutoType, result.updatedAt);
                         if (result.data) _applyConvertedSectionData(result.data);
                         if (_secAutoType === 'parceiros') _snapshotSyncedPallets();
+                        if (_secAutoType === 'descartes') checkDescartesPendingNotifications();
                         _autoSaveDirty = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
                     } else if (result.conflict) {
@@ -7624,9 +7833,16 @@
         async function _buildPDF(pageHeight, doSave) {
             const { jsPDF } = window.jspdf;
             const isScreen = currentPdfLayout === 'screen';
-            const isLandscapePrint = currentPdfLayout === 'print';
-            const PW = isLandscapePrint ? 290 : 280; // landscape A4 ≈ 290 usável; portrait = 280
-            const doc = new jsPDF({ orientation: isLandscapePrint ? 'landscape' : 'portrait', unit: 'mm', format: isLandscapePrint ? [297, pageHeight] : [PW, pageHeight] });
+            // PDF Parceiros é sempre paisagem — é uma tabela larga (parceiro/cultura/cx/un por
+            // pallet) e o nome do parceiro/pallet ficava pequeno demais no retrato mesmo em modo
+            // "Ler no Computador"; não faz sentido esse PDF específico nascer em retrato.
+            const isLandscapePrint = currentPdfMode === 'parceiros' || currentPdfLayout === 'print';
+            // A página landscape real que vai pro jsPDF é 297mm de largura — usar 290 aqui
+            // deixava ~10mm de sobra sem uso na borda direita (header, tiles e cards todos
+            // paravam antes da borda de verdade). Usando os 297mm completos, CW passa a
+            // ocupar a largura real da página, só com a margem M dos dois lados.
+            const PW = isLandscapePrint ? 297 : 280; // landscape A4 = 297mm; portrait = 280
+            const doc = new jsPDF({ orientation: isLandscapePrint ? 'landscape' : 'portrait', unit: 'mm', format: [PW, pageHeight] });
             const PH = pageHeight, M = 3, CW = PW - 2 * M;
             // As larguras de coluna abaixo foram definidas para um conteúdo de 204mm.
             // K reescala tudo proporcionalmente para a nova largura útil (CW).
@@ -7830,14 +8046,17 @@
                     y += 8;
                 } else {
                     // ── Grid de cards, um por pallet ──
-                    const numCols  = isLandscapePrint ? 3 : 2;
+                    // Sempre 2 colunas (mesmo em paisagem): dá mais largura por card do
+                    // que as 3 colunas de antes, e as fontes abaixo foram aumentadas —
+                    // juntos resolvem o nome do pallet/parceiro saindo pequeno demais.
+                    const numCols  = 2;
                     const cardGap  = 4;
                     const cardW    = (CW - cardGap * (numCols - 1)) / numCols;
-                    const rowH     = 4.6;   // altura por linha de parceiro
-                    const headH    = 6.5;   // título do pallet
-                    const colHeadH = 4.5;   // cabeçalho Parceiro/Cx/Un
-                    const footH    = 8;     // total do pallet
-                    const padTop = 1.5, padBottom = 2;
+                    const rowH     = 5.6;   // altura por linha de parceiro
+                    const headH    = 7.8;   // título do pallet
+                    const colHeadH = 5.2;   // cabeçalho Parceiro/Cx/Un
+                    const footH    = 9;     // total do pallet
+                    const padTop = 1.8, padBottom = 2.5;
 
                     for (let i = 0; i < palletCards.length; i += numCols) {
                         const rowCards  = palletCards.slice(i, i + numCols);
@@ -7853,54 +8072,54 @@
                             doc.roundedRect(cx0, top, cardW, cardH, 1.8, 1.8, 'S');
 
                             // Título: nome do pallet + cliente
-                            doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...C.gText);
-                            doc.text(card.label.toUpperCase(), cx0 + 3, top + 4.8);
+                            doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...C.gText);
+                            doc.text(card.label.toUpperCase(), cx0 + 3, top + 5.6);
                             if (card.client) {
-                                doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...C.grayTxt);
-                                doc.text(card.client, cx0 + cardW - 3, top + 4.8, { align:'right', maxWidth: cardW * 0.5 });
+                                doc.setFont('helvetica','normal'); doc.setFontSize(7.2); doc.setTextColor(...C.grayTxt);
+                                doc.text(card.client, cx0 + cardW - 3, top + 5.6, { align:'right', maxWidth: cardW * 0.5 });
                             }
                             doc.setDrawColor(...C.gBord); doc.setLineWidth(0.25);
                             doc.line(cx0 + 3, top + headH, cx0 + cardW - 3, top + headH);
 
                             // Cabeçalho das colunas
-                            let ry = top + headH + padTop + 3;
-                            doc.setFont('helvetica','bold'); doc.setFontSize(5.8); doc.setTextColor(...C.grayTxt);
+                            let ry = top + headH + padTop + 3.2;
+                            doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(...C.grayTxt);
                             doc.text('PARCEIRO', cx0 + 3, ry);
-                            doc.text('CX', cx0 + cardW - 19, ry, { align:'right' });
+                            doc.text('CX', cx0 + cardW - 21, ry, { align:'right' });
                             doc.text('UN', cx0 + cardW - 3, ry, { align:'right' });
 
                             // Linhas de parceiro: nome + produto(s) fornecido(s) + cx/un
-                            const nameColW = cardW - 25;
+                            const nameColW = cardW - 27;
                             card.partners.forEach(p => {
                                 ry += rowH;
                                 doc.setDrawColor(236,241,246); doc.setLineWidth(0.15);
-                                doc.line(cx0 + 3, ry - 3.2, cx0 + cardW - 3, ry - 3.2);
+                                doc.line(cx0 + 3, ry - 3.9, cx0 + cardW - 3, ry - 3.9);
 
-                                doc.setFont('helvetica','bold'); doc.setFontSize(7.3); doc.setTextColor(...C.black);
-                                const nameTxt = fitText(p.name, nameColW * 0.55);
+                                doc.setFont('helvetica','bold'); doc.setFontSize(8.8); doc.setTextColor(...C.black);
+                                const nameTxt = fitText(p.name, nameColW * 0.6);
                                 doc.text(nameTxt, cx0 + 3, ry);
                                 const nameW = doc.getStringUnitWidth(nameTxt) * doc.internal.getFontSize() / doc.internal.scaleFactor;
 
                                 const prodStr = Array.from(p.products || []).join(', ');
                                 if (prodStr) {
-                                    doc.setFont('helvetica','normal'); doc.setFontSize(6.3); doc.setTextColor(...C.grayTxt);
+                                    doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(...C.grayTxt);
                                     const prodMaxW = nameColW - nameW - 2;
                                     if (prodMaxW > 6) doc.text(fitText(prodStr, prodMaxW), cx0 + 3 + nameW + 2, ry);
                                 }
 
-                                doc.setFont('helvetica','bold'); doc.setFontSize(7.3); doc.setTextColor(...C.gText);
-                                doc.text(String(p.qty), cx0 + cardW - 19, ry, { align:'right' });
+                                doc.setFont('helvetica','bold'); doc.setFontSize(8.8); doc.setTextColor(...C.gText);
+                                doc.text(String(p.qty), cx0 + cardW - 21, ry, { align:'right' });
                                 doc.text(p.unitsQty > 0 ? String(p.unitsQty) : '—', cx0 + cardW - 3, ry, { align:'right' });
                             });
 
                             // Rodapé: total de caixas/unidades do pallet
-                            const footY = top + headH + padTop + colHeadH + (maxRows * rowH) + 2;
+                            const footY = top + headH + padTop + colHeadH + (maxRows * rowH) + 2.4;
                             doc.setDrawColor(...C.gBord); doc.setLineWidth(0.25);
                             doc.line(cx0 + 3, footY, cx0 + cardW - 3, footY);
-                            doc.setFont('helvetica','bold'); doc.setFontSize(5.8); doc.setTextColor(...C.grayTxt);
-                            doc.text('TOTAL PALLET', cx0 + 3, footY + 4);
-                            doc.setFontSize(8); doc.setTextColor(...C.gDark);
-                            doc.text(_qtyLabel(card.qtyTotal, card.unitsTotal), cx0 + cardW - 3, footY + 4, { align:'right' });
+                            doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(...C.grayTxt);
+                            doc.text('TOTAL PALLET', cx0 + 3, footY + 4.6);
+                            doc.setFontSize(9); doc.setTextColor(...C.gDark);
+                            doc.text(_qtyLabel(card.qtyTotal, card.unitsTotal), cx0 + cardW - 3, footY + 4.6, { align:'right' });
                         });
                         y += cardH + cardGap;
                     }
