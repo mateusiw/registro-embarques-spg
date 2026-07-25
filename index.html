@@ -633,7 +633,10 @@
                                 <option value="CONTÍNUO">CONTÍNUO</option>
                                 <option value="CICLADO">CICLADO</option>
                             </select>
-                            <input type="number" step="0.1" id="thermostatValue" placeholder="0" oninput="updatePreview()" class="field-card w-1/2 p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-400 outline-none border">
+                            <div class="field-card w-1/2 flex items-center bg-slate-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-red-400 border overflow-hidden">
+                                <input type="text" inputmode="decimal" id="thermostatValue" placeholder="0" oninput="filterTempInput(this); updatePreview()" class="flex-1 min-w-0 p-2 text-sm bg-transparent outline-none">
+                                <button type="button" onclick="toggleTempSign('thermostatValue')" class="px-2.5 text-red-500 font-black hover:bg-red-100 shrink-0 border-l border-red-200">±</button>
+                            </div>
                         </div>
                     </div>
 
@@ -1442,6 +1445,25 @@
             let result = '';
             for (let i = 0; i < 6; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
             return result;
+        }
+
+        // Teclado numérico mobile (inputmode="decimal"/"numeric") não exibe a tecla "-",
+        // impedindo digitar temperaturas negativas. Por isso os campos de temperatura
+        // usam type="text" com este filtro manual + um botão "±" para inverter o sinal.
+        function filterTempInput(el) {
+            let v = el.value.replace(',', '.').replace(/[^0-9.\-]/g, '');
+            v = v.replace(/(?!^)-/g, '');
+            const parts = v.split('.');
+            if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+            el.value = v;
+            return v;
+        }
+        function toggleTempSign(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = el.value.startsWith('-') ? el.value.slice(1) : ('-' + el.value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.focus();
         }
 
         // ===== SELEÇÃO DE FONTE DE FOTO =====
@@ -6698,7 +6720,8 @@
                             <input type="text" value="${(pl.label || '').replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="w-24 shrink-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
                             <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 shrink-0" onclick="event.stopPropagation()">
                                 <i data-lucide="thermometer" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-                                <input type="number" step="0.1" value="${pl.temp ?? ''}" placeholder="°C" oninput="updatePallet(${idx}, 'temp', this.value)" class="w-14 p-1.5 text-sm outline-none bg-transparent">
+                                <input type="text" inputmode="decimal" value="${pl.temp ?? ''}" placeholder="°C" id="pallet-temp-${idx}" oninput="updatePallet(${idx}, 'temp', filterTempInput(this))" class="w-10 p-1.5 text-sm outline-none bg-transparent">
+                                <button type="button" onclick="event.stopPropagation(); toggleTempSign('pallet-temp-${idx}')" class="text-amber-600 font-black text-sm px-0.5 hover:text-amber-800 shrink-0">±</button>
                             </div>
                             <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl)}</span>
                             <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -7052,7 +7075,10 @@
                                 ${TEMP_LABELS.map(l => `<option value="${l}" ${t.preset === l ? 'selected' : ''}>${l}</option>`).join('')}
                                 <option value="outro">Outro...</option>
                             </select>`}
-                            <input type="number" step="0.1" value="${t.value}" placeholder="°C" oninput="updateCustomTemp(${idx}, 'value', this.value)" class="w-[28%] p-2 rounded-lg border border-orange-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 outline-none">
+                            <div class="w-[32%] flex items-center rounded-lg border border-orange-200 bg-white focus-within:ring-2 focus-within:ring-orange-400 overflow-hidden shrink-0">
+                                <input type="text" inputmode="decimal" value="${t.value}" placeholder="°C" id="customtemp-value-${idx}" oninput="updateCustomTemp(${idx}, 'value', filterTempInput(this))" class="w-full min-w-0 p-2 text-sm outline-none bg-transparent">
+                                <button type="button" onclick="toggleTempSign('customtemp-value-${idx}')" class="px-1.5 text-orange-500 font-black hover:bg-orange-100 shrink-0 border-l border-orange-200">±</button>
+                            </div>
                         </div>
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${(t.photos || []).map((src, pidx) => `
