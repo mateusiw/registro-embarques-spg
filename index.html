@@ -20,6 +20,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; background: linear-gradient(180deg,#eef2ff 0%, #f8fafc 280px); }
@@ -186,15 +187,6 @@
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Registro de Embarque</p>
             </div>
             <div id="loginError" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-semibold text-center"></div>
-            <!-- URL do Apps Script: preenchida uma vez por dispositivo (primeiro acesso).
-                 A URL não fica mais no código-fonte, que é público no GitHub. -->
-            <div id="loginUrlSection" class="hidden mb-4 p-3 bg-sky-50 border border-sky-200 rounded-xl">
-                <label class="text-[10px] font-bold text-sky-700 uppercase tracking-widest mb-1 block">URL de conexão (Apps Script)</label>
-                <input type="text" id="loginUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
-                    class="w-full p-2.5 border border-sky-200 rounded-xl text-xs focus:ring-2 focus:ring-sky-400 outline-none bg-white transition-colors"
-                    onkeydown="if(event.key==='Enter') document.getElementById('loginNome').focus()">
-                <p class="text-[10px] text-sky-600 mt-1.5 leading-relaxed">Cole o link de implantação fornecido pelo administrador (termina em <strong>/exec</strong>). Fica salvo apenas neste dispositivo.</p>
-            </div>
             <div class="space-y-4">
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Usuário</label>
@@ -213,17 +205,9 @@
                         </button>
                     </div>
                 </div>
-                <label class="flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" id="loginKeepMe" class="w-4 h-4 rounded accent-emerald-500 cursor-pointer">
-                    <span class="text-xs text-slate-500 font-semibold">Manter conectado</span>
-                </label>
                 <button type="button" onclick="doLogin()" id="loginBtn"
                     class="w-full py-3 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-black rounded-xl text-sm transition-all uppercase tracking-widest shadow-lg shadow-emerald-900/30 active:scale-95 disabled:opacity-60">
                     Entrar
-                </button>
-                <button type="button" onclick="toggleLoginUrlSection()"
-                    class="w-full text-[10px] text-slate-400 hover:text-slate-600 font-bold uppercase tracking-widest transition-colors">
-                    Configurar conexão
                 </button>
             </div>
         </div>
@@ -237,7 +221,7 @@
                     <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-5 h-5"></i></div>
                     <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Gerenciar Usuários</h3>
                 </div>
-                <button onclick="document.getElementById('usersModal').classList.add('hidden');unlockScroll();" class="text-slate-400 hover:text-slate-600 transition-colors">
+                <button onclick="closeUsersModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -916,16 +900,6 @@
 
             <div class="border-t border-slate-100 my-4"></div>
 
-            <!-- URL do Apps Script (conexão com a planilha) -->
-            <div class="mb-3">
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-5 h-5 rounded bg-sky-100 text-sky-600 flex items-center justify-center shrink-0"><i data-lucide="link" class="w-3 h-3"></i></div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">URL do Apps Script (conexão com a planilha)</label>
-                </div>
-                <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none">
-                <p class="text-[10px] text-slate-400 mt-1">Link de implantação (termina em /exec). Fica salvo apenas neste dispositivo — não é publicado no código-fonte.</p>
-            </div>
-
             <!-- API Key Groq -->
             <div class="mb-3">
                 <div class="flex items-center gap-2 mb-1">
@@ -1163,40 +1137,6 @@
         </div>
     </div>
 
-    <!-- MODAL SENHA -->
-    <div id="passwordModal" class="fixed inset-0 bg-black/80 z-[90] hidden flex justify-center items-center backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm border border-slate-200 p-6 flex flex-col gap-5">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                    <i data-lucide="lock" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h3 id="passwordModalTitle" class="text-sm font-black text-slate-800 uppercase tracking-tight">Ação protegida</h3>
-                    <p id="passwordModalSubtitle" class="text-xs text-slate-400 mt-0.5">Informe a senha para continuar.</p>
-                </div>
-            </div>
-
-            <div>
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Senha</label>
-                <div class="relative">
-                    <input type="password" id="passwordInput" placeholder="Digite a senha..."
-                        onkeydown="if(event.key==='Enter') submitPassword()"
-                        class="w-full p-3 pr-10 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-rose-400 outline-none">
-                    <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        <i id="passwordEyeIcon" data-lucide="eye" class="w-4 h-4"></i>
-                    </button>
-                </div>
-                <p id="passwordError" class="hidden text-xs text-rose-500 font-bold mt-2 flex items-center gap-1">
-                    <i data-lucide="alert-circle" class="w-3 h-3"></i> Senha incorreta. Tente novamente.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <button type="button" onclick="closePasswordModal()" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
-                <button type="button" id="passwordSubmitBtn" onclick="submitPassword()" class="py-3 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Confirmar</button>
-            </div>
-        </div>
-    </div>
 
     <!-- MODAL LOADING SALVAMENTO -->
     <div id="saveLoadingModal" class="fixed inset-0 z-[80] hidden items-center justify-center" style="backdrop-filter:blur(6px); background:rgba(15,23,42,0.75);">
@@ -1377,39 +1317,414 @@
 
         // ===== FIM PWA =====
 
-        // Segurança: a URL do Apps Script NÃO fica mais fixa no código — este HTML
-        // é público no GitHub (auto-update) e a URL exposta permitia a qualquer
-        // pessoa chamar a API diretamente. Cada dispositivo configura a URL uma
-        // única vez (tela de login → "Configurar conexão", ou ⚙️ Configurações)
-        // e ela fica salva no localStorage.
-        let APPS_SCRIPT_URL = localStorage.getItem('spg_apps_script_url') || '';
+        // ===== SUPABASE =====
+        // URL e chave "publishable" (equivalente à antiga anon key) são públicas
+        // por design — a segurança vem das políticas RLS do banco, não do sigilo
+        // dessas duas strings (diferente da antiga URL do Apps Script, que precisava
+        // ficar escondida por não ter autenticação de verdade por trás).
+        const SUPABASE_URL = 'https://bcqwlwqhlxoysrjeyune.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_H2PyaAeWfdEVGMj28Jsw7g_b6ZtRd7v';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Valida/normaliza uma URL de implantação do Apps Script.
-        // Retorna: '' se vazia, null se inválida, ou a URL normalizada.
-        function _normalizeAppsScriptUrl(url) {
-            const u = String(url || '').trim().replace(/\/+$/, '');
-            if (!u) return '';
-            return /^https:\/\/script\.google\.com\/(?:a\/)?macros\/(?:[^\/]+\/)?s\/[\w-]+\/exec$/.test(u) ? u : null;
+        // Gera o e-mail sintético usado no Supabase Auth a partir do nome de
+        // usuário exibido na tela de login (mantém a UI de "Usuário"/"Senha" sem
+        // expor o conceito de e-mail). Precisa ser IDÊNTICO ao slugifyNome() da
+        // Edge Function admin-users, senão login para de bater com o cadastro.
+        function slugifyNome(nome) {
+            return String(nome || '')
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '.')
+                .replace(/^\.+|\.+$/g, '')
+                .replace(/\.{2,}/g, '.');
         }
-        function _setAppsScriptUrl(url) {
-            APPS_SCRIPT_URL = url || '';
+        function loginEmailFor(nome) { return slugifyNome(nome) + '@spg.local'; }
+
+        // ===== CAMADA DE COMPATIBILIDADE COM O BACKEND ANTIGO (Apps Script) =====
+        // O resto do app inteiro foi escrito contra o formato de payload/resposta
+        // do Apps Script (um objeto com "action", resposta {success, data, rows...}
+        // com nomes de campo em PascalCase iguais aos cabeçalhos da antiga planilha).
+        // Em vez de reescrever toda a lógica de negócio espalhada pelo app (merge,
+        // trava otimista, conflitos, auto-save), esta camada troca só o transporte:
+        // recebe o mesmo payload de sempre e devolve exatamente a mesma forma de
+        // resposta, só que por trás fala com o Supabase.
+        async function callBackend(payload) {
             try {
-                if (url) localStorage.setItem('spg_apps_script_url', url);
-                else localStorage.removeItem('spg_apps_script_url');
-            } catch(_) {}
-        }
-        function toggleLoginUrlSection() {
-            const sec = document.getElementById('loginUrlSection');
-            if (!sec) return;
-            const input = document.getElementById('loginUrlInput');
-            if (sec.classList.contains('hidden')) {
-                if (input) input.value = APPS_SCRIPT_URL;
-                sec.classList.remove('hidden');
-                setTimeout(() => input?.focus(), 50);
-            } else {
-                sec.classList.add('hidden');
+                if (!payload.action) return await _beInsertEmbarque(payload);
+                switch (payload.action) {
+                    case 'update':        return await _beUpdateEmbarque(payload);
+                    case 'checkCodigo':    return await _beCheckCodigo(payload);
+                    case 'getSection':     return await _beGetSection(payload);
+                    case 'saveSection':    return await _beSaveSection(payload);
+                    case 'list':           return await _beList();
+                    case 'delete':         return await _beDelete(payload);
+                    case 'markReviewed':   return await _beSetStatus(payload, 'revisado');
+                    case 'markPending':    return await _beSetStatus(payload, 'pendente');
+                    case 'listBackup':     return await _beListBackup();
+                    case 'restoreBackup':  return await _beRestoreBackup(payload);
+                    case 'listUsers':
+                    case 'addUser':
+                    case 'updateUser':
+                    case 'deleteUser':     return await _beAdminUsers(payload);
+                    case 'listProdutos':   return await _beListProdutos();
+                    case 'getUploadInfo':  return await _beGetUploadInfo();
+                    // A senha compartilhada não existe mais — quem chega até aqui já
+                    // está autenticado; a real barreira de segurança agora é o RLS.
+                    case 'verifyPassword': return { success: !!(currentUser && currentUser.perfil === 'master') };
+                    default:
+                        return { success: false, error: 'Ação desconhecida: ' + payload.action };
+                }
+            } catch (err) {
+                return { success: false, error: (err && err.message) || String(err) };
             }
         }
+
+        function _resolveOutro(sel, custom) { return sel === 'Outro' ? (custom || '') : (sel || ''); }
+
+        // Converte uma linha da tabela "embarques" (snake_case) pro formato
+        // PascalCase que o app inteiro já espera (mesmos nomes de coluna que a
+        // planilha antiga usava). Campos JSONB voltam como string — o app sempre
+        // fez JSON.parse neles, então precisam ser re-serializados aqui.
+        function _embarqueRowToAppShape(row) {
+            if (!row) return null;
+            return {
+                Timestamp: row.created_at,
+                Data: row.data,
+                Codigo: row.codigo,
+                Produto: row.produto,
+                Cliente: row.cliente,
+                Responsavel: row.responsavel,
+                NFes: row.nfes,
+                Sensor: row.sensor,
+                Lacre: row.lacre,
+                Motorista: row.motorista,
+                Placa: row.placa,
+                TipoCaixa: row.tipo_caixa,
+                HorarioSaida: row.horario_saida,
+                QtdPallets: row.qtd_pallets,
+                Termostato: row.termostato,
+                ModoTermostato: row.modo_termostato,
+                Parceiros: JSON.stringify(row.parceiros || []),
+                Descartes: JSON.stringify(row.descartes || []),
+                Temperaturas: JSON.stringify(row.temperaturas || []),
+                Pallets: JSON.stringify(row.pallets || []),
+                InfoAdicionais: JSON.stringify(row.info_adicionais || []),
+                Fotos: JSON.stringify(row.fotos || []),
+                Videos: JSON.stringify(row.videos || []),
+                AISummary: row.ai_summary,
+                RespEmbarque: row.resp_embarque,
+                StatusRegistro: row.status_registro,
+                UpdatedAt: row.updated_at,
+            };
+        }
+        function _secaoParceirosToAppShape(row) {
+            if (!row) return null;
+            return { Codigo: row.codigo, ParceirosData: JSON.stringify(row.parceiros_data || []), UpdatedAt: row.updated_at };
+        }
+        function _secaoDescartesToAppShape(row) {
+            if (!row) return null;
+            return { Codigo: row.codigo, DiscartsData: JSON.stringify(row.discarts_data || []), UpdatedAt: row.updated_at };
+        }
+        function _secaoMidiasToAppShape(row) {
+            if (!row) return null;
+            return {
+                Codigo: row.codigo,
+                Fotos: JSON.stringify(row.fotos || []),
+                Videos: JSON.stringify(row.videos || []),
+                HorarioSaida: row.horario_saida,
+                Temperaturas: JSON.stringify(row.temperaturas || []),
+                Pallets: JSON.stringify(row.pallets || []),
+                Termostato: row.termostato,
+                ModoTermostato: row.modo_termostato,
+                InfoAdicionais: JSON.stringify(row.info_adicionais || []),
+                UpdatedAt: row.updated_at,
+            };
+        }
+
+        // Monta um objeto de UPDATE só com as colunas presentes no payload — um
+        // UPDATE do Postgres já preserva sozinho as colunas não informadas, então
+        // isso reproduz o merge que o buildEmbarqueRowMerged_ do Apps Script fazia
+        // manualmente, sem precisar reescrever a linha inteira a cada save parcial.
+        function _buildEmbarqueUpdateObj(data) {
+            const obj = {};
+            const has = (k) => data[k] !== undefined;
+            if (has('reportDate')) obj.data = data.reportDate || null;
+            if (has('productSelect')) obj.produto = _resolveOutro(data.productSelect, data.customProductName);
+            if (has('varietyInput')) obj.cliente = data.varietyInput || '';
+            if (has('inspectorSelect')) obj.responsavel = _resolveOutro(data.inspectorSelect, data.customInspectorName);
+            if (has('nfeList')) obj.nfes = (data.nfeList || []).join(', ');
+            if (has('sensorNumber')) obj.sensor = data.sensorNumber || '';
+            if (has('lacreNumber')) obj.lacre = data.lacreNumber || '';
+            if (has('driverName')) obj.motorista = data.driverName || '';
+            if (has('vehiclePlate')) obj.placa = data.vehiclePlate || '';
+            if (has('boxType')) obj.tipo_caixa = data.boxType || '';
+            if (has('departureTime')) obj.horario_saida = data.departureTime || '';
+            if (has('palletQty')) obj.qtd_pallets = data.palletQty || '';
+            if (has('thermostatValue')) obj.termostato = data.thermostatValue || '';
+            if (has('thermostatMode')) obj.modo_termostato = data.thermostatMode || '';
+            if (has('partnersData')) obj.parceiros = data.partnersData || [];
+            if (has('discardsData')) obj.descartes = data.discardsData || [];
+            if (has('customTempsData')) obj.temperaturas = data.customTempsData || [];
+            if (has('palletsData')) obj.pallets = data.palletsData || [];
+            if (has('additionalInfoData')) obj.info_adicionais = data.additionalInfoData || [];
+            if (has('photosData')) obj.fotos = data.photosData || [];
+            if (has('videosData')) obj.videos = data.videosData || [];
+            if (has('aiSummary')) obj.ai_summary = data.aiSummary || '';
+            if (has('shipResponsible')) obj.resp_embarque = _resolveOutro(data.shipResponsible, data.customShipResponsible);
+            if (has('statusRegistro')) obj.status_registro = data.statusRegistro;
+            return obj;
+        }
+
+        function _buildMidiasUpsertObj(codigo, data) {
+            const obj = { codigo };
+            const has = (k) => data[k] !== undefined;
+            if (has('photosData')) obj.fotos = data.photosData || [];
+            if (has('videosData')) obj.videos = data.videosData || [];
+            if (has('departureTime')) obj.horario_saida = data.departureTime || '';
+            if (has('customTempsData')) obj.temperaturas = data.customTempsData || [];
+            if (has('palletsData')) obj.pallets = data.palletsData || [];
+            if (has('thermostatMode')) obj.modo_termostato = data.thermostatMode || '';
+            if (has('thermostatValue')) obj.termostato = data.thermostatValue || '';
+            if (has('additionalInfoData')) obj.info_adicionais = data.additionalInfoData || [];
+            return obj;
+        }
+
+        // Insere um embarque novo. Se já existir uma linha com esse código
+        // (dois dispositivos criando o mesmo embarque ao mesmo tempo), atualiza
+        // em vez de duplicar — mesmo comportamento de dedup do Apps Script.
+        async function _beInsertEmbarque(data) {
+            const codigo = (data.embarqueCodigo || '').toString().trim();
+            if (!codigo) return { success: false, error: 'Código do embarque ausente.' };
+            const { data: existing } = await sb.from('embarques').select('codigo').eq('codigo', codigo).maybeSingle();
+            const updateObj = _buildEmbarqueUpdateObj(data);
+            if (existing) {
+                const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select().maybeSingle();
+                if (error) throw error;
+                return { success: true, data, timestamp: saved ? saved.created_at : null };
+            }
+            updateObj.codigo = codigo;
+            if (updateObj.status_registro === undefined) updateObj.status_registro = data.statusRegistro || 'pendente';
+            const { data: saved, error } = await sb.from('embarques').insert(updateObj).select().maybeSingle();
+            if (error) throw error;
+            return { success: true, data, timestamp: saved ? saved.created_at : null };
+        }
+
+        async function _beUpdateEmbarque(data) {
+            const codigo = (data.embarqueCodigo || '').toString().trim();
+            if (!codigo) return { success: false, error: 'Código ausente.' };
+            const updateObj = _buildEmbarqueUpdateObj(data);
+            const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select().maybeSingle();
+            if (error) throw error;
+            if (!saved) return { success: false, error: 'Registro original não encontrado.' };
+            return { success: true, data, timestamp: saved.created_at };
+        }
+
+        async function _beCheckCodigo(payload) {
+            const codigo = String(payload.codigo || '').trim();
+            if (!codigo) return { success: true, exists: false };
+            const { data, error } = await sb.from('embarques').select('*').eq('codigo', codigo).maybeSingle();
+            if (error) throw error;
+            if (!data) return { success: true, exists: false };
+            return { success: true, exists: true, embarque: _embarqueRowToAppShape(data) };
+        }
+
+        async function _beGetSection(payload) {
+            const sectionType = payload.sectionType;
+            const codigo = String(payload.codigo || '').trim();
+            if (!sectionType || !codigo) return { success: false, error: 'Tipo de seção ou código ausente.' };
+            if (sectionType === 'nf') {
+                const { data, error } = await sb.from('embarques').select('*').eq('codigo', codigo).maybeSingle();
+                if (error) throw error;
+                return { success: true, data: _embarqueRowToAppShape(data) };
+            }
+            const table = { parceiros: 'secao_parceiros', descartes: 'secao_descartes', midias: 'secao_midias' }[sectionType];
+            if (!table) return { success: false, error: 'Tipo de seção inválido: ' + sectionType };
+            const { data, error } = await sb.from(table).select('*').eq('codigo', codigo).maybeSingle();
+            if (error) throw error;
+            const shapeFn = { parceiros: _secaoParceirosToAppShape, descartes: _secaoDescartesToAppShape, midias: _secaoMidiasToAppShape }[sectionType];
+            return { success: true, data: shapeFn(data) };
+        }
+
+        // Resolve um "palletsDelta" (mapa índice→pallet, usado pelo auto-save de
+        // 30s pra reenviar só os pallets que mudaram) por cima do que já está
+        // salvo, montando o array completo antes de gravar.
+        async function _resolvePalletsDelta(sectionType, codigo, payload) {
+            if (payload.palletsData || !payload.palletsDelta || typeof payload.palletsDelta !== 'object') return;
+            const table = sectionType === 'parceiros' ? 'secao_parceiros' : 'secao_midias';
+            const col = sectionType === 'parceiros' ? 'parceiros_data' : 'pallets';
+            const { data: existingRow } = await sb.from(table).select(col).eq('codigo', codigo).maybeSingle();
+            const existing = (existingRow && existingRow[col]) || [];
+            const merged = existing.slice();
+            Object.keys(payload.palletsDelta).forEach((k) => {
+                const idx = parseInt(k, 10);
+                while (merged.length <= idx) merged.push({});
+                merged[idx] = payload.palletsDelta[k];
+            });
+            payload.palletsData = merged;
+        }
+
+        async function _beSaveSection(payload) {
+            const sectionType = payload.sectionType;
+            const codigo = (payload.codigo || '').toString().trim();
+            if (!sectionType || !codigo) return { success: false, error: 'Tipo de seção ou código do embarque ausente.' };
+
+            if (sectionType === 'nf') {
+                const updateObj = _buildEmbarqueUpdateObj(payload);
+                if (Object.keys(updateObj).length > 0) {
+                    const { error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo);
+                    if (error) throw error;
+                }
+                return { success: true };
+            }
+
+            if (sectionType === 'parceiros') {
+                await _resolvePalletsDelta('parceiros', codigo, payload);
+                const { data: rpcData, error } = await sb.rpc('save_secao_parceiros', {
+                    p_codigo: codigo,
+                    p_parceiros_data: payload.palletsData || [],
+                    p_expected_updated_at: payload.expectedUpdatedAt ?? null,
+                });
+                if (error) throw error;
+                if (rpcData && rpcData.conflict) return { success: false, conflict: true, error: 'Esta seção foi atualizada por outro usuário.' };
+                return { success: true, updatedAt: rpcData.updated_at };
+            }
+
+            if (sectionType === 'descartes') {
+                const { data: rpcData, error } = await sb.rpc('save_secao_descartes', {
+                    p_codigo: codigo,
+                    p_discarts_data: payload.discardsData || [],
+                    p_expected_updated_at: payload.expectedUpdatedAt ?? null,
+                });
+                if (error) throw error;
+                if (rpcData && rpcData.conflict) return { success: false, conflict: true, error: 'Esta seção foi atualizada por outro usuário.' };
+                return { success: true, updatedAt: rpcData.updated_at };
+            }
+
+            if (sectionType === 'midias') {
+                await _resolvePalletsDelta('midias', codigo, payload);
+                const obj = _buildMidiasUpsertObj(codigo, payload);
+                const { data: saved, error } = await sb.from('secao_midias').upsert(obj, { onConflict: 'codigo' }).select().maybeSingle();
+                if (error) throw error;
+                return { success: true, updatedAt: saved ? saved.updated_at : null };
+            }
+
+            return { success: false, error: 'Tipo de seção desconhecido: ' + sectionType };
+        }
+
+        async function _beList() {
+            const { data, error } = await sb
+                .from('embarques')
+                .select('*, secao_parceiros(*), secao_descartes(*), secao_midias(*)')
+                .order('created_at', { ascending: true });
+            if (error) throw error;
+            const one = (v) => Array.isArray(v) ? (v[0] || null) : (v || null);
+            const rows = (data || []).map((row) => {
+                const shaped = _embarqueRowToAppShape(row);
+                return Object.assign({}, shaped, {
+                    _nf: shaped,
+                    _parceiros: _secaoParceirosToAppShape(one(row.secao_parceiros)),
+                    _descartes: _secaoDescartesToAppShape(one(row.secao_descartes)),
+                    _midias: _secaoMidiasToAppShape(one(row.secao_midias)),
+                });
+            });
+            return { success: true, rows };
+        }
+
+        // markReviewed/markPending/delete só recebem o Timestamp (não o código) na
+        // chamada original — resolve pra código consultando a lista de embarques.
+        async function _findCodigoByTimestamp(ts) {
+            const { data, error } = await sb.from('embarques').select('codigo, created_at');
+            if (error) throw error;
+            const target = new Date(ts).getTime();
+            const match = (data || []).find((r) => new Date(r.created_at).getTime() === target);
+            return match ? match.codigo : null;
+        }
+
+        async function _beSetStatus(payload, status) {
+            const codigo = payload.codigo || await _findCodigoByTimestamp(payload.timestamp);
+            if (!codigo) return { success: false, error: 'Registro não encontrado.' };
+            const { error } = await sb.from('embarques').update({ status_registro: status }).eq('codigo', codigo);
+            if (error) throw error;
+            return { success: true };
+        }
+
+        async function _beDelete(payload) {
+            const codigo = payload.codigo || await _findCodigoByTimestamp(payload.originalTimestamp);
+            if (!codigo) return { success: false, error: 'Registro não encontrado.' };
+            const { error } = await sb.rpc('delete_embarque', { p_codigo: codigo, p_deleted_by: payload.deletedBy || 'Desconhecido' });
+            if (error) throw error;
+            return { success: true };
+        }
+
+        function _origemToSheetName(origem) {
+            return { embarques: 'NotaFiscal', secao_parceiros: 'Parceiros', secao_descartes: 'Descartes', secao_midias: 'Midias' }[origem] || origem;
+        }
+        function _buildBackupSummary(origem, dados) {
+            dados = dados || {};
+            const arr = (v) => Array.isArray(v) ? v : [];
+            if (origem === 'embarques') return (dados.produto || '—') + ' · ' + (dados.cliente || '—');
+            if (origem === 'secao_parceiros') return arr(dados.parceiros_data).length + ' pallet(s)';
+            if (origem === 'secao_descartes') return arr(dados.discarts_data).length + ' descarte(s)';
+            if (origem === 'secao_midias') return arr(dados.fotos).length + ' foto(s), ' + arr(dados.videos).length + ' vídeo(s)';
+            return '';
+        }
+
+        async function _beListBackup() {
+            const { data, error } = await sb.from('backup').select('*').order('id', { ascending: false });
+            if (error) throw error;
+            const rows = (data || []).map((r) => ({
+                rowIndex: r.id,
+                Origem: _origemToSheetName(r.origem),
+                Codigo: r.codigo,
+                ApagadoPor: r.apagado_por,
+                ApagadoEm: r.apagado_em,
+                Resumo: _buildBackupSummary(r.origem, r.dados),
+            }));
+            return { success: true, rows };
+        }
+
+        async function _beRestoreBackup(payload) {
+            const { data, error } = await sb.rpc('restore_backup', { p_id: payload.rowIndex });
+            if (error) throw error;
+            return { success: true, codigo: data ? data.codigo : null, origem: data ? _origemToSheetName(data.origem) : null };
+        }
+
+        // Lê a mensagem de erro de dentro da resposta de uma Edge Function
+        // (supabase-js só devolve isso em "error.context", não em "data", quando
+        // a function responde com status != 2xx).
+        async function _edgeFunctionErrorMessage(error, fallback) {
+            try {
+                if (error && error.context && typeof error.context.json === 'function') {
+                    const body = await error.context.json();
+                    if (body && body.error) return body.error;
+                }
+            } catch (_) {}
+            return (error && error.message) || fallback;
+        }
+
+        async function _beAdminUsers(payload) {
+            // Os nomes de ação usados no front (listUsers/addUser/updateUser/deleteUser)
+            // são diferentes dos que a Edge Function admin-users espera (list/create/update/delete).
+            const ACTION_MAP = { listUsers: 'list', addUser: 'create', updateUser: 'update', deleteUser: 'delete' };
+            const body = { ...payload, action: ACTION_MAP[payload.action] || payload.action };
+            const { data, error } = await sb.functions.invoke('admin-users', { body });
+            if (error) return { success: false, error: await _edgeFunctionErrorMessage(error, 'Falha ao gerenciar usuários.') };
+            return data;
+        }
+
+        async function _beListProdutos() {
+            const { data, error } = await sb.from('produtos').select('*');
+            if (error) throw error;
+            return { success: true, produtos: (data || []).map((r) => ({ produto: r.produto, unidadesPorCaixa: r.unidades_por_caixa })) };
+        }
+
+        async function _beGetUploadInfo() {
+            const { data, error } = await sb.functions.invoke('drive-token');
+            if (error) return { success: false, error: await _edgeFunctionErrorMessage(error, 'Falha ao obter token de upload.') };
+            return data;
+        }
+
         const APP_VERSION = '20260711.2'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
@@ -1538,15 +1853,12 @@
         }
 
         // ----- Upload direto para Google Drive API -----
-        // Apps Script fornece o OAuth token; o arquivo vai browser → Drive sem passar pelo Apps Script.
+        // A Edge Function drive-token fornece o token OAuth (Conta de Serviço); o
+        // arquivo vai browser → Drive sem passar por nenhum servidor intermediário.
         async function handleVideoUpload(event) {
             const files = Array.from(event.target.files);
             event.target.value = '';
             if (!files.length) return;
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('Configuração ausente', 'URL do Apps Script não configurada.', 'error');
-                return;
-            }
             for (const file of files) {
                 const tempId = 'vpf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
                 videosData.push({ dataUrl: null, caption: '', name: file.name, size: file.size, tempId, uploading: true, uploadPct: 0 });
@@ -1557,14 +1869,12 @@
                 // item errado (substituiria/atualizaria o vídeo de outra posição).
                 const idxOf = () => videosData.findIndex(v => v.tempId === tempId);
                 try {
-                    // 1. Pegar token OAuth do Apps Script (1 requisição rápida)
-                    const infoResp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify({ action: 'getUploadInfo' }), null);
-                    if (!infoResp.ok) throw new Error('Erro HTTP ' + infoResp.status + ' ao obter token.');
-                    const info = JSON.parse(infoResp.text);
+                    // 1. Pegar token OAuth da Edge Function (1 requisição rápida)
+                    const info = await callBackend({ action: 'getUploadInfo' });
                     if (!info.success) throw new Error(info.error || 'Erro ao autenticar com o Drive.');
 
                     // 2. Upload direto para a API do Drive com progresso real
-                    const driveUrl = await _uploadToDriveApi(file, info.token, info.folderId, (pct) => {
+                    const driveUrl = await _uploadToDriveApi(file, info.token, info.videoFolderId || info.folderId, (pct) => {
                         const i = idxOf();
                         if (i > -1) { videosData[i].uploadPct = pct; renderVideos(); }
                     });
@@ -1693,8 +2003,7 @@
         // da outra a cada auto-save. Retorna null se a busca falhar (envia local).
         async function _fetchMergedMidias(codigo) {
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'midias', codigo }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'getSection', sectionType: 'midias', codigo });
                 const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
                 const serverPhotos = (result.success && result.data) ? tryParse(result.data.Fotos)  : [];
                 const serverVideos = (result.success && result.data) ? tryParse(result.data.Videos) : [];
@@ -1711,6 +2020,123 @@
                 };
             } catch(_) { return null; }
         }
+        // ===== REALTIME: qualquer seção aparece atualizada para outros usuários sem F5 =====
+        // Assina mudanças na linha da tabela da seção (embarques/secao_parceiros/
+        // secao_descartes/secao_midias) do código atualmente aberto. Quando outro
+        // usuário salva algo nesse mesmo código, a tela reage sem esperar o
+        // auto-save de 30s nem precisar de F5.
+        const _SECTION_REALTIME_TABLE = { nf: 'embarques', parceiros: 'secao_parceiros', descartes: 'secao_descartes', midias: 'secao_midias' };
+        let _sectionRealtimeChannel = null;
+
+        function _unsubscribeSectionRealtime() {
+            if (_sectionRealtimeChannel) {
+                sb.removeChannel(_sectionRealtimeChannel);
+                _sectionRealtimeChannel = null;
+            }
+        }
+
+        function _subscribeSectionRealtime(sectionType, codigo) {
+            _unsubscribeSectionRealtime();
+            const table = _SECTION_REALTIME_TABLE[sectionType];
+            if (!table || !codigo || !sb) return;
+            _sectionRealtimeChannel = sb
+                .channel('section-' + sectionType + '-' + codigo)
+                .on('postgres_changes', { event: '*', schema: 'public', table, filter: `codigo=eq.${codigo}` },
+                    () => _onSectionRealtimeChange(sectionType, codigo))
+                .subscribe();
+        }
+
+        async function _onSectionRealtimeChange(sectionType, codigo) {
+            // Ignora se o usuário já trocou de embarque nesse meio tempo, ou se um
+            // save local está em andamento (evita corrida com o próprio auto-save).
+            const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            if (codigoAtual !== codigo || _isSaving) return;
+
+            if (sectionType === 'midias') {
+                // Fotos/vídeos: merge aditivo por URL, já usado no auto-save de 30s.
+                // Seguro mesmo com edição local em andamento — nunca sobrescreve
+                // legenda editada localmente nem apaga upload em progresso.
+                const merged = await _fetchMergedMidias(codigo);
+                if (!merged) return;
+                const beforePhotos = photosData.length;
+                const beforeVideos = _syncableVideos().length;
+                photosData = merged.photos;
+                videosData = [...merged.videos, ...videosData.filter(v => v.uploading)];
+                if (photosData.length === beforePhotos && _syncableVideos().length === beforeVideos) return; // nada novo
+                renderPhotos();
+                renderVideos();
+                updatePreview();
+                saveToLocalStorage();
+                _setAutoSaveToast(_ICON_CHECK, 'Novo arquivo sincronizado por outro usuário');
+                return;
+            }
+
+            // Parceiros/Descartes/Nota Fiscal: campos editados por digitação, não só
+            // aditivos. Só recarrega sozinho se não há alteração local não salva
+            // (_autoSaveDirty === false) — senão arriscaria apagar o que o usuário
+            // está digitando neste exato momento. Havendo edição em aberto, só avisa;
+            // a trava otimista já existente protege o próximo "Salvar" de sobrescrever
+            // o que o outro usuário acabou de gravar.
+            if (_autoSaveDirty) {
+                _setAutoSaveToast(_ICON_WARN, 'Outro usuário atualizou este embarque — salve para sincronizar');
+                return;
+            }
+            await _loadSectionData(codigo);
+            updatePreview();
+            _setAutoSaveToast(_ICON_CHECK, 'Atualizado por outro usuário');
+        }
+
+        // Assina mudanças no próprio perfil (tabela profiles) enquanto a sessão
+        // está aberta. Se um master desativar/apagar/trocar o perfil deste usuário
+        // em outro dispositivo, ele é desconectado na hora em vez de continuar
+        // trabalhando com uma sessão que já deveria ter perdido acesso.
+        let _selfProfileRealtimeChannel = null;
+
+        function _unsubscribeSelfProfileRealtime() {
+            if (_selfProfileRealtimeChannel) {
+                sb.removeChannel(_selfProfileRealtimeChannel);
+                _selfProfileRealtimeChannel = null;
+            }
+        }
+
+        async function _subscribeSelfProfileRealtime() {
+            _unsubscribeSelfProfileRealtime();
+            const { data: { user } } = await sb.auth.getUser();
+            if (!user) return;
+            _selfProfileRealtimeChannel = sb
+                .channel('self-profile-' + user.id)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
+                    const row = payload.new;
+                    if (!row) return;
+                    if (row.status !== 'ativado') {
+                        alert('Sua conta foi desativada por um administrador. Você será desconectado.');
+                        doLogout();
+                    } else if (currentUser && row.perfil !== currentUser.perfil) {
+                        alert('Seu perfil de acesso foi alterado. A página será recarregada.');
+                        location.reload();
+                    }
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, () => {
+                    alert('Sua conta foi removida. Você será desconectado.');
+                    doLogout();
+                })
+                .subscribe();
+        }
+
+        // Assina mudanças na tabela produtos (cadastro de produto -> unidades por
+        // caixa) durante toda a sessão — se o master editar isso direto no Supabase
+        // Studio, quem já está com o app aberto recebe a atualização sem precisar
+        // dar F5.
+        let _produtosRealtimeChannel = null;
+
+        function _subscribeProdutosRealtime() {
+            if (_produtosRealtimeChannel) return; // já assinado nesta sessão
+            _produtosRealtimeChannel = sb
+                .channel('produtos-live')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'produtos' }, () => fetchProductUnits())
+                .subscribe();
+        }
+
         function _savePhotoToGallery(dataUrl) {
             try {
                 const arr = dataUrl.split(',');
@@ -1806,11 +2232,6 @@
                 return;
             }
 
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
-                return;
-            }
-
             // Mostrar popup de confirmação antes de salvar
             document.getElementById('saveConfirmModal').classList.remove('hidden');
             lucide.createIcons();
@@ -1858,8 +2279,7 @@
                 let rows = historyRows;
                 if (!rows.length) {
                     try {
-                        const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                        const result = await resp.json();
+                        const result = await callBackend({ action: 'list' });
                         if (result.success) { rows = result.rows || []; historyRows = rows; }
                     } catch(e) {}
                 }
@@ -1874,10 +2294,8 @@
 
                 if (match) {
                     editModeTimestamp = String(match.Timestamp);
-                    _editPassword = 'spg@2024';
                     await _doSaveToCloud();
                     editModeTimestamp = null;
-                    _editPassword = null;
                     return;
                 }
 
@@ -2097,61 +2515,6 @@
             return changed;
         }
 
-        // POST com progresso REAL de upload (client → Apps Script). O fetch() não
-        // expõe progresso de envio, então usamos XHR + upload.onprogress. Para um
-        // payload dominado pelo vídeo, a fração enviada (0..1) equivale a quanto do
-        // vídeo já subiu para o Drive. Retorna { ok, status, statusText, text }.
-        // Formata bytes em MB com 1 casa decimal (ex: "12.4 MB").
-        function _fmtMB(bytes) {
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-
-        function _postWithProgress(url, body, onProgress) {
-            if (onProgress) onProgress(0, 0, 0);
-            return new Promise(function(resolve, reject) {
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', url, true);
-                // Aborta se passar 120s sem resposta (rede travada)
-                var timer = setTimeout(function() { xhr.abort(); }, 120000);
-                // Progresso REAL de envio: atualiza a barra enquanto o dado sobe ao servidor
-                if (onProgress && xhr.upload) {
-                    xhr.upload.addEventListener('progress', function(e) {
-                        if (e.lengthComputable && e.total > 0) {
-                            // Reserva 10% final para o servidor processar e responder
-                            onProgress(Math.min(0.9, e.loaded / e.total), 0, 0);
-                        }
-                    });
-                }
-                xhr.onload = function() {
-                    clearTimeout(timer);
-                    if (onProgress) onProgress(1, 0, 0);
-                    resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, statusText: xhr.statusText, text: xhr.responseText });
-                };
-                xhr.onerror = function() { clearTimeout(timer); reject(new Error('Falha de conexão.')); };
-                xhr.onabort = function() { clearTimeout(timer); reject(new Error('Tempo de conexão esgotado.')); };
-                xhr.send(body);
-            });
-        }
-
-        // Retentativa automática para uploads de pedaços: se a conexão cair no celular,
-        // tenta de novo com backoff (2s → 4s → 8s → 16s → 30s). O servidor é idempotente (não duplica).
-        async function _postWithRetry(url, body, onProgress, maxRetries) {
-            if (maxRetries === undefined) maxRetries = 5;
-            let lastErr;
-            for (let attempt = 0; attempt <= maxRetries; attempt++) {
-                try {
-                    return await _postWithProgress(url, body, onProgress);
-                } catch (err) {
-                    lastErr = err;
-                    if (attempt < maxRetries) {
-                        const delay = Math.min(30000, 2000 * (1 << attempt)); // 2s, 4s, 8s, 16s, 30s
-                        await new Promise(r => setTimeout(r, delay));
-                    }
-                }
-            }
-            throw lastErr;
-        }
-
         // ===== UPLOAD DE VÍDEO EM PEDAÇOS (CHUNKS) =====
         // O Apps Script rejeita POSTs muito grandes (~50 MB). Um vídeo em base64
         // Substitui, item a item, o base64 local pelos links do Drive que o servidor
@@ -2201,7 +2564,7 @@
 
         // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
         async function _doSaveSectionToCloud(sectionTypeOverride = null) {
-            if (!APPS_SCRIPT_URL || !currentUser) return;
+            if (!currentUser) return;
             const perfil  = currentUser.perfil;
             const codigo  = (document.getElementById('embarqueCodigo')?.value || '').trim();
             if (!codigo) {
@@ -2262,11 +2625,7 @@
 
             try {
                 setSaveProgress(50, 'Salvando seção', 'Aguardando servidor...');
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const result = await resp.json();
+                const result = await callBackend(payload);
                 setSaveProgress(100, 'Concluído', '');
 
                 // Conflito: outro usuário do mesmo perfil salvou esta seção antes.
@@ -2316,11 +2675,6 @@
         }
 
         async function _doSaveToCloud() {
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
-                return;
-            }
-
             showSaveLoadingModal();
 
             const isEdit = !!editModeTimestamp;
@@ -2344,23 +2698,13 @@
                 if (isEdit) {
                     data.action = 'update';
                     data.originalTimestamp = editModeTimestamp;
-                    data.password = _editPassword;
+                    data.codigo = data.embarqueCodigo;
                 }
-                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(data), null);
+                const result = await callBackend(data);
                 if (serverInterval) clearInterval(serverInterval);
                 setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
                 await new Promise(r => setTimeout(r, 600));
                 hideSaveLoadingModal();
-                if (!resp.ok) {
-                    showMessageModal('Erro do servidor', `HTTP ${resp.status} — ${resp.statusText}`, 'error');
-                    return;
-                }
-                const text = resp.text;
-                let result;
-                try { result = JSON.parse(text); } catch(_) {
-                    showMessageModal('Resposta inválida', 'O servidor retornou:\n' + text.substring(0, 200), 'error');
-                    return;
-                }
                 if (result.success) {
                     // Guarda: só substitui fotos/vídeos se o servidor devolveu URLs do Drive (não vazia/base64)
                     const _hasDriveUrl = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
@@ -2413,7 +2757,7 @@
                                 sensorNumber: fd.sensorNumber,
                                 lacreNumber: fd.lacreNumber,
                             };
-                            await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(nfPayload) });
+                            await callBackend(nfPayload);
                         } catch(_) {}
                     })();
                     // Mantém as abas de seção (Parceiros/Descartes/Midias) sincronizadas com o
@@ -2446,8 +2790,7 @@
                             // NotaFiscal, que o app ignora ao recarregar (Midias é a fonte de
                             // verdade quando existe), dando a impressão de que sumiram.
                             try {
-                                const respM = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'midias', codigo: codigoAtual }) });
-                                const resultM = await respM.json();
+                                const resultM = await callBackend({ action: 'getSection', sectionType: 'midias', codigo: codigoAtual });
                                 const serverPhotos = (resultM.success && resultM.data) ? tryParse(resultM.data.Fotos)  : [];
                                 const serverVideos = (resultM.success && resultM.data) ? tryParse(resultM.data.Videos) : [];
                                 const serverPhotoUrls = new Set(serverPhotos.map(p => p.dataUrl).filter(Boolean));
@@ -2461,7 +2804,7 @@
                                 const mergedPhotos = [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ...photosData.filter(p => p.dataUrl && !serverPhotoUrls.has(p.dataUrl))];
                                 const mergedVideos = [...serverVideos.map(v => localVideoByUrl.get(v.dataUrl) || v), ...videosData.filter(v => v.dataUrl && !serverVideoUrls.has(v.dataUrl))];
 
-                                const respPush = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({
+                                const resultPush = await callBackend({
                                     action: 'saveSection', sectionType: 'midias', codigo: codigoAtual,
                                     photosData: mergedPhotos, videosData: mergedVideos,
                                     reportDate: document.getElementById('reportDate')?.value || '',
@@ -2470,8 +2813,7 @@
                                     thermostatMode: document.getElementById('thermostatMode')?.value || '',
                                     thermostatValue: document.getElementById('thermostatValue')?.value || '',
                                     additionalInfoData
-                                }) });
-                                const resultPush = await respPush.json();
+                                });
                                 if (resultPush && resultPush.success) {
                                     photosData = mergedPhotos;
                                     videosData = mergedVideos;
@@ -2490,8 +2832,7 @@
                                 const loadedUpdatedAt = _loadedSectionUpdatedAt[sectionType];
                                 if (loadedUpdatedAt !== null) {
                                     try {
-                                        const checkResp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType, codigo: codigoAtual }) });
-                                        const checkResult = await checkResp.json();
+                                        const checkResult = await callBackend({ action: 'getSection', sectionType, codigo: codigoAtual });
                                         const serverUpdatedAt = (checkResult.success && checkResult.data) ? (checkResult.data.UpdatedAt || null) : null;
                                         if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
                                     } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
@@ -2501,8 +2842,7 @@
                                 // (anterior a este push), via detectava divergência e desistia em silêncio,
                                 // travando a sincronização com Parceiros a partir do 2º save em diante.
                                 try {
-                                    const pushResp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload)) });
-                                    const pushResult = await pushResp.json();
+                                    const pushResult = await callBackend(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload));
                                     if (pushResult && pushResult.success && pushResult.updatedAt) {
                                         _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
                                     }
@@ -2590,10 +2930,6 @@
         }
 
         async function openEmbarqueCarregar() {
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
-                return;
-            }
             _embarqueHistoryMode = true;
             _historyTab = 'pendentes';
             _updateHistoryTabUI();
@@ -2609,8 +2945,7 @@
             document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'list' });
                 if (!result.success) throw new Error(result.error || 'Erro ao carregar.');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
@@ -2621,10 +2956,6 @@
         }
 
         async function openHistory() {
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
-                return;
-            }
             _historyTab = 'todos';
             _updateHistoryTabUI();
             document.getElementById('historyModal').classList.remove('hidden');
@@ -2633,11 +2964,7 @@
             document.getElementById('historyList').innerHTML = '<div class="text-center py-10 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'list' })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'list' });
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
                 historyRows = result.rows || [];
                 _updatePendingUI();
@@ -2666,8 +2993,7 @@
 
         // Busca a lista atual na planilha (sem mexer na UI). Lança erro em caso de falha.
         async function _fetchHistoryRows() {
-            const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-            const result = await resp.json();
+            const result = await callBackend({ action: 'list' });
             if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
             return result.rows || [];
         }
@@ -2710,11 +3036,6 @@
         }
 
         async function refreshHistory() {
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
-                return;
-            }
-
             // O master está editando um registro e tem alterações ainda não enviadas?
             const hasUnsavedEdit = !!(
                 editModeTimestamp && _editSnapshot &&
@@ -2855,10 +3176,9 @@
         }
 
         async function checkPendingNotifications() {
-            if (!APPS_SCRIPT_URL || !currentUser || currentUser.perfil !== 'master') return;
+            if (!currentUser || currentUser.perfil !== 'master') return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'list' });
                 if (!result.success) return;
                 historyRows = result.rows || [];
                 _updatePendingUI();
@@ -2988,11 +3308,7 @@
             const row = _findRowByTs(ts);
             if (!row || !row.Timestamp) return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'markReviewed', timestamp: String(row.Timestamp), password: 'spg@2024' })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'markReviewed', timestamp: String(row.Timestamp), codigo: row.Codigo });
                 if (!result.success) throw new Error(result.error);
                 row.StatusRegistro = 'revisado';
                 const globalRow = historyRows.find(r => String(r.Timestamp) === String(row.Timestamp));
@@ -3006,11 +3322,7 @@
             const row = _findRowByTs(ts);
             if (!row || !row.Timestamp) return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'markPending', timestamp: String(row.Timestamp), password: 'spg@2024' })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'markPending', timestamp: String(row.Timestamp), codigo: row.Codigo });
                 if (!result.success) throw new Error(result.error);
                 row.StatusRegistro = 'pendente';
                 const globalRow = historyRows.find(r => String(r.Timestamp) === String(row.Timestamp));
@@ -3346,12 +3658,10 @@
             _editSnapshot = collectFormData();
             // Após um F5, _editOriginalRow não sobrevive. Rebusca a linha original da
             // planilha (por Timestamp) para que a detecção de conflito volte a funcionar.
-            if (APPS_SCRIPT_URL) {
-                _fetchHistoryRows().then(rows => {
-                    const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
-                    if (row) _editOriginalRow = JSON.parse(JSON.stringify(row));
-                }).catch(() => {});
-            }
+            _fetchHistoryRows().then(rows => {
+                const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
+                if (row) _editOriginalRow = JSON.parse(JSON.stringify(row));
+            }).catch(() => {});
             const banner = document.getElementById('editModeBanner');
             if (banner) {
                 document.getElementById('editModeBannerText').textContent =
@@ -3550,11 +3860,7 @@
         // Retorna {ok:true} em caso de sucesso ou {ok:false, message} em caso de erro
         // esperado (código inexistente, não pendente etc.); erros de rede propagam.
         async function _loadExistingSectionCodigo(codigo) {
-            const resp = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'checkCodigo', codigo })
-            });
-            const result = await resp.json();
+            const result = await callBackend({ action: 'checkCodigo', codigo });
 
             if (!result.success) throw new Error(result.error || 'Erro desconhecido.');
 
@@ -3601,7 +3907,6 @@
         }
 
         async function confirmSectionCodigo() {
-            if (!APPS_SCRIPT_URL) return;
             const input = document.getElementById('welcomeSectionCodigoInput');
             const errEl = document.getElementById('welcomeSectionError');
             const btn   = document.getElementById('welcomeSectionConfirmBtn');
@@ -3669,10 +3974,9 @@
         }
 
         async function checkDescartesPendingNotifications() {
-            if (!APPS_SCRIPT_URL || !currentUser || currentUser.perfil !== 'descartes') return;
+            if (!currentUser || currentUser.perfil !== 'descartes') return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'list' });
                 if (!result.success) return;
                 _descartesPendingRows = (result.rows || []).filter(r => !_rowHasDescartesFilled(r));
                 _updateDescartesPendingUI();
@@ -3770,7 +4074,7 @@
         // pendentes — igual ao fluxo de "Trocar Embarque" (trocarEmbarqueSection()),
         // pois dados não salvos da seção atual seriam perdidos na troca.
         function _loadDescartesPendingCodigo(codigo) {
-            if (!APPS_SCRIPT_URL || !currentUser) return;
+            if (!currentUser) return;
             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
             const text = codigoAtual && codigoAtual !== codigo
                 ? `Você está no embarque Nº ${codigoAtual}. Deseja editar o embarque Nº ${codigo} para preencher o descarte? Dados não salvos da seção atual serão perdidos.`
@@ -3818,8 +4122,7 @@
         // enxergava os pallets que o parceiros já tinha cadastrado.
         async function _fetchParceirosPallets(codigo) {
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'parceiros', codigo }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'getSection', sectionType: 'parceiros', codigo });
                 if (result.success && result.data) {
                     try { return JSON.parse(result.data.ParceirosData || '[]'); } catch(_) { return []; }
                 }
@@ -3828,17 +4131,14 @@
         }
 
         async function _loadSectionData(codigo) {
-            if (!APPS_SCRIPT_URL || !currentUser) return;
+            if (!currentUser) return;
             const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
             const sectionType = sectionMap[currentUser.perfil];
             if (!sectionType) return;
+            _subscribeSectionRealtime(sectionType, codigo);
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getSection', sectionType, codigo })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'getSection', sectionType, codigo });
                 const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
 
                 if (!result.success || !result.data) {
@@ -3893,8 +4193,7 @@
                     // não edita essa seção, mas precisa dela para o botão "PDF Parceiros"
                     // (senão o PDF gerado sairia sempre vazio, sem nenhum parceiro listado).
                     try {
-                        const respP = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getSection', sectionType: 'parceiros', codigo }) });
-                        const resultP = await respP.json();
+                        const resultP = await callBackend({ action: 'getSection', sectionType: 'parceiros', codigo });
                         if (resultP.success && resultP.data) palletsData = tryParse(resultP.data.ParceirosData);
                     } catch(_) {}
                 } else if (sectionType === 'midias') {
@@ -4016,11 +4315,10 @@
             btn.disabled = true;
             btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Verificando...`;
 
-            // Consulta a planilha para checar duplicata
-            if (APPS_SCRIPT_URL) {
+            // Consulta o banco pra checar duplicata
+            {
                 try {
-                    const resp   = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'list' }) });
-                    const result = await resp.json();
+                    const result = await callBackend({ action: 'list' });
                     if (result.success) {
                         const exists = (result.rows || []).find(r => String(r.Codigo || '').trim() === codigo);
                         if (exists) {
@@ -4244,135 +4542,60 @@
             showWelcomeModal();
         }
 
-        // ===== SENHA DE PROTEÇÃO =====
-        let _pendingPasswordAction = null; // { type: 'edit'|'delete', idx: number }
-
+        // ===== CONFIRMAÇÃO ANTES DE EDITAR/CARREGAR/APAGAR =====
+        // A senha compartilhada ('spg@2024') foi removida — quem chega até estes
+        // botões já está autenticado no Supabase Auth como master (a real barreira
+        // de segurança agora são as políticas RLS do banco). Mantemos só uma
+        // confirmação simples, pra evitar toques acidentais.
         function requestPasswordFor(type, ts) {
-            _pendingPasswordAction = { type, ts: String(ts) };
             const row = _findRowByTs(ts);
             const codigo = row ? (row.Codigo || '—') : '—';
-            const titleEl = document.getElementById('passwordModalTitle');
-            const subEl   = document.getElementById('passwordModalSubtitle');
             if (type === 'edit') {
-                if (titleEl) titleEl.textContent = 'Editar registro';
-                if (subEl)   subEl.textContent   = `Informe a senha para editar o embarque ${codigo}.`;
-            } else if (type === 'load') {
-                if (titleEl) titleEl.textContent = 'Carregar embarque';
-                if (subEl)   subEl.textContent   = `Informe a senha master para carregar o embarque ${codigo}.`;
-            } else {
-                if (titleEl) titleEl.textContent = 'Apagar registro';
-                if (subEl)   subEl.textContent   = `Informe a senha para apagar permanentemente o embarque ${codigo}.`;
-            }
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('passwordError').classList.add('hidden');
-            document.getElementById('passwordModal').classList.remove('hidden');
-            document.getElementById('passwordModal').classList.add('flex');
-            lockScroll();
-            setTimeout(() => document.getElementById('passwordInput').focus(), 100);
-            lucide.createIcons();
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.add('hidden');
-            unlockScroll();
-            document.getElementById('passwordModal').classList.remove('flex');
-            _pendingPasswordAction = null;
-        }
-
-        function togglePasswordVisibility() {
-            const input = document.getElementById('passwordInput');
-            const icon  = document.getElementById('passwordEyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.setAttribute('data-lucide', 'eye-off');
-            } else {
-                input.type = 'password';
-                icon.setAttribute('data-lucide', 'eye');
-            }
-            lucide.createIcons();
-        }
-
-        async function submitPassword() {
-            const password = document.getElementById('passwordInput').value;
-            if (!password) return;
-
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações (ícone de engrenagem).', 'error');
-                return;
-            }
-
-            const btn = document.getElementById('passwordSubmitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Verificando...';
-
-            try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'verifyPassword', password })
+                showConfirmModal({
+                    title: 'Editar embarque?',
+                    text: `Deseja editar o embarque ${codigo}?`,
+                    confirmLabel: 'Editar',
+                    type: 'warning',
+                    onConfirm: () => editHistoryReport(ts)
                 });
-
-                let result;
-                const text = await resp.text();
-                try {
-                    result = JSON.parse(text);
-                } catch (_) {
-                    // Apps Script retornou HTML em vez de JSON — provavelmente não foi republicado
-                    showMessageModal(
-                        'Apps Script desatualizado',
-                        'O Apps Script precisa ser republicado para suportar esta função.\n\nNo editor do Apps Script: clique em "Implantar" → "Gerenciar implantações" → edite a versão atual → salve.',
-                        'error'
-                    );
-                    closePasswordModal();
-                    return;
-                }
-
-                if (result.success) {
-                    const { type, ts } = _pendingPasswordAction;
-                    closePasswordModal();
-                    if (type === 'edit') {
-                        editHistoryReport(ts, password);
-                    } else if (type === 'load') {
-                        const row = _findRowByTs(ts);
-                        _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
-                        _resumeAwaitingLoad = false;  // idem para o popup de retomada de edição
-                        // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
-                        // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
-                        // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
-                        // Fechar primeiro fazia o popup reaparecer mesmo com o carregamento ok.
-                        loadHistoryReport(ts);
-                        closeHistoryModal();
-                        _editSnapshot = collectFormData();
-                        if (row && row.Timestamp) {
-                            editModeTimestamp = String(row.Timestamp);
-                            _editPassword = password;
-                            _editOriginalRow = JSON.parse(JSON.stringify(row));
-                            const codigo = row.Codigo || '—';
-                            const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
-                            const banner = document.getElementById('editModeBanner');
-                            document.getElementById('editModeBannerText').textContent = _buildEditBannerText('load', codigo, rawDate);
-                            banner.classList.remove('hidden');
-                            _persistEditMode('load', codigo, rawDate);
-                            switchMobileTab('form');
-                            lucide.createIcons();
-                        }
-                    } else {
-                        confirmDeleteHistoryReport(ts, password);
-                    }
-                } else {
-                    document.getElementById('passwordError').classList.remove('hidden');
-                    document.getElementById('passwordInput').value = '';
-                    document.getElementById('passwordInput').focus();
-                }
-            } catch (err) {
-                showMessageModal('Erro de conexão', 'Verifique sua internet e tente novamente. Detalhe: ' + err.message, 'error');
-                closePasswordModal();
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Confirmar';
+            } else if (type === 'load') {
+                showConfirmModal({
+                    title: 'Carregar embarque?',
+                    text: `Deseja carregar o embarque ${codigo}?`,
+                    confirmLabel: 'Carregar',
+                    type: 'info',
+                    onConfirm: () => _loadHistoryReportConfirmed(ts)
+                });
+            } else {
+                confirmDeleteHistoryReport(ts);
             }
         }
 
-        function confirmDeleteHistoryReport(ts, password) {
+        function _loadHistoryReportConfirmed(ts) {
+            const row = _findRowByTs(ts);
+            _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
+            _resumeAwaitingLoad = false;  // idem para o popup de retomada de edição
+            // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
+            // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
+            // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
+            loadHistoryReport(ts);
+            closeHistoryModal();
+            _editSnapshot = collectFormData();
+            if (row && row.Timestamp) {
+                editModeTimestamp = String(row.Timestamp);
+                _editOriginalRow = JSON.parse(JSON.stringify(row));
+                const codigo = row.Codigo || '—';
+                const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
+                const banner = document.getElementById('editModeBanner');
+                document.getElementById('editModeBannerText').textContent = _buildEditBannerText('load', codigo, rawDate);
+                banner.classList.remove('hidden');
+                _persistEditMode('load', codigo, rawDate);
+                switchMobileTab('form');
+                lucide.createIcons();
+            }
+        }
+
+        function confirmDeleteHistoryReport(ts) {
             const row = _findRowByTs(ts);
             if (!row) return;
             const codigo = row.Codigo || '—';
@@ -4383,19 +4606,16 @@
                 text: `O embarque "${codigo}" será removido permanentemente da planilha. Esta ação não pode ser desfeita.`,
                 confirmLabel: 'Apagar',
                 type: 'danger',
-                onConfirm: () => _executeDelete(rowTs, codigo, password)
+                onConfirm: () => _executeDelete(rowTs, codigo)
             });
         }
 
-        function _executeDelete(ts, codigo, password) {
+        function _executeDelete(ts, codigo) {
             showSaveLoadingModal();
             setSaveProgress(10, 'Apagando registro', 'Removendo da planilha...');
 
-            fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'delete', originalTimestamp: ts, password, deletedBy: currentUser ? currentUser.nome : 'Desconhecido' })
-            })
-            .then(r => r.json())
+            const row = _findRowByTs(ts);
+            callBackend({ action: 'delete', originalTimestamp: ts, codigo: row ? row.Codigo : undefined, deletedBy: currentUser ? currentUser.nome : 'Desconhecido' })
             .then(result => {
                 setSaveProgress(100, 'Concluído', 'Registro apagado.');
                 setTimeout(() => {
@@ -4553,16 +4773,11 @@
             lucide.createIcons();
             _initViewerGestures();
 
-            // Verifica sessão existente (persistente primeiro, depois de aba).
-            // Só restaura se a URL de conexão está configurada — após a atualização
-            // que removeu a URL do código, dispositivos com sessão antiga precisam
-            // passar pela tela de login uma vez para informar a URL.
+            // Verifica sessão existente do Supabase Auth (persistida automaticamente
+            // no localStorage pelo próprio client).
             try {
-                const persistent = localStorage.getItem('spg_persistent_session');
-                const session = sessionStorage.getItem('spg_session');
-                const saved = persistent || session;
-                if (saved && APPS_SCRIPT_URL) {
-                    currentUser = JSON.parse(saved);
+                const { data: { session } } = await sb.auth.getSession();
+                if (session && await _loadCurrentUserProfile(session.user.id)) {
                     document.getElementById('loginOverlay').style.display = 'none';
                     document.body.style.overflow = '';
                     await initApp();
@@ -4570,10 +4785,22 @@
                 }
             } catch(e) {}
 
-            // Mostra tela de login; sem URL configurada, já abre o campo de conexão
-            if (!APPS_SCRIPT_URL) toggleLoginUrlSection();
             lucide.createIcons();
         });
+
+        // Busca o perfil (nome/perfil/status) do usuário autenticado no Supabase
+        // Auth e popula currentUser. Se o perfil não existir ou estiver
+        // desativado, desloga e devolve false.
+        async function _loadCurrentUserProfile(userId) {
+            const { data: profile, error } = await sb.from('profiles').select('nome, perfil, status').eq('id', userId).maybeSingle();
+            if (error || !profile || profile.status !== 'ativado') {
+                await sb.auth.signOut();
+                currentUser = null;
+                return false;
+            }
+            currentUser = { nome: profile.nome, perfil: profile.perfil, status: profile.status };
+            return true;
+        }
 
         async function initApp() {
             currentReportId = generateReportId();
@@ -4590,6 +4817,8 @@
             }
 
             fetchProductUnits();
+            _subscribeProdutosRealtime();
+            _subscribeSelfProfileRealtime();
             renderProductCheckboxes();
             renderNfeInputs();
             renderPartners();
@@ -4655,7 +4884,7 @@
             // inseriram. Na inicialização o servidor é a fonte de verdade: nada
             // digitado nesta sessão pode ser perdido, pois a página acabou de abrir.
             const _codigoAtivo = _codigoEl ? _codigoEl.value.trim() : '';
-            if (APPS_SCRIPT_URL && (_codigoAtivo || _autoSaveTimestamp || editModeTimestamp)) {
+            if (_codigoAtivo || _autoSaveTimestamp || editModeTimestamp) {
                 const _perfilAtual = currentUser && currentUser.perfil;
                 if (_perfilAtual === 'master' || !_perfilAtual) {
                     _syncFromServer(true);
@@ -4716,7 +4945,7 @@
         }
 
         async function _autoSaveToCloud() {
-            if (_isSaving || !APPS_SCRIPT_URL) return;
+            if (_isSaving) return;
             const codigoEl = document.getElementById('embarqueCodigo');
             if (!codigoEl || !codigoEl.value.trim()) return;
             // Pula o ciclo se nada mudou desde o último save bem-sucedido. Antes essa trava só
@@ -4753,8 +4982,7 @@
                     // array inteiro com fotos de todos os pallets a cada ciclo de 30s).
                     if (full) payload.palletsData = palletsData;
                     else if (Object.keys(delta).length) payload.palletsDelta = delta;
-                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    const result = await resp.json();
+                    const result = await callBackend(payload);
                     if (result.success) {
                         if (merged) {
                             // Adota o array mesclado, preservando itens adicionados durante o envio.
@@ -4822,8 +5050,7 @@
                         payload.sensorNumber          = fd.sensorNumber;
                         payload.lacreNumber           = fd.lacreNumber;
                     }
-                    const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    const result = await resp.json();
+                    const result = await callBackend(payload);
                     if (result.success) {
                         if (result.updatedAt) _trackSectionUpdatedAt(_secAutoType, result.updatedAt);
                         if (result.data) _applyConvertedSectionData(result.data);
@@ -4861,14 +5088,11 @@
                 if (targetTimestamp) {
                     data.action            = 'update';
                     data.originalTimestamp = targetTimestamp;
-                    data.password          = _editPassword || 'spg@2024';
+                    data.codigo            = data.embarqueCodigo;
                 }
                 // else: insert normal (sem action → backend trata como novo registro)
 
-                const resp = await _postWithProgress(APPS_SCRIPT_URL, JSON.stringify(data), null);
-
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const result = JSON.parse(resp.text);
+                const result = await callBackend(data);
 
                 if (result.success) {
                     // Guarda o timestamp do insert para updates futuros (memória + localStorage)
@@ -4931,15 +5155,10 @@
         async function _syncFromServer(force = false) {
             const targetTs = _autoSaveTimestamp || editModeTimestamp;
             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
-            if (!APPS_SCRIPT_URL || (!targetTs && !codigoAtual)) return;
+            if (!targetTs && !codigoAtual) return;
             _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'list' })
-                });
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const result = await resp.json();
+                const result = await callBackend({ action: 'list' });
                 if (!result.success) throw new Error(result.error || 'Erro');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
@@ -5059,25 +5278,6 @@
             const errEl = document.getElementById('loginError');
             const btn = document.getElementById('loginBtn');
 
-            // Se o campo de URL está visível, valida e salva antes de tentar entrar.
-            const urlSection = document.getElementById('loginUrlSection');
-            if (urlSection && !urlSection.classList.contains('hidden')) {
-                const norm = _normalizeAppsScriptUrl(document.getElementById('loginUrlInput')?.value);
-                if (norm === null) {
-                    errEl.textContent = 'URL de conexão inválida. Use o link de implantação do Apps Script, que termina em /exec.';
-                    errEl.classList.remove('hidden');
-                    return;
-                }
-                if (norm) _setAppsScriptUrl(norm);
-            }
-            if (!APPS_SCRIPT_URL) {
-                errEl.textContent = 'Este dispositivo ainda não tem a URL de conexão configurada. Cole acima o link fornecido pelo administrador.';
-                errEl.classList.remove('hidden');
-                if (urlSection && urlSection.classList.contains('hidden')) toggleLoginUrlSection();
-                document.getElementById('loginUrlInput')?.focus();
-                return;
-            }
-
             if (!nome || !senha) {
                 errEl.textContent = 'Preencha usuário e senha.';
                 errEl.classList.remove('hidden');
@@ -5089,32 +5289,47 @@
             btn.textContent = 'Verificando...';
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'login', nome, senha })
+                const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+                    email: loginEmailFor(nome),
+                    password: senha
                 });
-                const result = await resp.json();
 
-                if (result.success) {
-                    currentUser = result.user;
-                    const keepMe = document.getElementById('loginKeepMe').checked;
-                    if (keepMe) {
-                        localStorage.setItem('spg_persistent_session', JSON.stringify(currentUser));
-                        sessionStorage.removeItem('spg_session');
-                    } else {
-                        sessionStorage.setItem('spg_session', JSON.stringify(currentUser));
-                        localStorage.removeItem('spg_persistent_session');
-                    }
-                    document.getElementById('loginOverlay').style.display = 'none';
-                    document.body.style.overflow = '';
-                    await initApp();
-                } else {
-                    errEl.textContent = result.error || 'Usuário ou senha incorretos.';
+                if (authErr || !authData?.user) {
+                    errEl.textContent = 'Usuário ou senha incorretos.';
                     errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Entrar';
+                    return;
                 }
+
+                const { data: profile } = await sb.from('profiles').select('nome, perfil, status').eq('id', authData.user.id).maybeSingle();
+                if (!profile) {
+                    await sb.auth.signOut();
+                    errEl.textContent = 'Usuário ou senha incorretos.';
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Entrar';
+                    return;
+                }
+                if (profile.status === 'desativado') {
+                    await sb.auth.signOut();
+                    errEl.textContent = 'Usuário desativado. Contate o administrador.';
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Entrar';
+                    return;
+                }
+
+                currentUser = { nome: profile.nome, perfil: profile.perfil, status: profile.status };
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.body.style.overflow = '';
+                await initApp();
             } catch (e) {
-                errEl.textContent = 'Erro de conexão. Verifique a URL do Apps Script.';
+                errEl.textContent = 'Erro de conexão. Tente novamente.';
                 errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Entrar';
+                return;
             }
 
             btn.disabled = false;
@@ -5131,9 +5346,13 @@
             });
         }
 
-        function doLogout() {
-            sessionStorage.removeItem('spg_session');
-            localStorage.removeItem('spg_persistent_session');
+        async function doLogout() {
+            _unsubscribeSectionRealtime();
+            _unsubscribeSelfProfileRealtime();
+            _unsubscribeUsersModalRealtime();
+            _unsubscribeBackupRealtime();
+            if (_produtosRealtimeChannel) { sb.removeChannel(_produtosRealtimeChannel); _produtosRealtimeChannel = null; }
+            await sb.auth.signOut();
             currentUser = null;
             document.getElementById('loginNome').value = '';
             document.getElementById('loginSenha').value = '';
@@ -5382,22 +5601,40 @@
         }
 
         // ===== GERENCIAR USUÁRIOS =====
+        let _usersModalRealtimeChannel = null;
+
+        function _unsubscribeUsersModalRealtime() {
+            if (_usersModalRealtimeChannel) {
+                sb.removeChannel(_usersModalRealtimeChannel);
+                _usersModalRealtimeChannel = null;
+            }
+        }
+
         async function openUsersModal() {
             document.getElementById('usersModal').classList.remove('hidden');
             lockScroll();
             lucide.createIcons();
             await loadUsersList();
+            // Enquanto o modal está aberto, qualquer criação/edição/exclusão de
+            // usuário (nesta aba ou em outra) atualiza a lista sozinha.
+            _unsubscribeUsersModalRealtime();
+            _usersModalRealtimeChannel = sb
+                .channel('users-modal-live')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => loadUsersList())
+                .subscribe();
+        }
+
+        function closeUsersModal() {
+            _unsubscribeUsersModalRealtime();
+            document.getElementById('usersModal').classList.add('hidden');
+            unlockScroll();
         }
 
         async function loadUsersList() {
             const list = document.getElementById('usersList');
             list.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">Carregando...</div>';
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'listUsers', masterPassword: 'spg@2024' })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'listUsers' });
                 if (!result.success) throw new Error(result.error);
 
                 if (!result.users.length) {
@@ -5405,7 +5642,7 @@
                     return;
                 }
 
-                list.innerHTML = result.users.map((u, i) => `
+                list.innerHTML = result.users.map((u) => `
                     <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-slate-800 truncate">${u.nome}</p>
@@ -5414,11 +5651,11 @@
                                 <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${u.status === 'ativado' ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}">${u.status === 'ativado' ? 'Ativado' : 'Desativado'}</span>
                             </div>
                         </div>
-                        <button onclick="toggleUserStatus(${i}, '${u.status === 'ativado' ? 'desativado' : 'ativado'}')" title="${u.status === 'ativado' ? 'Desativar' : 'Ativar'}"
+                        <button onclick="toggleUserStatus('${u.id}', '${u.status === 'ativado' ? 'desativado' : 'ativado'}')" title="${u.status === 'ativado' ? 'Desativar' : 'Ativar'}"
                             class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors">
                             <i data-lucide="${u.status === 'ativado' ? 'toggle-right' : 'toggle-left'}" class="w-4 h-4"></i>
                         </button>
-                        <button onclick="deleteUser(${i})" title="Excluir usuário"
+                        <button onclick="deleteUser('${u.id}')" title="Excluir usuário"
                             class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
@@ -5439,11 +5676,7 @@
             if (!nome || !senha) { alert('Preencha nome e senha.'); return; }
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'addUser', masterPassword: 'spg@2024', user: { nome, senha, perfil, status } })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'addUser', user: { nome, senha, perfil, status } });
                 if (!result.success) throw new Error(result.error);
                 document.getElementById('newUserNome').value = '';
                 document.getElementById('newUserSenha').value = '';
@@ -5451,26 +5684,18 @@
             } catch(e) { alert('Erro: ' + e.message); }
         }
 
-        async function toggleUserStatus(rowIndex, newStatus) {
+        async function toggleUserStatus(id, newStatus) {
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'updateUser', masterPassword: 'spg@2024', rowIndex, field: 'Status', value: newStatus })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'updateUser', id, field: 'status', value: newStatus });
                 if (!result.success) throw new Error(result.error);
                 await loadUsersList();
             } catch(e) { alert('Erro: ' + e.message); }
         }
 
-        async function deleteUser(rowIndex) {
+        async function deleteUser(id) {
             if (!confirm('Excluir este usuário?')) return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'deleteUser', masterPassword: 'spg@2024', rowIndex })
-                });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'deleteUser', id });
                 if (!result.success) throw new Error(result.error);
                 await loadUsersList();
             } catch(e) { alert('Erro: ' + e.message); }
@@ -5497,19 +5722,32 @@
             return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
-        async function openBackupModal() {
-            if (!APPS_SCRIPT_URL) {
-                showMessageModal('URL não configurada', 'Configure a URL do Apps Script nas Configurações.', 'error');
-                return;
+        let _backupRealtimeChannel = null;
+
+        function _unsubscribeBackupRealtime() {
+            if (_backupRealtimeChannel) {
+                sb.removeChannel(_backupRealtimeChannel);
+                _backupRealtimeChannel = null;
             }
+        }
+
+        async function _reloadBackupList() {
+            try {
+                const result = await callBackend({ action: 'listBackup' });
+                if (!result.success) return;
+                _backupRows = result.rows || [];
+                filterBackupList(document.getElementById('backupSearch')?.value || '');
+            } catch (_) {}
+        }
+
+        async function openBackupModal() {
             document.getElementById('backupModal').classList.remove('hidden');
             lockScroll();
             document.getElementById('backupSearch').value = '';
             document.getElementById('backupList').innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'listBackup', masterPassword: 'spg@2024' }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'listBackup' });
                 if (!result.success) throw new Error(result.error || 'Erro ao carregar.');
                 _backupRows = result.rows || [];
                 _backupRowsFiltered = [..._backupRows];
@@ -5517,9 +5755,17 @@
             } catch (err) {
                 document.getElementById('backupList').innerHTML = `<div class="text-center py-8 text-red-400 text-sm font-bold">Erro: ${err.message}</div>`;
             }
+            // Enquanto o modal está aberto, um registro apagado/restaurado por outro
+            // usuário (ou nesta mesma aba, em outra tela) atualiza a lista sozinha.
+            _unsubscribeBackupRealtime();
+            _backupRealtimeChannel = sb
+                .channel('backup-modal-live')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'backup' }, () => _reloadBackupList())
+                .subscribe();
         }
 
         function closeBackupModal() {
+            _unsubscribeBackupRealtime();
             document.getElementById('backupModal').classList.add('hidden');
             unlockScroll();
         }
@@ -5576,8 +5822,7 @@
             showSaveLoadingModal();
             setSaveProgress(30, 'Restaurando registro', 'Aguarde...');
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'restoreBackup', masterPassword: 'spg@2024', rowIndex }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'restoreBackup', rowIndex });
                 setSaveProgress(100, 'Concluído', '');
                 hideSaveLoadingModal();
                 if (!result.success) throw new Error(result.error || 'Erro ao restaurar.');
@@ -5769,10 +6014,8 @@
             return isNaN(num) ? String(n ?? '') : num.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
         }
         async function fetchProductUnits() {
-            if (!APPS_SCRIPT_URL) return;
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'listProdutos' }) });
-                const result = await resp.json();
+                const result = await callBackend({ action: 'listProdutos' });
                 if (result.success && Array.isArray(result.produtos)) {
                     result.produtos.forEach(p => {
                         const nome = String(p.produto || '').trim();
@@ -6657,21 +6900,30 @@
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
+            if (!files.length) return;
             if (!palletsData[idx].photos) palletsData[idx].photos = [];
+            let info;
+            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
             for (const file of files) {
-                const dataUrl = await _compressImage(file);
-                if (!dataUrl) continue;
-                if (fromCamera) _savePhotoToGallery(dataUrl);
-                palletsData[idx].photos.push(dataUrl);
-                renderPallets();
-                updatePreview();
+                try {
+                    const dataUrl = await _compressImage(file);
+                    if (!dataUrl) continue;
+                    if (fromCamera) _savePhotoToGallery(dataUrl);
+                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                    palletsData[idx].photos.push(url);
+                    renderPallets();
+                    updatePreview();
+                } catch(err) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                }
             }
+            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
         }
         function removePalletPhoto(idx, pidx) {
             palletsData[idx].photos.splice(pidx, 1);
             renderPallets();
             updatePreview();
-            if (APPS_SCRIPT_URL && currentUser) {
+            if (currentUser) {
                 const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
                 if (codigo) {
                     const _stMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias', master: 'midias' };
@@ -6688,8 +6940,7 @@
                             payload.thermostatValue = document.getElementById('thermostatValue')?.value || '';
                             payload.additionalInfoData = additionalInfoData;
                         }
-                        fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-                            .then(r => r.json())
+                        callBackend(payload)
                             .then(result => {
                                 if (!result || !result.success) return;
                                 // Atualiza o baseline da trava otimista — senão a própria
@@ -6903,15 +7154,24 @@
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
+            if (!files.length) return;
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
+            let info;
+            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
             for (const file of files) {
-                const dataUrl = await _compressImage(file);
-                if (!dataUrl) continue;
-                if (fromCamera) _savePhotoToGallery(dataUrl);
-                discardsData[idx].photos.push(dataUrl);
-                renderDiscards();
-                updatePreview();
+                try {
+                    const dataUrl = await _compressImage(file);
+                    if (!dataUrl) continue;
+                    if (fromCamera) _savePhotoToGallery(dataUrl);
+                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                    discardsData[idx].photos.push(url);
+                    renderDiscards();
+                    updatePreview();
+                } catch(err) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                }
             }
+            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
         }
         function removeDiscardPhoto(idx, pidx) {
             discardsData[idx].photos.splice(pidx, 1);
@@ -7026,15 +7286,24 @@
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
+            if (!files.length) return;
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
+            let info;
+            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
             for (const file of files) {
-                const dataUrl = await _compressImage(file);
-                if (!dataUrl) continue;
-                if (fromCamera) _savePhotoToGallery(dataUrl);
-                customTempsData[idx].photos.push(dataUrl);
-                renderCustomTemps();
-                updatePreview();
+                try {
+                    const dataUrl = await _compressImage(file);
+                    if (!dataUrl) continue;
+                    if (fromCamera) _savePhotoToGallery(dataUrl);
+                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                    customTempsData[idx].photos.push(url);
+                    renderCustomTemps();
+                    updatePreview();
+                } catch(err) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                }
             }
+            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
         }
         function removeTempPhoto(idx, pidx) {
             customTempsData[idx].photos.splice(pidx, 1);
@@ -7131,27 +7400,66 @@
             });
         }
 
+        // Sobe uma foto (já comprimida em dataUrl) direto pro Google Drive, igual
+        // já acontecia com vídeos — não existe mais um backend próprio que faça
+        // esse upload por trás, então isso passa a acontecer assim que a foto é
+        // adicionada, não só no momento de salvar. "info" ({token, folderId}) é
+        // buscado uma vez por lote de arquivos, não a cada foto.
+        async function _uploadPhotoDataUrlToDrive(dataUrl, info) {
+            const blob = await (await fetch(dataUrl)).blob();
+            const filename = 'foto_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '.jpg';
+            const fileObj = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            // _uploadToDriveApi devolve um link "/view" (bom para abrir em nova aba,
+            // como os vídeos usam) — mas fotos são exibidas como <img>, que precisa
+            // do formato lh3.googleusercontent.com pra renderizar a imagem direto
+            // (mesmo formato que o backend antigo já gerava pra fotos).
+            const viewUrl = await _uploadToDriveApi(fileObj, info.token, info.folderId);
+            const m = viewUrl.match(/\/file\/d\/([^/]+)/);
+            return m ? ('https://lh3.googleusercontent.com/d/' + m[1]) : viewUrl;
+        }
+
+        // Busca o token de upload uma única vez por lote de arquivos selecionados.
+        // Lança erro (com toast já exibido) se não conseguir autenticar.
+        async function _getPhotoUploadInfoOrToast() {
+            _setAutoSaveToast(_ICON_SPIN, 'Enviando foto(s) para o Drive...', false);
+            const info = await callBackend({ action: 'getUploadInfo' });
+            if (!info.success) {
+                _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + (info.error || 'erro desconhecido'));
+                throw new Error(info.error || 'Erro ao autenticar com o Drive.');
+            }
+            return info;
+        }
+
         async function handlePhotoUpload(event) {
             const files = Array.from(event.target.files);
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
+            if (!files.length) return;
+            let info;
+            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
             // Sequencial (for..of + await): com forEach(async), as compressões
             // terminavam fora de ordem e as fotos entravam embaralhadas.
             for (const file of files) {
-                const dataUrl = await _compressImage(file);
-                if (!dataUrl) continue;
-                if (fromCamera) _savePhotoToGallery(dataUrl);
-                photosData.push({ dataUrl, caption: '' });
-                renderPhotos();
-                updatePreview();
+                try {
+                    const dataUrl = await _compressImage(file);
+                    if (!dataUrl) continue;
+                    if (fromCamera) _savePhotoToGallery(dataUrl);
+                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                    photosData.push({ dataUrl: url, caption: '' });
+                    renderPhotos();
+                    updatePreview();
+                } catch(err) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                }
             }
+            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
         }
         function removePhoto(idx) {
             photosData.splice(idx, 1);
             renderPhotos();
             updatePreview();
-            // Fire-and-forget: remove a foto da planilha imediatamente
-            if (APPS_SCRIPT_URL) {
+            // Fire-and-forget: remove a foto do banco imediatamente
+            {
                 const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
                 if (codigo) {
                     const payload = {
@@ -7168,8 +7476,7 @@
                         thermostatValue: document.getElementById('thermostatValue')?.value || '',
                         additionalInfoData,
                     };
-                    fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-                        .then(r => r.json())
+                    callBackend(payload)
                         .then(result => { if (result && result.success && result.data) _applyConvertedSectionData(result.data); })
                         .catch(function(){});
                 }
@@ -8561,7 +8868,7 @@
         const _MODAL_IDS = [
             'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
-            'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','pastePalletsModal','genericConfirmModal','conflictModal','passwordModal',
+            'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','pastePalletsModal','genericConfirmModal','conflictModal',
             'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
         ];
         function _anyModalOpen() {
@@ -8598,7 +8905,6 @@
 
         // ---------- Configurações / API Key ----------
         function openSettings() {
-            document.getElementById('appsScriptUrlInput').value = APPS_SCRIPT_URL;
             document.getElementById('apiKeyInput').value = localStorage.getItem('spg_groq_key') || '';
             document.getElementById('githubRawUrlInput').value = localStorage.getItem('spg_github_raw_url') || '';
             document.getElementById('settingsModal').classList.remove('hidden');
@@ -8640,12 +8946,6 @@
         function saveSettings() {
             const key = document.getElementById('apiKeyInput').value.trim();
             const githubUrl = document.getElementById('githubRawUrlInput').value.trim();
-            const scriptUrl = _normalizeAppsScriptUrl(document.getElementById('appsScriptUrlInput').value);
-            if (scriptUrl === null) {
-                showMessageModal('URL inválida', 'A URL do Apps Script deve ser o link de implantação, que termina em <strong>/exec</strong>.<br>Ex: https://script.google.com/macros/s/.../exec', 'error');
-                return;
-            }
-            _setAppsScriptUrl(scriptUrl);
             if (key) {
                 localStorage.setItem('spg_groq_key', key);
             } else {
