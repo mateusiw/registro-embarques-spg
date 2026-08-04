@@ -2866,13 +2866,21 @@
 
                             const pushIfUnchanged = async (sectionType, extraPayload) => {
                                 const loadedUpdatedAt = _loadedSectionUpdatedAt[sectionType];
-                                if (loadedUpdatedAt !== null) {
-                                    try {
-                                        const checkResult = await callBackend({ action: 'getSection', sectionType, codigo: codigoAtual });
-                                        const serverUpdatedAt = (checkResult.success && checkResult.data) ? (checkResult.data.UpdatedAt || null) : null;
-                                        if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
-                                    } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
-                                }
+                                // Sempre confere o servidor antes de sobrescrever — mesmo quando
+                                // loadedUpdatedAt é null (master nunca carregou esta seção: embarque
+                                // novo, ou a seção foi criada por outro perfil depois do último sync
+                                // do master). Pular essa checagem só porque loadedUpdatedAt é null
+                                // fazia o master sobrescrever silenciosamente pallets/descartes que o
+                                // perfil Parceiros/Descartes já tinha salvo, com o palletsData/
+                                // discardsData local do master (vazio ou desatualizado) — bug relatado
+                                // como "os pallets do perfil Parceiros somem sozinhos". Só prossegue se
+                                // o UpdatedAt do servidor bater exatamente com o que foi carregado
+                                // (ambos null = seção realmente nunca existiu, seguro criar agora).
+                                try {
+                                    const checkResult = await callBackend({ action: 'getSection', sectionType, codigo: codigoAtual });
+                                    const serverUpdatedAt = (checkResult.success && checkResult.data) ? (checkResult.data.UpdatedAt || null) : null;
+                                    if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
+                                } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
                                 // Atualiza o carimbo local com o UpdatedAt devolvido por este push — senão,
                                 // o próximo "Salvar" desta mesma sessão comparava com o UpdatedAt antigo
                                 // (anterior a este push), via detectava divergência e desistia em silêncio,
@@ -6970,6 +6978,15 @@
                     const sectionType = _stMap[currentUser.perfil];
                     if (sectionType) {
                         const payload = { action: 'saveSection', sectionType, codigo, palletsData };
+                        // Parceiros/Descartes passam pela trava otimista do RPC (save_secao_*
+                        // no servidor): sem expectedUpdatedAt aqui, o payload chegava com
+                        // esse campo undefined -> null, e a checagem de conflito no SQL
+                        // (`if p_expected_updated_at is not null and ...`) era pulada por
+                        // completo, sobrescrevendo silenciosamente o que outro usuário do
+                        // mesmo perfil tivesse acabado de salvar nessa seção.
+                        if (sectionType === 'parceiros' || sectionType === 'descartes') {
+                            payload.expectedUpdatedAt = _loadedSectionUpdatedAt[sectionType] ?? null;
+                        }
                         if (sectionType === 'midias') {
                             payload.photosData      = photosData;
                             payload.videosData      = _syncableVideos();
@@ -6982,7 +6999,16 @@
                         }
                         callBackend(payload)
                             .then(result => {
-                                if (!result || !result.success) return;
+                                if (!result) return;
+                                if (result.conflict) {
+                                    // Outro usuário salvou esta seção entre o carregamento e esta
+                                    // exclusão de foto — recarrega os dados dele em vez de arriscar
+                                    // sobrescrever com a cópia local desatualizada.
+                                    _loadSectionData(codigo).then(() => updatePreview());
+                                    _setAutoSaveToast(_ICON_WARN, 'Atualizado por outro usuário — dados recarregados');
+                                    return;
+                                }
+                                if (!result.success) return;
                                 // Atualiza o baseline da trava otimista — senão a própria
                                 // exclusão geraria um falso conflito no próximo auto-save.
                                 if (result.updatedAt) _trackSectionUpdatedAt(sectionType, result.updatedAt);
@@ -7494,33 +7520,40 @@
             }
             _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
         }
-        function removePhoto(idx) {
+        async function removePhoto(idx) {
+            const removed = photosData[idx];
             photosData.splice(idx, 1);
             renderPhotos();
             updatePreview();
-            // Fire-and-forget: remove a foto do banco imediatamente
-            {
-                const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
-                if (codigo) {
-                    const payload = {
-                        action: 'saveSection',
-                        sectionType: 'midias',
-                        codigo,
-                        photosData,
-                        videosData: _syncableVideos(),
-                        reportDate: document.getElementById('reportDate')?.value || '',
-                        departureTime: document.getElementById('departureTime')?.value || '',
-                        customTempsData,
-                        palletsData,
-                        thermostatMode: document.getElementById('thermostatMode')?.value || '',
-                        thermostatValue: document.getElementById('thermostatValue')?.value || '',
-                        additionalInfoData,
-                    };
-                    callBackend(payload)
-                        .then(result => { if (result && result.success && result.data) _applyConvertedSectionData(result.data); })
-                        .catch(function(){});
-                }
-            }
+            // Remove a foto do banco imediatamente. Antes enviava o array local
+            // (photosData) puro por cima do que já estava salvo — se outro usuário
+            // do perfil embarque tivesse acabado de adicionar uma foto nesse mesmo
+            // código, essa foto sumia sem nunca ter sido de fato apagada por
+            // ninguém. Agora busca o estado atual do servidor, mescla (mesma lógica
+            // aditiva do auto-save) e só então remove a foto específica do conjunto
+            // mesclado antes de enviar — preserva o que outros adicionaram.
+            const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
+            if (!codigo) return;
+            try {
+                const merged = await _fetchMergedMidias(codigo);
+                const finalPhotos = (merged ? merged.photos : photosData).filter(p => !removed || p.dataUrl !== removed.dataUrl);
+                const payload = {
+                    action: 'saveSection',
+                    sectionType: 'midias',
+                    codigo,
+                    photosData: finalPhotos,
+                    videosData: merged ? merged.videos : _syncableVideos(),
+                    reportDate: document.getElementById('reportDate')?.value || '',
+                    departureTime: document.getElementById('departureTime')?.value || '',
+                    customTempsData,
+                    palletsData,
+                    thermostatMode: document.getElementById('thermostatMode')?.value || '',
+                    thermostatValue: document.getElementById('thermostatValue')?.value || '',
+                    additionalInfoData,
+                };
+                const result = await callBackend(payload);
+                if (result && result.success && result.data) _applyConvertedSectionData(result.data);
+            } catch(_) {}
         }
         function updatePhotoCaption(idx, value) {
             photosData[idx].caption = value;
