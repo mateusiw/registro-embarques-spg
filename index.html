@@ -2086,6 +2086,42 @@
             _setAutoSaveToast(_ICON_CHECK, 'Atualizado por outro usuário');
         }
 
+        // Assina, de uma vez, as 4 tabelas do embarque que o master está vendo/editando
+        // (embarques/secao_parceiros/secao_descartes/secao_midias). O master usa o
+        // formulário completo (loadHistoryReport), não _loadSectionData por perfil, por
+        // isso precisa de um assinante próprio que ouça as 4 tabelas ao mesmo tempo.
+        let _masterRealtimeChannel = null;
+
+        function _unsubscribeMasterRealtime() {
+            if (_masterRealtimeChannel) {
+                sb.removeChannel(_masterRealtimeChannel);
+                _masterRealtimeChannel = null;
+            }
+        }
+
+        function _subscribeMasterRealtime(codigo) {
+            _unsubscribeMasterRealtime();
+            if (!codigo || !sb) return;
+            const onChange = () => _onMasterRealtimeChange(codigo);
+            _masterRealtimeChannel = sb
+                .channel('master-' + codigo)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'embarques', filter: `codigo=eq.${codigo}` }, onChange)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_parceiros', filter: `codigo=eq.${codigo}` }, onChange)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_descartes', filter: `codigo=eq.${codigo}` }, onChange)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_midias', filter: `codigo=eq.${codigo}` }, onChange)
+                .subscribe();
+        }
+
+        // Reaproveita _syncFromServer (já existente para o F5): busca a lista atual e
+        // repopula o formulário via loadHistoryReport — mas só se o master não tiver
+        // edição local não salva (_autoSaveDirty === false), senão só o próximo F5/Atualizar
+        // pega a mudança, pra nunca apagar o que ele está digitando neste exato momento.
+        function _onMasterRealtimeChange(codigo) {
+            const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            if (codigoAtual !== codigo || _isSaving) return;
+            _syncFromServer(false);
+        }
+
         // Assina mudanças no próprio perfil (tabela profiles) enquanto a sessão
         // está aberta. Se um master desativar/apagar/trocar o perfil deste usuário
         // em outro dispositivo, ele é desconectado na hora em vez de continuar
@@ -3349,6 +3385,7 @@
                 if (dateOnly) document.getElementById('reportDate').value = dateOnly;
 
                 document.getElementById('embarqueCodigo').value = row.Codigo || '';
+                if (currentUser && currentUser.perfil === 'master') _subscribeMasterRealtime(row.Codigo || '');
 
                 const nfesRaw = String(row.NFes || '');
                 const nfRow = row._nf || null;
@@ -4342,6 +4379,7 @@
 
             const codigoEl = document.getElementById('embarqueCodigo');
             if (codigoEl) { codigoEl.value = codigo; }
+            if (currentUser && currentUser.perfil === 'master') _subscribeMasterRealtime(codigo);
             saveToLocalStorage();
             updatePreview();
             _closeWelcomeModal();
@@ -4472,6 +4510,7 @@
 
         function executeClearForm() {
             document.getElementById('clearFormModal').classList.add('hidden');
+            _unsubscribeMasterRealtime();
             _autoSaveTimestamp = null;
             try { localStorage.removeItem('spg_autosave_ts'); } catch(_) {}
 
@@ -5348,6 +5387,7 @@
 
         async function doLogout() {
             _unsubscribeSectionRealtime();
+            _unsubscribeMasterRealtime();
             _unsubscribeSelfProfileRealtime();
             _unsubscribeUsersModalRealtime();
             _unsubscribeBackupRealtime();
