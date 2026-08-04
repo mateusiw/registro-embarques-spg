@@ -2074,8 +2074,10 @@
                 _setAutoSaveToast(_ICON_WARN, 'Outro usuário atualizou este embarque — salve para sincronizar');
                 return;
             }
+            _suppressSectionAutoSave = true;
             await _loadSectionData(codigo);
             updatePreview();
+            _suppressSectionAutoSave = false;
             _setAutoSaveToast(_ICON_CHECK, 'Atualizado por outro usuário');
         }
 
@@ -2592,12 +2594,13 @@
         }
 
         // ===== SAVE DE SEÇÃO (parceiros / descartes / nf) =====
-        async function _doSaveSectionToCloud(sectionTypeOverride = null) {
+        async function _doSaveSectionToCloud(sectionTypeOverride = null, opts = {}) {
+            const silent = !!opts.silent;
             if (!currentUser) return;
             const perfil  = currentUser.perfil;
             const codigo  = (document.getElementById('embarqueCodigo')?.value || '').trim();
             if (!codigo) {
-                showMessageModal('Código ausente', 'Informe o código do embarque antes de salvar.', 'error');
+                if (!silent) showMessageModal('Código ausente', 'Informe o código do embarque antes de salvar.', 'error');
                 return;
             }
 
@@ -2606,8 +2609,12 @@
             if (!sectionType) return;
             const sectionLabel = sectionType === 'nf' ? 'Nota Fiscal' : (sectionType === 'midias' ? 'Mídias' : _perfilLabel(perfil));
 
-            showSaveLoadingModal();
-            setSaveProgress(10, 'Salvando seção', 'Enviando dados...');
+            if (silent) {
+                _setAutoSaveToast(_ICON_SPIN, 'Salvando automaticamente...', false);
+            } else {
+                showSaveLoadingModal();
+                setSaveProgress(10, 'Salvando seção', 'Enviando dados...');
+            }
 
             let payload = { action: 'saveSection', sectionType, codigo };
 
@@ -2658,40 +2665,50 @@
             }
 
             try {
-                setSaveProgress(50, 'Salvando seção', 'Aguardando servidor...');
+                if (!silent) setSaveProgress(50, 'Salvando seção', 'Aguardando servidor...');
                 const result = await callBackend(payload);
-                setSaveProgress(100, 'Concluído', '');
+                if (!silent) setSaveProgress(100, 'Concluído', '');
 
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
 
                 // Pallets/descartes: adota o array já mesclado pelo servidor (por "id"),
                 // que inclui itens que outra pessoa salvou nesse meio tempo em ids
-                // diferentes dos que esta sessão alterou.
+                // diferentes dos que esta sessão alterou. Só re-renderiza quando o
+                // merge realmente trouxe algo diferente do que já está em tela —
+                // senão o auto-save silencioso rouba o foco de quem estiver digitando.
                 if (sectionType === 'parceiros' && result.mergedData) {
-                    palletsData = _ensureItemIds(result.mergedData);
-                    renderPallets();
-                    updatePreview();
+                    const merged = _ensureItemIds(result.mergedData);
+                    const changed = JSON.stringify(merged) !== JSON.stringify(palletsData);
+                    palletsData = merged;
+                    if (changed) { renderPallets(); updatePreview(); }
                 }
                 if (sectionType === 'descartes' && result.mergedData) {
-                    discardsData = _ensureItemIds(result.mergedData);
-                    renderDiscards();
-                    updatePreview();
+                    const merged = _ensureItemIds(result.mergedData);
+                    const changed = JSON.stringify(merged) !== JSON.stringify(discardsData);
+                    discardsData = merged;
+                    if (changed) { renderDiscards(); updatePreview(); }
                 }
 
                 // Mídias: adota o array mesclado (inclui fotos do outro usuário),
-                // preservando itens adicionados localmente durante o envio.
+                // preservando itens adicionados localmente durante o envio. Mesma
+                // lógica acima: só re-renderiza fotos/vídeos se algo mudou de fato.
                 if (sectionType === 'midias' && payload.photosData) {
                     const sentP = new Set(payload.photosData.map(p => p.dataUrl).filter(Boolean));
                     const sentV = new Set(payload.videosData.map(v => v.dataUrl).filter(Boolean));
-                    photosData = [...payload.photosData, ...photosData.filter(p => p.dataUrl && !sentP.has(p.dataUrl))];
-                    videosData = [...payload.videosData, ...videosData.filter(v => v.uploading || (v.dataUrl && !sentV.has(v.dataUrl)))];
+                    const mergedPhotos = [...payload.photosData, ...photosData.filter(p => p.dataUrl && !sentP.has(p.dataUrl))];
+                    const mergedVideos = [...payload.videosData, ...videosData.filter(v => v.uploading || (v.dataUrl && !sentV.has(v.dataUrl)))];
+                    const photosChanged = JSON.stringify(mergedPhotos) !== JSON.stringify(photosData);
+                    const videosChanged = JSON.stringify(mergedVideos) !== JSON.stringify(videosData);
+                    photosData = mergedPhotos;
+                    videosData = mergedVideos;
+                    if (photosChanged) renderPhotos();
+                    if (videosChanged) renderVideos();
                 }
                 if (result.updatedAt) _trackSectionUpdatedAt(sectionType, result.updatedAt);
 
                 // Troca o base64 local pelos links do Drive devolvidos e marca como
-                // sincronizado — senão o auto-save de 30s reenviava tudo de novo.
+                // sincronizado — senão o auto-save reenviava tudo de novo.
                 if (result.data) _applyConvertedSectionData(result.data);
-                if (sectionType === 'midias') { renderPhotos(); renderVideos(); }
                 if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
                 if (sectionType === 'descartes') _snapshotSyncedDiscards();
                 _autoSaveDirty = false;
@@ -2699,14 +2716,22 @@
                 // (ver checkDescartesPendingNotifications) sem precisar de F5.
                 if (sectionType === 'descartes') checkDescartesPendingNotifications();
 
-                setTimeout(() => {
-                    hideSaveLoadingModal();
-                    showMessageModal('Dados salvos!', `Os dados de <strong>${sectionLabel}</strong> do embarque Nº ${codigo} foram salvos com sucesso.`, 'success');
-                }, 400);
+                if (silent) {
+                    _setAutoSaveToast(_ICON_CHECK, 'Salvo automaticamente!');
+                } else {
+                    setTimeout(() => {
+                        hideSaveLoadingModal();
+                        showMessageModal('Dados salvos!', `Os dados de <strong>${sectionLabel}</strong> do embarque Nº ${codigo} foram salvos com sucesso.`, 'success');
+                    }, 400);
+                }
                 return true;
             } catch (err) {
-                hideSaveLoadingModal();
-                showMessageModal('Erro ao salvar', err.message, 'error');
+                if (silent) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao salvar automaticamente: ' + err.message);
+                } else {
+                    hideSaveLoadingModal();
+                    showMessageModal('Erro ao salvar', err.message, 'error');
+                }
                 return false;
             }
         }
@@ -3358,6 +3383,10 @@
 
         function loadHistoryReport(ts, { silent = false } = {}) {
             if (!silent) _welcomeAwaitingLoad = false;
+            // Carregar um registro do histórico não é edição do usuário — evita
+            // agendar um auto-save de seção logo depois (relevante pro perfil
+            // embarque, que também usa esta função pra abrir um pendente).
+            _suppressSectionAutoSave = true;
             try {
                 const row = _findRowByTs(ts);
                 if (!row) { if (!silent) showMessageModal('Erro', 'Registro não encontrado. Tente reabrir o histórico.', 'error'); return; }
@@ -3931,8 +3960,10 @@
             }
 
             // Carrega dados da seção já existentes (se houver)
+            _suppressSectionAutoSave = true;
             await _loadSectionData(codigo);
             updatePreview();
+            _suppressSectionAutoSave = false;
             return { ok: true };
         }
 
@@ -4821,6 +4852,7 @@
                 const _perfilAtual = currentUser && currentUser.perfil;
                 if (_perfilAtual === 'master' || !_perfilAtual) {
                     _syncFromServer(true);
+                    _suppressSectionAutoSave = false;
                 } else if (_codigoAtivo) {
                     // Perfis de seção/embarque: recarrega a própria seção do servidor
                     // (inclui pallets do perfil parceiros, no caso das mídias).
@@ -4828,17 +4860,52 @@
                     _loadSectionData(_codigoAtivo).then(() => {
                         updatePreview();
                         _autoSaveDirty = false;
+                        _suppressSectionAutoSave = false;
                         _setAutoSaveToast(_ICON_CHECK, 'Dados atualizados!');
                     }).catch(() => {
+                        _suppressSectionAutoSave = false;
                         _setAutoSaveToast(_ICON_WARN, 'Sem conexão — dados locais');
                     });
+                } else {
+                    _suppressSectionAutoSave = false;
                 }
+            } else {
+                _suppressSectionAutoSave = false;
             }
         }
 
         // ===== AUTO-SAVE =====
         let _autoSaveTimestamp = null; // timestamp do registro já salvo no servidor
         let _autoSaveDirty = true; // true = há mudanças não salvas; false = sincronizado
+
+        // Auto-save por seção (perfis parceiros/descartes/nf/embarque): 4s depois
+        // da última edição em qualquer campo, envia sozinho pro servidor sem
+        // precisar clicar em "Salvar" — assim outra pessoa editando o mesmo
+        // embarque enxerga a alteração quase na hora (via realtime). Roda em
+        // segundo plano, sem o modal de progresso nem o popup de sucesso —
+        // só um toast pequeno (ver _setAutoSaveToast).
+        let _sectionAutoSaveTimer = null;
+        let _sectionAutoSaving = false;
+        // true enquanto os dados na tela vieram de uma carga do servidor (não de
+        // digitação do usuário) — evita agendar um auto-save logo após abrir o app
+        // ou trocar de embarque, quando não há nada de novo pra salvar.
+        let _suppressSectionAutoSave = true;
+        function _scheduleSectionAutoSave() {
+            if (_suppressSectionAutoSave) return;
+            if (!currentUser || !['parceiros','descartes','nf','embarque'].includes(currentUser.perfil)) return;
+            const codigo = document.getElementById('embarqueCodigo')?.value?.trim();
+            if (!codigo) return;
+            if (_isVideoUploading()) return; // não interrompe upload de vídeo em andamento
+            clearTimeout(_sectionAutoSaveTimer);
+            _sectionAutoSaveTimer = setTimeout(_runSectionAutoSave, 4000);
+        }
+        async function _runSectionAutoSave() {
+            // Já tem um save (automático ou manual) em andamento: tenta de novo em 4s.
+            if (_sectionAutoSaving || _isSaving) { _scheduleSectionAutoSave(); return; }
+            _sectionAutoSaving = true;
+            try { await _doSaveSectionToCloud(null, { silent: true }); }
+            finally { _sectionAutoSaving = false; }
+        }
 
         // Último snapshot de palletsData/discardsData confirmado no servidor.
         // Usado por _diffItemsById para mandar ao salvar só os itens (por "id")
@@ -7567,6 +7634,7 @@
         // ---------- Preview ----------
         function updatePreview() {
             _autoSaveDirty = true;
+            _scheduleSectionAutoSave();
             const dateVal = document.getElementById('reportDate').value;
             const codigo = document.getElementById('embarqueCodigo').value || '---';
             const product = (getProductName() || '---').toUpperCase();
