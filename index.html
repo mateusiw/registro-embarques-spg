@@ -774,13 +774,6 @@
         </div>
     </div>
 
-    <!-- MODAL RETOMAR EDIÇÃO (perfil embarque — retorno ao app) -->
-    <div id="resumeEditingModal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4" style="background:rgba(15,23,42,0.90);backdrop-filter:blur(8px);">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
-            <div id="resumeEditingContent"></div>
-        </div>
-    </div>
-
     <!-- MODAL LIMPAR FORMULÁRIO -->
     <div id="clearFormModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center border border-slate-200">
@@ -1579,26 +1572,26 @@
             }
 
             if (sectionType === 'parceiros') {
-                await _resolvePalletsDelta('parceiros', codigo, payload);
+                // Merge por item (por "id") feito dentro da própria função no banco,
+                // sob lock de linha — nunca sobrescreve pallets que outro usuário
+                // salvou nesse meio tempo, então não há mais conflito a checar aqui.
                 const { data: rpcData, error } = await sb.rpc('save_secao_parceiros', {
                     p_codigo: codigo,
-                    p_parceiros_data: payload.palletsData || [],
-                    p_expected_updated_at: payload.expectedUpdatedAt ?? null,
+                    p_upsert_items: payload.upsertItems || [],
+                    p_delete_ids: payload.deleteIds || [],
                 });
                 if (error) throw error;
-                if (rpcData && rpcData.conflict) return { success: false, conflict: true, error: 'Esta seção foi atualizada por outro usuário.' };
-                return { success: true, updatedAt: rpcData.updated_at };
+                return { success: true, updatedAt: rpcData.updated_at, mergedData: rpcData.parceiros_data };
             }
 
             if (sectionType === 'descartes') {
                 const { data: rpcData, error } = await sb.rpc('save_secao_descartes', {
                     p_codigo: codigo,
-                    p_discarts_data: payload.discardsData || [],
-                    p_expected_updated_at: payload.expectedUpdatedAt ?? null,
+                    p_upsert_items: payload.upsertItems || [],
+                    p_delete_ids: payload.deleteIds || [],
                 });
                 if (error) throw error;
-                if (rpcData && rpcData.conflict) return { success: false, conflict: true, error: 'Esta seção foi atualizada por outro usuário.' };
-                return { success: true, updatedAt: rpcData.updated_at };
+                return { success: true, updatedAt: rpcData.updated_at, mergedData: rpcData.discarts_data };
             }
 
             if (sectionType === 'midias') {
@@ -2637,13 +2630,18 @@
                 payload.sectionType = 'nf';
                 payload.codigo = codigo;
             } else if (sectionType === 'parceiros') {
-                payload.palletsData = palletsData;
+                // Manda só o que mudou nesta sessão (por "id"): o servidor mescla
+                // com o que já está salvo, então uma edição em outro pallet feita
+                // por outra pessoa nesse meio tempo nunca é apagada.
+                const diff = _diffItemsById(palletsData, _lastSyncedPalletsData);
+                payload.upsertItems = diff.upsert;
+                payload.deleteIds   = diff.deleteIds;
                 payload.reportDate  = document.getElementById('reportDate')?.value || '';
-                payload.expectedUpdatedAt = _loadedSectionUpdatedAt.parceiros ?? null;
             } else if (sectionType === 'descartes') {
-                payload.discardsData = discardsData;
-                payload.reportDate   = document.getElementById('reportDate')?.value || '';
-                payload.expectedUpdatedAt = _loadedSectionUpdatedAt.descartes ?? null;
+                const diff = _diffItemsById(discardsData, _lastSyncedDiscardsData);
+                payload.upsertItems = diff.upsert;
+                payload.deleteIds   = diff.deleteIds;
+                payload.reportDate  = document.getElementById('reportDate')?.value || '';
             } else if (sectionType === 'midias') {
                 // Une com o que já está no servidor: outro usuário do perfil embarque
                 // pode ter salvo fotos/vídeos no mesmo código enquanto este editava.
@@ -2664,19 +2662,21 @@
                 const result = await callBackend(payload);
                 setSaveProgress(100, 'Concluído', '');
 
-                // Conflito: outro usuário do mesmo perfil salvou esta seção antes.
-                // Recarrega os dados atuais em vez de sobrescrever o trabalho dele.
-                if (result.conflict) {
-                    hideSaveLoadingModal();
-                    await _loadSectionData(codigo);
-                    updatePreview();
-                    _autoSaveDirty = false;
-                    showMessageModal('Atualizado por outro usuário',
-                        'Outro usuário salvou esta seção enquanto você editava. Os dados mais recentes foram recarregados — revise e salve novamente.', 'error');
-                    return false;
-                }
-
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+
+                // Pallets/descartes: adota o array já mesclado pelo servidor (por "id"),
+                // que inclui itens que outra pessoa salvou nesse meio tempo em ids
+                // diferentes dos que esta sessão alterou.
+                if (sectionType === 'parceiros' && result.mergedData) {
+                    palletsData = _ensureItemIds(result.mergedData);
+                    renderPallets();
+                    updatePreview();
+                }
+                if (sectionType === 'descartes' && result.mergedData) {
+                    discardsData = _ensureItemIds(result.mergedData);
+                    renderDiscards();
+                    updatePreview();
+                }
 
                 // Mídias: adota o array mesclado (inclui fotos do outro usuário),
                 // preservando itens adicionados localmente durante o envio.
@@ -2693,6 +2693,7 @@
                 if (result.data) _applyConvertedSectionData(result.data);
                 if (sectionType === 'midias') { renderPhotos(); renderVideos(); }
                 if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
+                if (sectionType === 'descartes') _snapshotSyncedDiscards();
                 _autoSaveDirty = false;
                 // O código atual acabou de ser salvo: some da lista de "Descartes Pendentes"
                 // (ver checkDescartesPendingNotifications) sem precisar de F5.
@@ -2804,13 +2805,12 @@
                     // requisições pendentes e o recarregar reexibe dados antigos (ex: pallet
                     // sem a temperatura que acabou de ser digitada).
                     //
-                    // Mídias usa merge (ver bloco abaixo) por lidar com conteúdo aditivo (fotos/
-                    // vídeos). Parceiros/Descartes ainda usam guarda de conflito: antes de
-                    // sobrescrever, conferem se o UpdatedAt da aba no servidor ainda é o mesmo de
-                    // quando este registro foi carregado (_loadedSectionUpdatedAt). Se outro
-                    // perfil salvou uma versão mais nova enquanto o master editava, o UpdatedAt
-                    // mudou — nesse caso NÃO sobrescreve com a cópia do master, que estaria
-                    // desatualizada e apagaria o que aquele perfil acabou de enviar.
+                    // Mídias usa merge por dataUrl (ver bloco abaixo) por lidar com conteúdo
+                    // aditivo (fotos/vídeos). Parceiros/Descartes usam merge por "id" no
+                    // servidor (mesmo mecanismo do save normal dessas seções): o master manda
+                    // só os pallets/descartes que mudou desde o último load/save confirmado
+                    // (_lastSyncedPalletsData/_lastSyncedDiscardsData), então uma edição feita
+                    // por outro perfil em um item diferente nesse meio tempo nunca é apagada.
                     await (async function() {
                         try {
                             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
@@ -2864,39 +2864,30 @@
                                 _setAutoSaveToast(_ICON_WARN, 'Fotos podem não ter sincronizado com outros perfis');
                             }
 
-                            const pushIfUnchanged = async (sectionType, extraPayload) => {
-                                const loadedUpdatedAt = _loadedSectionUpdatedAt[sectionType];
-                                // Sempre confere o servidor antes de sobrescrever — mesmo quando
-                                // loadedUpdatedAt é null (master nunca carregou esta seção: embarque
-                                // novo, ou a seção foi criada por outro perfil depois do último sync
-                                // do master). Pular essa checagem só porque loadedUpdatedAt é null
-                                // fazia o master sobrescrever silenciosamente pallets/descartes que o
-                                // perfil Parceiros/Descartes já tinha salvo, com o palletsData/
-                                // discardsData local do master (vazio ou desatualizado) — bug relatado
-                                // como "os pallets do perfil Parceiros somem sozinhos". Só prossegue se
-                                // o UpdatedAt do servidor bater exatamente com o que foi carregado
-                                // (ambos null = seção realmente nunca existiu, seguro criar agora).
+                            const pushDelta = async (sectionType, currentArr, syncedArr, extraPayload) => {
+                                const diff = _diffItemsById(currentArr, syncedArr);
                                 try {
-                                    const checkResult = await callBackend({ action: 'getSection', sectionType, codigo: codigoAtual });
-                                    const serverUpdatedAt = (checkResult.success && checkResult.data) ? (checkResult.data.UpdatedAt || null) : null;
-                                    if (serverUpdatedAt !== loadedUpdatedAt) return; // mudou desde o carregamento — não sobrescreve
-                                } catch(_) { return; } // sem confirmação de que é seguro, não arrisca sobrescrever
-                                // Atualiza o carimbo local com o UpdatedAt devolvido por este push — senão,
-                                // o próximo "Salvar" desta mesma sessão comparava com o UpdatedAt antigo
-                                // (anterior a este push), via detectava divergência e desistia em silêncio,
-                                // travando a sincronização com Parceiros a partir do 2º save em diante.
-                                try {
-                                    const pushResult = await callBackend(Object.assign({ action: 'saveSection', sectionType, codigo: codigoAtual }, extraPayload));
+                                    const pushResult = await callBackend(Object.assign(
+                                        { action: 'saveSection', sectionType, codigo: codigoAtual, upsertItems: diff.upsert, deleteIds: diff.deleteIds },
+                                        extraPayload
+                                    ));
                                     if (pushResult && pushResult.success && pushResult.updatedAt) {
                                         _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
+                                    }
+                                    if (pushResult && pushResult.success && pushResult.mergedData) {
+                                        if (sectionType === 'parceiros') { palletsData = _ensureItemIds(pushResult.mergedData); renderPallets(); }
+                                        if (sectionType === 'descartes') { discardsData = _ensureItemIds(pushResult.mergedData); renderDiscards(); }
                                     }
                                 } catch(_) {}
                             };
 
                             await Promise.all([
-                                pushIfUnchanged('parceiros', { palletsData }),
-                                pushIfUnchanged('descartes', { discardsData, reportDate: document.getElementById('reportDate')?.value || '' })
+                                pushDelta('parceiros', palletsData, _lastSyncedPalletsData, {}),
+                                pushDelta('descartes', discardsData, _lastSyncedDiscardsData, { reportDate: document.getElementById('reportDate')?.value || '' })
                             ]);
+                            _snapshotSyncedPallets();
+                            _snapshotSyncedDiscards();
+                            updatePreview();
                         } catch(_) {}
                     })();
                     // O formulário permanece preenchido após salvar — os arquivos e demais
@@ -2953,17 +2944,6 @@
             if (tabRevisados) tabRevisados.style.display = '';
             const titleEl = document.getElementById('historyModalTitle');
             if (titleEl) titleEl.textContent = 'Histórico de Embarques';
-
-            // O histórico foi aberto a partir do popup "Bem-vindo de volta" (perfil
-            // embarque clicou "Carregar Outro Embarque")? Fechar sem escolher um
-            // registro deve voltar para aquele popup — não direto para o formulário —
-            // para que uma troca de embarque só aconteça passando pela validação por
-            // código exigida ali (evita trocar/perder a edição em andamento com 1 clique).
-            if (_resumeAwaitingLoad) {
-                _resumeAwaitingLoad = false;
-                showResumeEditingModal();
-                return;
-            }
 
             // Perfil embarque fechou o seletor sem carregar nenhum relatório, OU não
             // há nenhuma sessão ativa (nunca criou/carregou um embarque) → reapresenta
@@ -3563,6 +3543,11 @@
                 palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => { g.collapsed = true; }));
                 if (palletsData.length) _collapsedPallets = palletsData.map(() => false);
 
+                _ensureItemIds(palletsData);
+                _ensureItemIds(discardsData);
+                _snapshotSyncedPallets();
+                _snapshotSyncedDiscards();
+
                 renderNfeInputs();
                 renderPartners();
                 renderDiscards();
@@ -3781,7 +3766,6 @@
 
         // ===== TELA DE BOAS-VINDAS =====
         let _welcomeAwaitingLoad = false; // true enquanto embarque ainda não carregou um relatório
-        let _resumeAwaitingLoad = false; // true enquanto o histórico foi aberto a partir do popup "Bem-vindo de volta"
 
         function showWelcomeModal() {
             if (!currentUser) return;
@@ -4169,7 +4153,7 @@
             try {
                 const result = await callBackend({ action: 'getSection', sectionType: 'parceiros', codigo });
                 if (result.success && result.data) {
-                    try { return JSON.parse(result.data.ParceirosData || '[]'); } catch(_) { return []; }
+                    try { return _ensureItemIds(JSON.parse(result.data.ParceirosData || '[]')); } catch(_) { return []; }
                 }
             } catch(_) {}
             return [];
@@ -4192,7 +4176,7 @@
                     // grudadas em outro após "Trocar Embarque").
                     if (sectionType !== 'nf') _loadedSectionUpdatedAt[sectionType] = null;
                     if (sectionType === 'parceiros') { palletsData = []; renderPallets(); _snapshotSyncedPallets(); }
-                    else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); }
+                    else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); _snapshotSyncedDiscards(); }
                     else if (sectionType === 'midias') {
                         photosData = []; videosData = []; customTempsData = [];
                         additionalInfoData = [];
@@ -4228,18 +4212,19 @@
                     const lc = document.getElementById('lacreNumber'); if (lc) lc.value = d.Lacre || '';
                     renderNfeInputs();
                 } else if (sectionType === 'parceiros') {
-                    palletsData = tryParse(d.ParceirosData);
+                    palletsData = _ensureItemIds(tryParse(d.ParceirosData));
                     renderPallets();
                     _snapshotSyncedPallets();
                 } else if (sectionType === 'descartes') {
-                    discardsData = tryParse(d.DiscartsData);
+                    discardsData = _ensureItemIds(tryParse(d.DiscartsData));
                     renderDiscards();
+                    _snapshotSyncedDiscards();
                     // Carrega também Parceiros/Pallets (somente leitura) — o perfil descartes
                     // não edita essa seção, mas precisa dela para o botão "PDF Parceiros"
                     // (senão o PDF gerado sairia sempre vazio, sem nenhum parceiro listado).
                     try {
                         const resultP = await callBackend({ action: 'getSection', sectionType: 'parceiros', codigo });
-                        if (resultP.success && resultP.data) palletsData = tryParse(resultP.data.ParceirosData);
+                        if (resultP.success && resultP.data) palletsData = _ensureItemIds(tryParse(resultP.data.ParceirosData));
                     } catch(_) {}
                 } else if (sectionType === 'midias') {
                     // Carrega primeiro a estrutura dos pallets (labels/parceiros) da aba
@@ -4276,6 +4261,7 @@
                             palletsData = savedPallets;
                         }
                     }
+                    _ensureItemIds(palletsData);
                     renderPhotos();
                     renderVideos();
                     renderCustomTemps();
@@ -4404,105 +4390,6 @@
             openEmbarqueCarregar();
         }
 
-        // Código de confirmação do "Continuar Editando": evita que a pessoa
-        // prossiga sem querer (toque acidental) — precisa digitar de volta as
-        // letras mostradas na tela antes do botão liberar.
-        let _resumeChallengeCode = '';
-        function _genResumeChallengeCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // sem I/O, evita confusão com 1/0
-            let code = '';
-            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-            return code;
-        }
-        function _checkResumeChallenge() {
-            const input = document.getElementById('resumeChallengeInput');
-            const btn = document.getElementById('resumeContinueBtn');
-            if (!input || !btn) return;
-            const ok = input.value.trim().toUpperCase() === _resumeChallengeCode;
-            btn.disabled = !ok;
-            btn.classList.toggle('opacity-40', !ok);
-            btn.classList.toggle('cursor-not-allowed', !ok);
-        }
-
-        function showResumeEditingModal() {
-            if (!currentUser || !['embarque', 'parceiros', 'descartes', 'master'].includes(currentUser.perfil)) return;
-            const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '—';
-            const content = document.getElementById('resumeEditingContent');
-            if (!content) return;
-            _resumeChallengeCode = _genResumeChallengeCode();
-            content.innerHTML = `
-                <div class="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="clipboard-list" class="w-7 h-7 text-sky-600"></i>
-                </div>
-                <h2 class="text-xl font-black text-slate-800 mb-2">Bem-vindo de volta!</h2>
-                <p class="text-sm text-slate-500 mb-2">Você estava editando o embarque:</p>
-                <div class="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 mb-4">
-                    <span class="text-2xl font-black text-sky-700">Nº ${codigo}</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-4">Deseja continuar de onde parou ou carregar um novo embarque?</p>
-                <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Para confirmar, digite as letras abaixo</p>
-                    <div class="text-2xl font-black text-slate-800 tracking-[0.5em] text-center select-none mb-2" style="font-family:monospace;">${_resumeChallengeCode}</div>
-                    <input type="text" id="resumeChallengeInput" oninput="_checkResumeChallenge()" onkeydown="if(event.key==='Enter') _resumeEditingContinue()" placeholder="Digite aqui" maxlength="4" autocomplete="off" autocapitalize="characters"
-                        class="w-full p-2.5 border border-slate-200 rounded-lg text-sm text-center font-bold uppercase tracking-[0.3em] focus:ring-2 focus:ring-sky-400 outline-none bg-white">
-                </div>
-                <div class="flex flex-col gap-3">
-                    <button id="resumeContinueBtn" onclick="_resumeEditingContinue()" disabled class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-700 hover:from-emerald-600 hover:to-emerald-800 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95 opacity-40 cursor-not-allowed">
-                        <i data-lucide="play-circle" class="w-4 h-4"></i> Continuar Editando
-                    </button>
-                    <button onclick="_resumeEditingLoadNew()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
-                        <i data-lucide="folder-open" class="w-4 h-4"></i> Carregar Outro Embarque
-                    </button>
-                </div>`;
-            document.getElementById('resumeEditingModal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            lucide.createIcons();
-            setTimeout(() => document.getElementById('resumeChallengeInput')?.focus(), 100);
-        }
-
-        function _closeResumeEditingModal() {
-            document.getElementById('resumeEditingModal').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        function _resumeEditingContinue() {
-            // Trava de segurança: só prossegue se o código de confirmação bater
-            // (o botão já fica desabilitado até aqui, isto é reforço).
-            const input = document.getElementById('resumeChallengeInput');
-            if (!input || input.value.trim().toUpperCase() !== _resumeChallengeCode) return;
-            _closeResumeEditingModal();
-        }
-
-        function _resumeEditingLoadNew() {
-            _closeResumeEditingModal();
-
-            // Perfis de seção (parceiros/descartes) não usam a lista de histórico do
-            // embarque — eles trocam de embarque informando o código diretamente,
-            // igual ao fluxo do botão "Trocar Embarque" (trocarEmbarqueSection()).
-            const perfil = currentUser && currentUser.perfil;
-            if (perfil === 'parceiros' || perfil === 'descartes') {
-                welcomeSectionLoad();
-                return;
-            }
-
-            // Não limpa o formulário aqui: o embarque que estava sendo editado já é
-            // uma sessão válida (_hasActiveSession() continua true). Marca
-            // _resumeAwaitingLoad para que, se o usuário fechar a lista de "Carregar
-            // Embarque" (X) sem escolher outro registro, closeHistoryModal() volte
-            // para ESTE popup de retomada — em vez de ir direto para o formulário —
-            // preservando a etapa de validação por código antes de trocar de embarque.
-            // A troca de fato só ocorre quando confirma a senha de um registro na
-            // lista (loadHistoryReport() substitui os dados).
-            _resumeAwaitingLoad = true;
-            // Master usa o histórico completo (abas Todos/Revisados, Editar/Apagar) —
-            // a lista restrita a Pendentes é só para o perfil embarque.
-            if (perfil === 'master') {
-                openHistory();
-            } else {
-                openEmbarqueCarregar();
-            }
-        }
-
         function clearForm() {
             if (_isSaving) {
                 showMessageModal('Envio em andamento', 'Aguarde o envio terminar antes de limpar o formulário.', 'error');
@@ -4558,6 +4445,7 @@
             _collapsedDiscards = [];
             _loadedSectionUpdatedAt = { parceiros: null, descartes: null, midias: null };
             _lastSyncedPalletsData = null;
+            _lastSyncedDiscardsData = null;
 
             // Renderiza containers dinâmicos (agora vazios)
             renderNfeInputs();
@@ -4621,7 +4509,6 @@
         function _loadHistoryReportConfirmed(ts) {
             const row = _findRowByTs(ts);
             _welcomeAwaitingLoad = false; // relatório confirmado; não reabrir welcome
-            _resumeAwaitingLoad = false;  // idem para o popup de retomada de edição
             // Carrega o relatório (preenche o código) ANTES de fechar o histórico —
             // closeHistoryModal() reabre o popup de boas-vindas se não detectar uma
             // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
@@ -4802,6 +4689,8 @@
                 const fields = ['driverName','vehiclePlate','departureTime','sensorNumber','lacreNumber'];
                 fields.forEach(f => { if (data[f] !== undefined) document.getElementById(f).value = data[f]; });
                 if (data.palletsData && data.palletsData.length) palletsData = data.palletsData;
+                _ensureItemIds(palletsData);
+                _ensureItemIds(discardsData);
                 // Converte parceiros legados (pl.partners) para grupos editáveis (Parceiro + Lote)
                 _migratePalletPartnersToGroups();
                 // Parceiros vêm recolhidos por padrão para a lista não ficar longa
@@ -4884,7 +4773,6 @@
             // Se o modo edição foi restaurado (sem auto-save), também marca como sincronizado
             // para não sobrescrever o registro do servidor com dados locais antigos após F5
             if (editModeTimestamp && !_autoSaveTimestamp) _autoSaveDirty = false;
-            startAutoSave();
             startUpdateChecker();
 
             // Detecta se a página foi recarregada pelo iOS ao retornar de câmera/galeria.
@@ -4918,9 +4806,6 @@
             const _hasActiveSession = (_codigoEl && _codigoEl.value.trim()) || !!editModeTimestamp || !!_autoSaveTimestamp;
             if (!_hasActiveSession) {
                 showWelcomeModal();
-            } else if (currentUser && ['embarque', 'parceiros', 'descartes', 'master'].includes(currentUser.perfil) && !_fromFilePicker) {
-                // Perfil retornou ao app com sessão ativa: pergunta se quer continuar ou carregar outro
-                showResumeEditingModal();
             }
 
             // Após F5: busca os dados atuais do servidor e repopula o formulário —
@@ -4951,29 +4836,49 @@
         }
 
         // ===== AUTO-SAVE =====
-        let _autoSaveTimer    = null;
         let _autoSaveTimestamp = null; // timestamp do registro já salvo no servidor
         let _autoSaveDirty = true; // true = há mudanças não salvas; false = sincronizado
 
-        // Último snapshot de palletsData confirmado no servidor (seções parceiros/midias).
-        // Usado pelo auto-save de 30s para calcular um delta em vez de reenviar o array
-        // inteiro — com fotos de todos os pallets — sempre que qualquer coisa mudar.
+        // Último snapshot de palletsData/discardsData confirmado no servidor.
+        // Usado por _diffItemsById para mandar ao salvar só os itens (por "id")
+        // que esta sessão realmente alterou — não a coleção inteira — assim o
+        // merge no servidor (save_secao_parceiros/save_secao_descartes) nunca
+        // sobrescreve um item que outra pessoa salvou nesse meio tempo.
         let _lastSyncedPalletsData = null;
         function _snapshotSyncedPallets() {
             try { _lastSyncedPalletsData = JSON.parse(JSON.stringify(palletsData)); } catch(_) { _lastSyncedPalletsData = null; }
         }
-        // Compara palletsData atual com o último snapshot sincronizado. Se a contagem de
-        // pallets mudou (adicionado/removido) ou não há snapshot ainda, cai no envio
-        // completo — mais simples e seguro do que tentar remapear índices deslocados.
-        function _computePalletsDelta() {
-            if (!_lastSyncedPalletsData || _lastSyncedPalletsData.length !== palletsData.length) {
-                return { full: true, delta: null };
-            }
-            const delta = {};
-            palletsData.forEach((pl, i) => {
-                if (JSON.stringify(pl) !== JSON.stringify(_lastSyncedPalletsData[i])) delta[i] = pl;
+        let _lastSyncedDiscardsData = null;
+        function _snapshotSyncedDiscards() {
+            try { _lastSyncedDiscardsData = JSON.parse(JSON.stringify(discardsData)); } catch(_) { _lastSyncedDiscardsData = null; }
+        }
+
+        // Id estável por pallet/descarte, gerado no cliente na criação do item.
+        // É a chave usada pelo merge por item no servidor (ver acima).
+        function _genItemId() {
+            return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        }
+        // Preenche o "id" de itens vindos de dados antigos (salvos antes desse
+        // campo existir), pra nunca depender de índice do array.
+        function _ensureItemIds(arr) {
+            (arr || []).forEach(item => { if (!item.id) item.id = _genItemId(); });
+            return arr;
+        }
+        // Compara o array atual com o último snapshot confirmado no servidor
+        // (por "id") e devolve só o que mudou: itens novos/alterados pra
+        // upsert, e ids que saíram do array local pra apagar.
+        function _diffItemsById(current, synced) {
+            const syncedById = new Map((synced || []).map(it => [it.id, it]));
+            const currentIds = new Set();
+            const upsert = [];
+            (current || []).forEach(it => {
+                if (!it.id) it.id = _genItemId();
+                currentIds.add(it.id);
+                const prev = syncedById.get(it.id);
+                if (!prev || JSON.stringify(prev) !== JSON.stringify(it)) upsert.push(it);
             });
-            return { full: false, delta };
+            const deleteIds = (synced || []).map(it => it.id).filter(id => id && !currentIds.has(id));
+            return { upsert, deleteIds };
         }
 
         const _ICON_CHECK    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#34d399"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
@@ -4991,191 +4896,6 @@
             }
         }
 
-        async function _autoSaveToCloud() {
-            if (_isSaving) return;
-            const codigoEl = document.getElementById('embarqueCodigo');
-            if (!codigoEl || !codigoEl.value.trim()) return;
-            // Pula o ciclo se nada mudou desde o último save bem-sucedido. Antes essa trava só
-            // valia quando _autoSaveTimestamp/editModeTimestamp estavam setados — mas os perfis
-            // embarque/parceiros/descartes/nf nunca usam essas variáveis (salvam via saveSection),
-            // então a trava nunca segurava nada para eles: a cada 30s o app reenviava fotos/mídias
-            // já salvas, e como o servidor não devolve as URLs do Drive já geradas, cada reenvio
-            // fazia um upload NOVO e duplicado (pasta nova a cada ciclo), inflando o Drive sem parar.
-            if (!_autoSaveDirty) return;
-
-            _isSaving = true;
-            _setAutoSaveToast(_ICON_SPIN, 'Sincronizando...', false);
-
-            // Perfil embarque: auto-save vai para Midias, não para Embarques
-            if (currentUser && currentUser.perfil === 'embarque') {
-                try {
-                    const { full, delta } = _computePalletsDelta();
-                    // Merge aditivo com o servidor: fotos/vídeos de outro usuário do
-                    // perfil embarque no mesmo código não são sobrescritos, e sim unidos.
-                    const merged = await _fetchMergedMidias(codigoEl.value.trim());
-                    const payload = {
-                        action: 'saveSection', sectionType: 'midias',
-                        codigo: codigoEl.value.trim(),
-                        photosData: merged ? merged.photos : photosData,
-                        videosData: merged ? merged.videos : _syncableVideos(),
-                        reportDate:      document.getElementById('reportDate')?.value    || '',
-                        departureTime:   document.getElementById('departureTime')?.value || '',
-                        customTempsData,
-                        thermostatMode:  document.getElementById('thermostatMode')?.value  || '',
-                        thermostatValue: document.getElementById('thermostatValue')?.value || '',
-                        additionalInfoData
-                    };
-                    // Delta: reenvia só os pallets que mudaram desde o último sync (em vez do
-                    // array inteiro com fotos de todos os pallets a cada ciclo de 30s).
-                    if (full) payload.palletsData = palletsData;
-                    else if (Object.keys(delta).length) payload.palletsDelta = delta;
-                    const result = await callBackend(payload);
-                    if (result.success) {
-                        if (merged) {
-                            // Adota o array mesclado, preservando itens adicionados durante o envio.
-                            const sentP = new Set(payload.photosData.map(p => p.dataUrl).filter(Boolean));
-                            const sentV = new Set(payload.videosData.map(v => v.dataUrl).filter(Boolean));
-                            photosData = [...payload.photosData, ...photosData.filter(p => p.dataUrl && !sentP.has(p.dataUrl))];
-                            videosData = [...payload.videosData, ...videosData.filter(v => v.uploading || (v.dataUrl && !sentV.has(v.dataUrl)))];
-                        }
-                        if (result.updatedAt) _trackSectionUpdatedAt('midias', result.updatedAt);
-                        if (result.data) _applyConvertedSectionData(result.data);
-                        if (merged) { renderPhotos(); renderVideos(); }
-                        _snapshotSyncedPallets();
-                        _autoSaveDirty = false;
-                        _setAutoSaveToast(_ICON_CHECK, 'Mídias sincronizadas');
-                    } else {
-                        _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
-                    }
-                } catch(e) {
-                    _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
-                    saveToLocalStorage();
-                } finally {
-                    _isSaving = false;
-                }
-                return;
-            }
-
-            // Perfis de seção (parceiros, descartes, nf): auto-save via saveSection apenas — nunca
-            // envia collectFormData() para a aba Embarques, pois campos ausentes no DOM desse perfil
-            // chegariam vazios e sobescreveriam dados inseridos pelo master (ex: hora de embarque).
-            const _secAutoMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf' };
-            const _secAutoType = currentUser && _secAutoMap[currentUser.perfil];
-            if (_secAutoType) {
-                try {
-                    const codigo = codigoEl.value.trim();
-                    let payload = { action: 'saveSection', sectionType: _secAutoType, codigo };
-                    // Trava otimista: se outro usuário do mesmo perfil salvou esta seção
-                    // desde o último sync, o servidor devolve conflito em vez de sobrescrever.
-                    if (_secAutoType === 'parceiros' || _secAutoType === 'descartes') {
-                        payload.expectedUpdatedAt = _loadedSectionUpdatedAt[_secAutoType] ?? null;
-                    }
-                    if (_secAutoType === 'parceiros') {
-                        // Delta: reenvia só os pallets que mudaram desde o último sync (em vez
-                        // do array inteiro com fotos de todos os pallets a cada ciclo de 30s).
-                        const { full, delta } = _computePalletsDelta();
-                        if (full) payload.palletsData = palletsData;
-                        else if (Object.keys(delta).length) payload.palletsDelta = delta;
-                        payload.reportDate  = document.getElementById('reportDate')?.value || '';
-                    } else if (_secAutoType === 'descartes') {
-                        payload.discardsData = discardsData;
-                        payload.reportDate   = document.getElementById('reportDate')?.value || '';
-                    } else if (_secAutoType === 'nf') {
-                        const fd = collectFormData();
-                        payload.reportDate            = fd.reportDate            || document.getElementById('reportDate')?.value || '';
-                        payload.nfeList               = fd.nfeList;
-                        payload.productSelect         = fd.productSelect;
-                        payload.customProductName     = fd.customProductName;
-                        payload.varietyInput          = fd.varietyInput;
-                        payload.inspectorSelect       = fd.inspectorSelect;
-                        payload.customInspectorName   = fd.customInspectorName;
-                        payload.shipResponsible       = fd.shipResponsible;
-                        payload.customShipResponsible = fd.customShipResponsible;
-                        payload.driverName            = fd.driverName;
-                        payload.vehiclePlate          = fd.vehiclePlate;
-                        payload.departureTime         = fd.departureTime || document.getElementById('departureTime')?.value || '';
-                        payload.sensorNumber          = fd.sensorNumber;
-                        payload.lacreNumber           = fd.lacreNumber;
-                    }
-                    const result = await callBackend(payload);
-                    if (result.success) {
-                        if (result.updatedAt) _trackSectionUpdatedAt(_secAutoType, result.updatedAt);
-                        if (result.data) _applyConvertedSectionData(result.data);
-                        if (_secAutoType === 'parceiros') _snapshotSyncedPallets();
-                        if (_secAutoType === 'descartes') checkDescartesPendingNotifications();
-                        _autoSaveDirty = false;
-                        _setAutoSaveToast(_ICON_CHECK, 'Sincronizado');
-                    } else if (result.conflict) {
-                        // Outro usuário salvou esta seção antes: recarrega os dados dele
-                        // em vez de sobrescrever (perde-se no máximo ~30s de edição local).
-                        await _loadSectionData(codigo);
-                        updatePreview();
-                        _autoSaveDirty = false;
-                        _setAutoSaveToast(_ICON_WARN, 'Atualizado por outro usuário — dados recarregados');
-                    } else {
-                        _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
-                    }
-                } catch(e) {
-                    _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
-                    saveToLocalStorage();
-                } finally {
-                    _isSaving = false;
-                }
-                return;
-            }
-
-            try {
-                const data = collectFormData();
-
-                // Auto-save sempre usa pendente: só o botão Salvar define o status final
-                data.statusRegistro = 'pendente';
-
-                // Prioridade: timestamp do auto-save > editModeTimestamp (histórico carregado)
-                const targetTimestamp = _autoSaveTimestamp || editModeTimestamp;
-                if (targetTimestamp) {
-                    data.action            = 'update';
-                    data.originalTimestamp = targetTimestamp;
-                    data.codigo            = data.embarqueCodigo;
-                }
-                // else: insert normal (sem action → backend trata como novo registro)
-
-                const result = await callBackend(data);
-
-                if (result.success) {
-                    // Guarda o timestamp do insert para updates futuros (memória + localStorage)
-                    if (!_autoSaveTimestamp && result.timestamp) {
-                        _autoSaveTimestamp = result.timestamp;
-                        const codigo = document.getElementById('embarqueCodigo')?.value?.trim() || '';
-                        try { localStorage.setItem('spg_autosave_ts', JSON.stringify({ codigo, ts: _autoSaveTimestamp })); } catch(_) {}
-                    }
-
-                    // Atualiza URLs das fotos/vídeos (base64 → Drive link)
-                    // Guarda: só substitui se o servidor devolveu URLs reais do Drive
-                    const parseJ = v => { try { return JSON.parse(v); } catch(_) { return []; } };
-                    const _hasDriveJ = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
-                    const _safeJ = (newArr, curArr) => (_hasDriveJ(newArr) || curArr.length === 0) ? newArr : curArr;
-                    if (result.changedColumns) {
-                        const cc = result.changedColumns;
-                        if (cc['Fotos'])  photosData = _safeJ(parseJ(cc['Fotos']),  photosData);
-                        if (cc['Videos']) videosData = _safeJ(parseJ(cc['Videos']), videosData);
-                    } else if (result.data) {
-                        if (result.data.photosData) photosData = _safeJ(result.data.photosData, photosData);
-                        if (result.data.videosData) videosData = _safeJ(result.data.videosData, videosData);
-                    }
-                    saveToLocalStorage();
-                    _autoSaveDirty = false;
-                    _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
-                } else {
-                    _setAutoSaveToast(_ICON_WARN, 'Falha ao sincronizar');
-                }
-            } catch(e) {
-                _setAutoSaveToast(_ICON_WARN, 'Sem conexão — rascunho local salvo');
-                saveToLocalStorage();
-            } finally {
-                _isSaving = false;
-            }
-        }
-
         function _restoreAutoSaveTimestamp() {
             try {
                 const saved = localStorage.getItem('spg_autosave_ts');
@@ -5187,11 +4907,6 @@
                     _autoSaveDirty = false; // Dados restaurados do localStorage = já sincronizados; não sobrescrever servidor com dados antigos após F5
                 }
             } catch(_) {}
-        }
-
-        function startAutoSave() {
-            if (_autoSaveTimer) clearInterval(_autoSaveTimer);
-            _autoSaveTimer = setInterval(_autoSaveToCloud, 30000);
         }
 
         // Busca os dados mais recentes do servidor e repopula o formulário silenciosamente.
@@ -6406,7 +6121,7 @@
             // Set por nome, que deduplicava pallets distintos que só coincidiam no rótulo.
             return palletsData.filter(pl => (pl.label || '').trim() !== '').length;
         }
-        function addPallet() { palletsData.push({ label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
+        function addPallet() { palletsData.push({ id: _genItemId(), label: 'Pallet ' + (palletsData.length + 1), client: '', temp: '', partnerGroups: [], photos: [] }); _collapsedPallets.push(true); renderPallets(); updatePreview(); }
 
         // ---------- Extrair / colar dados do pallet (planilha de campo) ----------
         function openPastePalletsModal(autoPaste = true) {
@@ -6450,9 +6165,17 @@
             ta.value = files.length > 1 ? `Lendo ${files.length} imagens, aguarde...` : 'Lendo imagem, aguarde...';
             ta.disabled = true;
             try {
+                // Resolução adaptativa: cada imagem consome tokens proporcionais à sua
+                // área, e o limite gratuito da IA (TPM) é fixo por requisição. Com 1 só
+                // foto (caso mais comum) dá pra usar bastante resolução sem estourar o
+                // limite; com várias fotos no mesmo envio, reduz para caber a soma.
+                // Letra manuscrita pequena demais (ex: abreviações como "S.EU"/"S.ED")
+                // fica ilegível se a resolução cair demais — por isso não usamos um
+                // valor baixo fixo para todos os casos.
+                const maxPxBySource = files.length === 1 ? 1800 : (files.length === 2 ? 1300 : 1000);
                 const dataUrls = [];
                 for (const file of files) {
-                    const dataUrl = await _compressImage(file, 2000, 0.92);
+                    const dataUrl = await _compressImage(file, maxPxBySource, 0.9);
                     if (dataUrl) dataUrls.push(dataUrl);
                 }
                 if (!dataUrls.length) throw new Error('Não foi possível processar a(s) foto(s).');
@@ -6476,8 +6199,9 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                     body: JSON.stringify({
-                        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+                        model: 'qwen/qwen3.6-27b',
                         temperature: 0,
+                        reasoning_effort: 'none',
                         messages: [{
                             role: 'user',
                             content: [
@@ -6485,12 +6209,16 @@
                                 ...dataUrls.map(dataUrl => ({ type: 'image_url', image_url: { url: dataUrl } }))
                             ]
                         }],
-                        max_tokens: 6000
+                        max_tokens: 4000
                     })
                 });
                 if (!response.ok) {
                     const err = await response.json().catch(() => ({}));
-                    throw new Error(err.error?.message || `Erro ${response.status}`);
+                    let msg = err.error?.message || `Erro ${response.status}`;
+                    if (/too large/i.test(msg) && /tokens per minute/i.test(msg)) {
+                        msg = 'A(s) foto(s) enviada(s) são grandes demais para o limite gratuito da IA. Tente enviar uma foto por vez, ou tire a foto com menos zoom/mais distância.';
+                    }
+                    throw new Error(msg);
                 }
                 const data = await response.json();
                 const text = (data.choices?.[0]?.message?.content || '').trim();
@@ -6977,15 +6705,16 @@
                     const _stMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias', master: 'midias' };
                     const sectionType = _stMap[currentUser.perfil];
                     if (sectionType) {
-                        const payload = { action: 'saveSection', sectionType, codigo, palletsData };
-                        // Parceiros/Descartes passam pela trava otimista do RPC (save_secao_*
-                        // no servidor): sem expectedUpdatedAt aqui, o payload chegava com
-                        // esse campo undefined -> null, e a checagem de conflito no SQL
-                        // (`if p_expected_updated_at is not null and ...`) era pulada por
-                        // completo, sobrescrevendo silenciosamente o que outro usuário do
-                        // mesmo perfil tivesse acabado de salvar nessa seção.
-                        if (sectionType === 'parceiros' || sectionType === 'descartes') {
-                            payload.expectedUpdatedAt = _loadedSectionUpdatedAt[sectionType] ?? null;
+                        const payload = { action: 'saveSection', sectionType, codigo };
+                        if (sectionType === 'parceiros') {
+                            // Merge por item no servidor: manda só o pallet que mudou, não o
+                            // array inteiro — nunca sobrescreve edição de outro pallet feita
+                            // por outra pessoa nesse meio tempo.
+                            const diff = _diffItemsById(palletsData, _lastSyncedPalletsData);
+                            payload.upsertItems = diff.upsert;
+                            payload.deleteIds   = diff.deleteIds;
+                        } else {
+                            payload.palletsData = palletsData;
                         }
                         if (sectionType === 'midias') {
                             payload.photosData      = photosData;
@@ -6999,19 +6728,14 @@
                         }
                         callBackend(payload)
                             .then(result => {
-                                if (!result) return;
-                                if (result.conflict) {
-                                    // Outro usuário salvou esta seção entre o carregamento e esta
-                                    // exclusão de foto — recarrega os dados dele em vez de arriscar
-                                    // sobrescrever com a cópia local desatualizada.
-                                    _loadSectionData(codigo).then(() => updatePreview());
-                                    _setAutoSaveToast(_ICON_WARN, 'Atualizado por outro usuário — dados recarregados');
-                                    return;
-                                }
-                                if (!result.success) return;
-                                // Atualiza o baseline da trava otimista — senão a própria
-                                // exclusão geraria um falso conflito no próximo auto-save.
+                                if (!result || !result.success) return;
                                 if (result.updatedAt) _trackSectionUpdatedAt(sectionType, result.updatedAt);
+                                if (sectionType === 'parceiros' && result.mergedData) {
+                                    palletsData = _ensureItemIds(result.mergedData);
+                                    renderPallets();
+                                    updatePreview();
+                                    _snapshotSyncedPallets();
+                                }
                                 if (result.data) _applyConvertedSectionData(result.data);
                             })
                             .catch(function(){});
@@ -7091,7 +6815,7 @@
             'Rachado e Estragado',
             'Talo com Fungo e Passado'
         ];
-        function addDiscard() { discardsData.push({ partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
+        function addDiscard() { discardsData.push({ id: _genItemId(), partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
 
         // ---------- Colar informação do descarte ----------
         function openPasteDiscardModal() {
@@ -7133,6 +6857,7 @@
             const cultura = _matchDiscardPreset(culturaRaw, DISCARD_CULTURA_PRESETS);
             const reason  = _matchDiscardPreset(reasonRaw, DISCARD_REASON_PRESETS);
             return {
+                id: _genItemId(),
                 partner: partner.sel === 'Outro' ? partner.custom : partner.sel,
                 partnerSel: partner.sel,
                 cultura: cultura.sel === 'Outro' ? cultura.custom : cultura.sel,
@@ -8942,7 +8667,7 @@
             'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
             'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','pastePalletsModal','genericConfirmModal','conflictModal',
-            'saveLoadingModal','analysisModal','welcomeModal','resumeEditingModal'
+            'saveLoadingModal','analysisModal','welcomeModal'
         ];
         function _anyModalOpen() {
             return _MODAL_IDS.some(id => {
@@ -9000,7 +8725,7 @@
                 const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-                    body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: 'Responda apenas: OK' }], max_tokens: 5 })
+                    body: JSON.stringify({ model: 'openai/gpt-oss-120b', messages: [{ role: 'user', content: 'Responda apenas: OK' }], max_tokens: 5 })
                 });
                 if (res.ok) {
                     resultEl.className = 'mb-3 p-3 rounded-xl text-xs font-bold bg-green-50 text-green-700 border border-green-200';
@@ -9165,7 +8890,7 @@ Seja objetivo mas completo. Responda em português.`;
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                     body: JSON.stringify({
-                        model: 'llama-3.3-70b-versatile',
+                        model: 'openai/gpt-oss-120b',
                         messages: [{ role: 'user', content: prompt }],
                         max_tokens: 1500
                     })
