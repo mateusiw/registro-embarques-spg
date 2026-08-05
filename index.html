@@ -4197,6 +4197,12 @@
             await _loadSectionData(codigo);
             updatePreview();
             _suppressSectionAutoSave = false;
+            // updatePreview() acima marca _autoSaveDirty=true mesmo sem nenhuma edição real
+            // do usuário. Sem resetar aqui, o realtime (_onSectionRealtimeChange) acha para
+            // sempre que há edição local não salva e nunca aplica sozinho as atualizações
+            // enviadas por outro perfil neste mesmo embarque — só um F5 corrige, porque
+            // initApp() reseta essa flag explicitamente após o carregamento inicial.
+            _autoSaveDirty = false;
             return { ok: true };
         }
 
