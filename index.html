@@ -3772,6 +3772,12 @@
             editModeTimestamp = String(row.Timestamp || '');
             _editPassword = password || null;
             _editOriginalRow = JSON.parse(JSON.stringify(row));
+            // Sem isso, _masterSaveStatus continua com o valor da última vez que o
+            // master escolheu um status nesta sessão (ou o default 'revisado'). Se o
+            // auto-save silencioso disparar antes do master clicar em Salvar, ele
+            // reenvia esse valor desatualizado e marca como "revisado" sozinho um
+            // registro que estava "pendente".
+            _masterSaveStatus = row.StatusRegistro || 'revisado';
             _updateCodigoFieldLock();
             _updateEditModeTopBarBadge();
 
@@ -3919,7 +3925,13 @@
             // planilha (por Timestamp) para que a detecção de conflito volte a funcionar.
             _fetchHistoryRows().then(rows => {
                 const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
-                if (row) _editOriginalRow = JSON.parse(JSON.stringify(row));
+                if (row) {
+                    _editOriginalRow = JSON.parse(JSON.stringify(row));
+                    // Ver comentário equivalente em editHistoryReport(): após um F5,
+                    // _masterSaveStatus não é persistido, então sem isso o auto-save
+                    // silencioso podia usar o default e sobrescrever o status atual.
+                    _masterSaveStatus = row.StatusRegistro || 'revisado';
+                }
             }).catch(() => {});
             const banner = document.getElementById('editModeBanner');
             if (banner) {
@@ -4751,6 +4763,9 @@
             if (row && row.Timestamp) {
                 editModeTimestamp = String(row.Timestamp);
                 _editOriginalRow = JSON.parse(JSON.stringify(row));
+                // Ver comentário equivalente em editHistoryReport(): sem isso o
+                // auto-save silencioso do master podia sobrescrever o status atual.
+                _masterSaveStatus = row.StatusRegistro || 'revisado';
                 _updateCodigoFieldLock();
                 _updateEditModeTopBarBadge();
                 const codigo = row.Codigo || '—';
