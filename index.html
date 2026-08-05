@@ -8557,7 +8557,15 @@
             // paravam antes da borda de verdade). Usando os 297mm completos, CW passa a
             // ocupar a largura real da página, só com a margem M dos dois lados.
             const PW = isLandscapePrint ? 297 : 280; // landscape A4 = 297mm; portrait = 280
-            const doc = new jsPDF({ orientation: isLandscapePrint ? 'landscape' : 'portrait', unit: 'mm', format: [PW, pageHeight] });
+            // O jsPDF troca width↔height internamente sempre que a orientação pedida não
+            // bate com a proporção do array [width, height] (ex: 'landscape' com altura >
+            // largura). Isso acontecia no modo "Ler no Computador" do PDF Parceiros: a altura
+            // dinâmica de uma página única alta (muitos pallets) ficava maior que os 297mm de
+            // largura, o jsPDF invertia as dimensões, e o conteúdo (desenhado assumindo 297mm
+            // de largura) sobrava com uma faixa em branco enorme na lateral. Calculando a
+            // orientação a partir da comparação real entre PW e pageHeight evitamos essa troca.
+            const orientation = PW >= pageHeight ? 'landscape' : 'portrait';
+            const doc = new jsPDF({ orientation, unit: 'mm', format: [PW, pageHeight] });
             const PH = pageHeight, M = 3, CW = PW - 2 * M;
             // As larguras de coluna abaixo foram definidas para um conteúdo de 204mm.
             // K reescala tudo proporcionalmente para a nova largura útil (CW).
