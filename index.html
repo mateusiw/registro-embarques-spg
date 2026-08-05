@@ -8711,13 +8711,15 @@
                         if (qty <= 0) return;
                         const unitsQty = lots.reduce((s, l) => s + _lotUnits(l), 0);
                         const products = lots.map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim()).filter(Boolean);
+                        const dates = lots.map(l => l.harvestDate).filter(Boolean);
                         const key = _normalizePartnerKey(name);
                         if (merged.has(key)) {
                             const e = merged.get(key);
                             e.qty += qty; e.unitsQty += unitsQty;
                             products.forEach(p => e.products.add(p));
+                            dates.forEach(d => e.dates.add(d));
                         } else {
-                            merged.set(key, { name, qty, unitsQty, products: new Set(products) });
+                            merged.set(key, { name, qty, unitsQty, products: new Set(products), dates: new Set(dates) });
                         }
                     });
                     const partners = Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
@@ -8767,7 +8769,7 @@
                     const numCols  = 2;
                     const cardGap  = 4;
                     const cardW    = (CW - cardGap * (numCols - 1)) / numCols;
-                    const rowH     = 5.6;   // altura por linha de parceiro
+                    const rowH     = 8.6;   // altura por linha de parceiro (nome/cx/un + subtítulo com produto/data)
                     const headH    = 7.8;   // título do pallet
                     const colHeadH = 5.2;   // cabeçalho Parceiro/Cx/Un
                     const footH    = 9;     // total do pallet
@@ -8803,28 +8805,36 @@
                             doc.text('CX', cx0 + cardW - 21, ry, { align:'right' });
                             doc.text('UN', cx0 + cardW - 3, ry, { align:'right' });
 
-                            // Linhas de parceiro: nome + produto(s) fornecido(s) + cx/un
+                            // Linhas de parceiro: nome + cx/un na 1ª linha, produto(s) e data de colheita na 2ª linha
                             const nameColW = cardW - 27;
                             card.partners.forEach(p => {
+                                const rowTop = ry;
                                 ry += rowH;
                                 doc.setDrawColor(236,241,246); doc.setLineWidth(0.15);
-                                doc.line(cx0 + 3, ry - 3.9, cx0 + cardW - 3, ry - 3.9);
+                                doc.line(cx0 + 3, rowTop + 2.4, cx0 + cardW - 3, rowTop + 2.4);
+
+                                const line1Y = rowTop + 6.0;
+                                const line2Y = rowTop + 9.7;
 
                                 doc.setFont('helvetica','bold'); doc.setFontSize(8.8); doc.setTextColor(...C.black);
-                                const nameTxt = fitText(p.name, nameColW * 0.6);
-                                doc.text(nameTxt, cx0 + 3, ry);
-                                const nameW = doc.getStringUnitWidth(nameTxt) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-
-                                const prodStr = Array.from(p.products || []).join(', ');
-                                if (prodStr) {
-                                    doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(...C.grayTxt);
-                                    const prodMaxW = nameColW - nameW - 2;
-                                    if (prodMaxW > 6) doc.text(fitText(prodStr, prodMaxW), cx0 + 3 + nameW + 2, ry);
-                                }
+                                doc.text(fitText(p.name, nameColW), cx0 + 3, line1Y);
 
                                 doc.setFont('helvetica','bold'); doc.setFontSize(8.8); doc.setTextColor(...C.gText);
-                                doc.text(String(p.qty), cx0 + cardW - 21, ry, { align:'right' });
-                                doc.text(p.unitsQty > 0 ? String(p.unitsQty) : '—', cx0 + cardW - 3, ry, { align:'right' });
+                                doc.text(String(p.qty), cx0 + cardW - 21, line1Y, { align:'right' });
+                                doc.text(p.unitsQty > 0 ? String(p.unitsQty) : '—', cx0 + cardW - 3, line1Y, { align:'right' });
+
+                                const prodStr = Array.from(p.products || []).join(', ');
+                                const dateStrs = Array.from(p.dates || []).filter(Boolean).sort().map(dt => {
+                                    const d = dt.split('-');
+                                    return d.length === 3 ? (d[2] + '/' + d[1]) : dt;
+                                });
+                                const subtitleParts = [];
+                                if (prodStr) subtitleParts.push(prodStr);
+                                if (dateStrs.length) subtitleParts.push('Colheita: ' + dateStrs.join(', '));
+                                if (subtitleParts.length) {
+                                    doc.setFont('helvetica','normal'); doc.setFontSize(6.8); doc.setTextColor(...C.grayTxt);
+                                    doc.text(fitText(subtitleParts.join('  ·  '), cardW - 6), cx0 + 3, line2Y);
+                                }
                             });
 
                             // Rodapé: total de caixas/unidades do pallet
