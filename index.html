@@ -269,6 +269,49 @@
         </div>
     </div>
 
+    <!-- ===== MODAL GERENCIAR PRODUTOS ===== -->
+    <div id="productsModal" class="fixed inset-0 bg-black/80 z-[100] hidden flex justify-center items-start backdrop-blur-sm overflow-y-auto p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0"><i data-lucide="package" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Gerenciar Produtos</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Cadastro e unidades por caixa (usado nos cálculos de un/cx)</p>
+                    </div>
+                </div>
+                <button onclick="closeProductsModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <!-- Form novo produto -->
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Novo Produto</p>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Nome do Produto</label>
+                            <input type="text" id="newProductNome" placeholder="Ex: Brócolis 300g" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Unidades por Caixa</label>
+                            <input type="number" min="0" step="any" id="newProductUnidades" placeholder="Ex: 15" class="field-card w-full p-2 text-sm bg-white focus:ring-2 focus:ring-indigo-400 outline-none border">
+                        </div>
+                    </div>
+                    <button onclick="addProduct()" class="w-full py-2 bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1"></i> Adicionar Produto
+                    </button>
+                </div>
+                <!-- Lista de produtos -->
+                <div>
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Produtos Cadastrados</p>
+                    <p class="text-[10px] text-slate-400 mb-2">Edite o valor de "Un/Caixa" e clique fora do campo para salvar. Deixe em branco se o produto não tiver um fator fixo.</p>
+                    <div id="productsList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL BACKUP (registros apagados) -->
     <div id="backupModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-start backdrop-blur-sm overflow-y-auto p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 border border-slate-200">
@@ -299,10 +342,17 @@
     <div class="sticky top-0 z-40">
         <!-- Barra superior: logo + usuário (clara/suave em mobile e desktop — ver #appTopBar no <style>) -->
         <div id="appTopBar" class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-2.5 flex justify-between items-center shadow-md">
-            <div class="flex items-center gap-3">
-                <div>
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="shrink-0">
                     <h1 class="text-sm font-black text-white leading-tight tracking-wide">SPG</h1>
                     <p class="text-[10px] text-emerald-200 font-bold uppercase tracking-widest">Registro de Embarque</p>
+                </div>
+                <!-- Sempre visível (barra fica sticky ao rolar a página) enquanto há um
+                     embarque em modo edição/carregado — evita ter que rolar até o topo do
+                     formulário só pra lembrar qual código está sendo editado. -->
+                <div id="topBarEditBadge" class="hidden items-center gap-1.5 min-w-0 px-2.5 py-1 bg-amber-50 border border-amber-300 rounded-lg">
+                    <i data-lucide="pencil" class="w-3 h-3 text-amber-600 shrink-0"></i>
+                    <span id="topBarEditBadgeText" class="text-[10px] font-bold text-amber-700 uppercase tracking-wide truncate"></span>
                 </div>
             </div>
 
@@ -397,6 +447,9 @@
                     </button>
                     <button type="button" id="navBtnUsers" onclick="openUsersModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Gerenciar usuários">
                         <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button type="button" id="navBtnProducts" onclick="openProductsModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Gerenciar produtos">
+                        <i data-lucide="package" class="w-3.5 h-3.5"></i>
                     </button>
                     <button type="button" id="navBtnBackup" onclick="openBackupModal()" class="inline-flex items-center justify-center w-[30px] h-[30px] text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Registros apagados (Backup)">
                         <i data-lucide="archive-restore" class="w-3.5 h-3.5"></i>
@@ -1210,7 +1263,7 @@
             <div style="padding:7px 14px;border-bottom:1px solid #e2e8f0;">
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;">Mais opções</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;">
                 <button type="button" onclick="novoEmbarque();closeMobilePopups()" class="mnav-btn mnav-divider mnav-success">
                     <span class="mnav-pill"><i data-lucide="file-plus" class="mnav-icon"></i><span class="mnav-label">Novo</span></span>
                 </button>
@@ -1222,6 +1275,9 @@
                 </button>
                 <button id="mobileNavBackup" type="button" onclick="openBackupModal();closeMobilePopups()" class="mnav-btn mnav-divider">
                     <span class="mnav-pill"><i data-lucide="archive-restore" class="mnav-icon"></i><span class="mnav-label">Backup</span></span>
+                </button>
+                <button id="mobileNavProducts" type="button" onclick="openProductsModal();closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="package" class="mnav-icon"></i><span class="mnav-label">Produtos</span></span>
                 </button>
                 <button id="mobileNavSettings" type="button" onclick="openSettings();closeMobilePopups()" class="mnav-btn">
                     <span class="mnav-pill"><i data-lucide="settings" class="mnav-icon"></i><span class="mnav-label">Config.</span></span>
@@ -2086,35 +2142,54 @@
         // formulário completo (loadHistoryReport), não _loadSectionData por perfil, por
         // isso precisa de um assinante próprio que ouça as 4 tabelas ao mesmo tempo.
         let _masterRealtimeChannel = null;
+        let _masterRealtimeCodigo = null;
 
         function _unsubscribeMasterRealtime() {
             if (_masterRealtimeChannel) {
                 sb.removeChannel(_masterRealtimeChannel);
                 _masterRealtimeChannel = null;
             }
+            _masterRealtimeCodigo = null;
         }
 
         function _subscribeMasterRealtime(codigo) {
+            // loadHistoryReport chama isso toda vez que carrega um registro — inclusive
+            // no recarregamento silencioso disparado pelo próprio realtime (_syncFromServer).
+            // Sem este guard, cada atualização recebida destruía e recriava o canal do
+            // mesmo código na hora; o Supabase às vezes não reconecta a tempo de um
+            // remove+create tão rápido pro mesmo tópico, e o master parava de receber
+            // qualquer evento depois da primeira vez. Já inscrito neste código: não refaz.
+            if (codigo && codigo === _masterRealtimeCodigo && _masterRealtimeChannel) return;
             _unsubscribeMasterRealtime();
             if (!codigo || !sb) return;
-            const onChange = () => _onMasterRealtimeChange(codigo);
+            _masterRealtimeCodigo = codigo;
+            // DEBUG temporário: ver no console se o canal conecta e se os eventos chegam.
+            const onChange = (payload) => { console.log('[realtime master] evento recebido:', payload.table, payload.eventType); _onMasterRealtimeChange(codigo); };
             _masterRealtimeChannel = sb
                 .channel('master-' + codigo)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'embarques', filter: `codigo=eq.${codigo}` }, onChange)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_parceiros', filter: `codigo=eq.${codigo}` }, onChange)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_descartes', filter: `codigo=eq.${codigo}` }, onChange)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'secao_midias', filter: `codigo=eq.${codigo}` }, onChange)
-                .subscribe();
+                .subscribe((status, err) => { console.log('[realtime master] status do canal:', status, err || ''); });
         }
 
         // Reaproveita _syncFromServer (já existente para o F5): busca a lista atual e
         // repopula o formulário via loadHistoryReport — mas só se o master não tiver
         // edição local não salva (_autoSaveDirty === false), senão só o próximo F5/Atualizar
         // pega a mudança, pra nunca apagar o que ele está digitando neste exato momento.
+        // Um único save do master atualiza até 4 tabelas (embarques/parceiros/
+        // descartes/midias), cada uma disparando seu próprio evento de realtime —
+        // sem debounce isso gerava uma rajada de 8+ chamadas a _syncFromServer pra
+        // um só save, deixando a sincronização mais lenta e sujeita a corrida.
+        // Agrupa a rajada: só busca no servidor 600ms depois do último evento.
+        let _masterRealtimeDebounceTimer = null;
         function _onMasterRealtimeChange(codigo) {
             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
+            console.log('[realtime master] _onMasterRealtimeChange', { codigoAtual, codigo, _isSaving });
             if (codigoAtual !== codigo || _isSaving) return;
-            _syncFromServer(false);
+            clearTimeout(_masterRealtimeDebounceTimer);
+            _masterRealtimeDebounceTimer = setTimeout(() => _syncFromServer(false), 600);
         }
 
         // Assina mudanças no próprio perfil (tabela profiles) enquanto a sessão
@@ -2395,6 +2470,17 @@
                 lacreNumber: document.getElementById('lacreNumber').value,
                 statusRegistro: (currentUser && currentUser.perfil === 'embarque') ? 'pendente' : _masterSaveStatus
             };
+        }
+
+        // collectFormData() devolve nfeList/discardsData/partnersData/etc. por
+        // referência (não por cópia). Usado como snapshot "congelado" (_editSnapshot)
+        // pra detectar edição não salva, isso quebrava a comparação: editar um campo
+        // dentro desses arrays (ex: digitar numa NFe) mutava o próprio array em vez de
+        // substituí-lo, então o snapshot "via" a mesma mudança e o diff nunca detectava
+        // nada — só campos escalares recalculados a cada chamada (ex: produto) refletiam
+        // a edição corretamente.
+        function _snapshotFormData() {
+            return JSON.parse(JSON.stringify(collectFormData()));
         }
 
         // ---- helpers do loading modal ----
@@ -2736,10 +2822,14 @@
             }
         }
 
-        async function _doSaveToCloud() {
-            showSaveLoadingModal();
-
+        async function _doSaveToCloud(opts = {}) {
+            const silent = !!opts.silent;
             const isEdit = !!editModeTimestamp;
+            // Auto-save silencioso nunca cria registro novo (só existe pra manter em
+            // dia um relatório que o master já abriu para edição).
+            if (silent && !isEdit) return;
+
+            if (!silent) showSaveLoadingModal();
 
             let serverInterval = null;
             const startServerCreep = (from) => {
@@ -2751,8 +2841,10 @@
             };
 
             try {
-                setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
-                startServerCreep(10);
+                if (!silent) {
+                    setSaveProgress(10, 'Enviando', 'Conectando ao servidor...');
+                    startServerCreep(10);
+                }
 
                 // 2) Monta e envia o registro (vídeos já são URLs do Drive → payload pequeno).
                 const data = collectFormData();
@@ -2762,11 +2854,14 @@
                     data.originalTimestamp = editModeTimestamp;
                     data.codigo = data.embarqueCodigo;
                 }
+                if (silent) _setAutoSaveToast(_ICON_SPIN, 'Salvando automaticamente...', false);
                 const result = await callBackend(data);
                 if (serverInterval) clearInterval(serverInterval);
-                setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
-                await new Promise(r => setTimeout(r, 600));
-                hideSaveLoadingModal();
+                if (!silent) {
+                    setSaveProgress(100, 'Concluído!', 'Registro enviado com sucesso.');
+                    await new Promise(r => setTimeout(r, 600));
+                    hideSaveLoadingModal();
+                }
                 if (result.success) {
                     // Guarda: só substitui fotos/vídeos se o servidor devolveu URLs do Drive (não vazia/base64)
                     const _hasDriveUrl = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
@@ -2923,8 +3018,12 @@
                         // Continua em modo edição (não chama clearEditMode()): atualiza só o
                         // snapshot de comparação, senão o próximo "Atualizar" no histórico
                         // acharia que há alterações não salvas que na verdade já foram enviadas.
-                        _editSnapshot = collectFormData();
-                        showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                        _editSnapshot = _snapshotFormData();
+                        if (silent) {
+                            _setAutoSaveToast(_ICON_CHECK, 'Salvo automaticamente!');
+                        } else {
+                            showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                        }
                     } else {
                         showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
                     }
@@ -2932,17 +3031,24 @@
                     // Master: dispara a análise de IA automaticamente após salvar — sem
                     // precisar clicar em "Analisar" à parte. Só gera se o registro ainda
                     // não tem uma análise (nova ou carregada do histórico) — não substitui
-                    // uma análise já existente por uma nova a cada save.
-                    if (currentUser && currentUser.perfil === 'master' && !aiSummary) {
+                    // uma análise já existente por uma nova a cada save. Não roda no
+                    // auto-save silencioso (só no save manual explícito).
+                    if (!silent && currentUser && currentUser.perfil === 'master' && !aiSummary) {
                         runAIAnalysis();
                     }
+                } else if (silent) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao salvar automaticamente: ' + (result.error || 'Tente novamente.'));
                 } else {
                     showMessageModal('Erro ao salvar', result.error || 'Tente novamente.', 'error');
                 }
             } catch(err) {
                 clearInterval(serverInterval);
-                hideSaveLoadingModal();
-                showMessageModal('Erro de conexão', err.message || 'Falha ao conectar. Verifique sua internet.', 'error');
+                if (silent) {
+                    _setAutoSaveToast(_ICON_WARN, 'Falha ao salvar automaticamente: ' + err.message);
+                } else {
+                    hideSaveLoadingModal();
+                    showMessageModal('Erro de conexão', err.message || 'Falha ao conectar. Verifique sua internet.', 'error');
+                }
             }
         }
 
@@ -3391,6 +3497,24 @@
                 const row = _findRowByTs(ts);
                 if (!row) { if (!silent) showMessageModal('Erro', 'Registro não encontrado. Tente reabrir o histórico.', 'error'); return; }
 
+                // Recarregamento silencioso (disparado pelo realtime porque outro usuário
+                // salvou algo neste mesmo embarque — só acontece quando não há edição local
+                // pendente, ver _syncFromServer): guarda o estado de expandido/recolhido de
+                // cada pallet/grupo de parceiro ANTES de sobrescrever palletsData. Sem isso,
+                // mesmo sem perder nenhum dado digitado, os cards que a pessoa tinha aberto
+                // na tela fechavam sozinhos a cada save de outra pessoa, dando a impressão de
+                // que o que ela estava vendo/editando tinha sumido.
+                let _priorPalletCollapse = null;
+                let _priorGroupCollapse = null;
+                if (silent) {
+                    _priorPalletCollapse = new Map(palletsData.map((pl, i) => [pl.id, !!_collapsedPallets[i]]));
+                    _priorGroupCollapse = new Map();
+                    palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => {
+                        const gName = g.name === 'Outro' ? g.nameCustom : g.name;
+                        _priorGroupCollapse.set((pl.id || '') + '|' + gName, g.collapsed !== false);
+                    }));
+                }
+
                 const parse = (v) => {
                     try { return typeof v === 'string' && v ? JSON.parse(v) : (Array.isArray(v) ? v : []); }
                     catch(_) { return []; }
@@ -3568,10 +3692,25 @@
 
                 // Converte parceiros legados (pl.partners) para grupos editáveis (Parceiro + Lote)
                 _migratePalletPartnersToGroups();
-                // Parceiros vêm recolhidos para a lista não ficar longa
-                palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => { g.collapsed = true; }));
-                // Pallets vêm recolhidos por padrão ao carregar um embarque
-                if (palletsData.length) _collapsedPallets = palletsData.map(() => true);
+                if (_priorGroupCollapse) {
+                    // Recarregamento silencioso: mantém aberto o que a pessoa já tinha aberto
+                    // (casado por id do pallet + nome do parceiro); só grupo novo entra recolhido.
+                    palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => {
+                        const gName = g.name === 'Outro' ? g.nameCustom : g.name;
+                        const key = (pl.id || '') + '|' + gName;
+                        g.collapsed = _priorGroupCollapse.has(key) ? _priorGroupCollapse.get(key) : true;
+                    }));
+                } else {
+                    // Parceiros vêm recolhidos para a lista não ficar longa
+                    palletsData.forEach(pl => (pl.partnerGroups || []).forEach(g => { g.collapsed = true; }));
+                }
+                // Pallets vêm recolhidos por padrão ao carregar um embarque — exceto no
+                // recarregamento silencioso, que preserva o que já estava aberto (por id).
+                if (palletsData.length) {
+                    _collapsedPallets = _priorPalletCollapse
+                        ? palletsData.map(pl => _priorPalletCollapse.has(pl.id) ? _priorPalletCollapse.get(pl.id) : true)
+                        : palletsData.map(() => true);
+                }
 
                 _ensureItemIds(palletsData);
                 _ensureItemIds(discardsData);
@@ -3595,6 +3734,12 @@
 
             } catch(err) {
                 if (!silent) showMessageModal('Erro ao carregar', err.message || String(err), 'error');
+            } finally {
+                // Suprimido só durante o carregamento (linha 3421) — sem isso, o
+                // auto-save do master ficava desligado pra sempre depois da primeira
+                // chamada (inclusive a chamada interna feita pelo pull do realtime em
+                // _syncFromServer), e só um F5 religava (initApp reseta essa flag).
+                _suppressSectionAutoSave = false;
             }
         }
 
@@ -3616,7 +3761,7 @@
             // "Carregar" em submitPassword(), mas que faltava aqui no "Editar").
             loadHistoryReport(ts);
             closeHistoryModal();
-            _editSnapshot = collectFormData();
+            _editSnapshot = _snapshotFormData();
 
             // Zera o timestamp do auto-save do embarque que estava aberto antes.
             // Sem isso, o auto-save usa _autoSaveTimestamp (embarque novo) como alvo e
@@ -3627,6 +3772,8 @@
             editModeTimestamp = String(row.Timestamp || '');
             _editPassword = password || null;
             _editOriginalRow = JSON.parse(JSON.stringify(row));
+            _updateCodigoFieldLock();
+            _updateEditModeTopBarBadge();
 
             const codigo = row.Codigo || '—';
             const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
@@ -3641,6 +3788,54 @@
             lucide.createIcons();
         }
 
+        // Trava o campo Código do Embarque enquanto o master está em modo edição.
+        // O update do embarque no backend (_beUpdateEmbarque) localiza a linha a
+        // atualizar pelo próprio valor de embarqueCodigo do formulário, não pelo
+        // Timestamp original — se o master trocasse o código no meio da edição,
+        // o save ou falhava silenciosamente (código novo não existe) ou, pior,
+        // sobrescrevia um embarque *diferente* que já tivesse aquele código.
+        // As seções (NF/Parceiros/Descartes/Mídias) tinham o mesmo problema, criando
+        // linhas órfãs sob o código novo. Perfis de seção/embarque já bloqueiam este
+        // campo sempre (ver applyProfileRestrictions); aqui replicamos isso só
+        // enquanto durar a edição do master.
+        function _updateCodigoFieldLock() {
+            const el = document.getElementById('embarqueCodigo');
+            if (!el || !currentUser) return;
+            const perfil = currentUser.perfil;
+            if (perfil !== 'master') return; // outros perfis já ficam sempre travados
+            if (editModeTimestamp) {
+                el.setAttribute('disabled', 'disabled');
+                el.style.opacity = '0.6';
+                el.style.cursor = 'not-allowed';
+                el.title = 'Não é possível alterar o código de um embarque já salvo.';
+            } else {
+                el.removeAttribute('disabled');
+                el.style.opacity = '';
+                el.style.cursor = '';
+                el.removeAttribute('title');
+            }
+        }
+
+        // Mostra "Editando: Embarque X" na barra superior (sticky), pra nunca
+        // precisar rolar a tela até o topo do formulário só pra lembrar qual
+        // embarque está aberto. Ao contrário de _updateCodigoFieldLock, não é
+        // restrito ao perfil master: o perfil embarque também entra em modo
+        // edição ao carregar um pendente pelo histórico (ver _loadHistoryReportConfirmed).
+        function _updateEditModeTopBarBadge() {
+            const badge = document.getElementById('topBarEditBadge');
+            const textEl = document.getElementById('topBarEditBadgeText');
+            if (!badge || !textEl) return;
+            if (editModeTimestamp) {
+                const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim() || '—';
+                textEl.textContent = `Editando: Embarque ${codigo}`;
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+            } else {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
+        }
+
         function clearEditMode() {
             editModeTimestamp = null;
             _editPassword = null;
@@ -3648,6 +3843,8 @@
             _editOriginalRow = null;
             document.getElementById('editModeBanner').classList.add('hidden');
             try { sessionStorage.removeItem('spg_edit_mode'); } catch(e) {}
+            _updateCodigoFieldLock();
+            _updateEditModeTopBarBadge();
         }
 
         function novoEmbarque() {
@@ -3715,7 +3912,9 @@
             if (!saved || !saved.timestamp) return;
             editModeTimestamp = saved.timestamp;
             _editPassword = saved.password || null;
-            _editSnapshot = collectFormData();
+            _editSnapshot = _snapshotFormData();
+            _updateCodigoFieldLock();
+            _updateEditModeTopBarBadge();
             // Após um F5, _editOriginalRow não sobrevive. Rebusca a linha original da
             // planilha (por Timestamp) para que a detecção de conflito volte a funcionar.
             _fetchHistoryRows().then(rows => {
@@ -4440,6 +4639,8 @@
             _unsubscribeMasterRealtime();
             _autoSaveTimestamp = null;
             try { localStorage.removeItem('spg_autosave_ts'); } catch(_) {}
+            _updateCodigoFieldLock();
+            _updateEditModeTopBarBadge();
 
             // Campos simples
             ['reportDate','embarqueCodigo','varietyInput','customProductName',
@@ -4546,10 +4747,12 @@
             // sessão ativa, e o código só é preenchido dentro de loadHistoryReport().
             loadHistoryReport(ts);
             closeHistoryModal();
-            _editSnapshot = collectFormData();
+            _editSnapshot = _snapshotFormData();
             if (row && row.Timestamp) {
                 editModeTimestamp = String(row.Timestamp);
                 _editOriginalRow = JSON.parse(JSON.stringify(row));
+                _updateCodigoFieldLock();
+                _updateEditModeTopBarBadge();
                 const codigo = row.Codigo || '—';
                 const rawDate = row.Data ? String(row.Data).substring(0, 10) : '';
                 const banner = document.getElementById('editModeBanner');
@@ -4891,20 +5094,38 @@
         // ou trocar de embarque, quando não há nada de novo pra salvar.
         let _suppressSectionAutoSave = true;
         function _scheduleSectionAutoSave() {
-            if (_suppressSectionAutoSave) return;
-            if (!currentUser || !['parceiros','descartes','nf','embarque'].includes(currentUser.perfil)) return;
+            if (_suppressSectionAutoSave) { console.log('[realtime master] _scheduleSectionAutoSave: suprimido (_suppressSectionAutoSave)'); return; }
+            if (!currentUser) return;
+            const perfil = currentUser.perfil;
+            // Master só tem auto-save editando um relatório já existente (aberto via
+            // "Editar" no histórico) — criar um relatório novo continua manual, pois
+            // esse fluxo decide entre inserir/duplicata só no clique em Salvar.
+            const isMasterEdit = perfil === 'master' && !!editModeTimestamp;
+            if (!['parceiros','descartes','nf','embarque'].includes(perfil) && !isMasterEdit) { console.log('[realtime master] _scheduleSectionAutoSave: perfil não elegível', perfil, editModeTimestamp); return; }
             const codigo = document.getElementById('embarqueCodigo')?.value?.trim();
             if (!codigo) return;
             if (_isVideoUploading()) return; // não interrompe upload de vídeo em andamento
+            console.log('[realtime master] _scheduleSectionAutoSave: agendado p/ 4s');
             clearTimeout(_sectionAutoSaveTimer);
             _sectionAutoSaveTimer = setTimeout(_runSectionAutoSave, 4000);
         }
         async function _runSectionAutoSave() {
+            console.log('[realtime master] _runSectionAutoSave disparado', { perfil: currentUser?.perfil, editModeTimestamp, _sectionAutoSaving, _isSaving });
             // Já tem um save (automático ou manual) em andamento: tenta de novo em 4s.
             if (_sectionAutoSaving || _isSaving) { _scheduleSectionAutoSave(); return; }
             _sectionAutoSaving = true;
-            try { await _doSaveSectionToCloud(null, { silent: true }); }
-            finally { _sectionAutoSaving = false; }
+            try {
+                if (currentUser?.perfil === 'master') {
+                    // Só salva se há mudança de verdade desde que o relatório foi
+                    // carregado — evita um auto-save "vazio" logo ao abrir pra editar.
+                    const diff = (editModeTimestamp && _editSnapshot) ? _computeEditDiff(collectFormData(), _editSnapshot) : {};
+                    const hasUnsavedEdit = Object.keys(diff).length > 0;
+                    console.log('[realtime master] diff calculado:', diff, 'hasUnsavedEdit:', hasUnsavedEdit);
+                    if (hasUnsavedEdit) await _doSaveToCloud({ silent: true });
+                } else {
+                    await _doSaveSectionToCloud(null, { silent: true });
+                }
+            } finally { _sectionAutoSaving = false; }
         }
 
         // Último snapshot de palletsData/discardsData confirmado no servidor.
@@ -4986,23 +5207,38 @@
             const targetTs = _autoSaveTimestamp || editModeTimestamp;
             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
             if (!targetTs && !codigoAtual) return;
+            // Em modo de edição, "há algo não salvo?" precisa comparar com o snapshot
+            // real (mesmo diff usado pelo auto-save do master) — _autoSaveDirty sozinho
+            // sempre dava true aqui, porque updatePreview() (chamado só de carregar o
+            // relatório em editHistoryReport) já marca _autoSaveDirty=true mesmo sem o
+            // usuário ter digitado nada. Isso fazia o master nunca puxar via realtime
+            // a mudança de outro master enquanto tivesse um relatório aberto p/ editar.
+            const hasUnsavedEdit = (editModeTimestamp && _editSnapshot)
+                ? Object.keys(_computeEditDiff(collectFormData(), _editSnapshot)).length > 0
+                : _autoSaveDirty;
+            console.log('[realtime master] _syncFromServer', { force, hasUnsavedEdit, targetTs, codigoAtual });
             _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
             try {
                 const result = await callBackend({ action: 'list' });
                 if (!result.success) throw new Error(result.error || 'Erro');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
-                if (force || !_autoSaveDirty) {
+                if (force || !hasUnsavedEdit) {
                     let row = targetTs ? historyRows.find(r => String(r.Timestamp) === String(targetTs)) : null;
                     if (!row && codigoAtual) row = historyRows.find(r => String(r.Codigo || '').trim() === codigoAtual);
+                    console.log('[realtime master] linha encontrada?', !!row);
                     if (row) {
                         loadHistoryReport(String(row.Timestamp), { silent: true });
                         _autoSaveDirty = false; // resetar após updatePreview() chamado pelo loadHistoryReport
-                        if (editModeTimestamp) _editSnapshot = collectFormData(); // atualiza baseline do diff
+                        if (editModeTimestamp) _editSnapshot = _snapshotFormData(); // atualiza baseline do diff
                     }
+                    _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
+                } else {
+                    console.log('[realtime master] pulado: há edição local não salva');
+                    _setAutoSaveToast(_ICON_WARN, 'Outro usuário atualizou este embarque — salve para sincronizar');
                 }
-                _setAutoSaveToast(_ICON_CHECK, 'Sincronizado com o Drive');
             } catch(e) {
+                console.log('[realtime master] erro no _syncFromServer:', e);
                 _setAutoSaveToast(_ICON_WARN, 'Sem conexão — dados locais');
             }
         }
@@ -5181,6 +5417,7 @@
             _unsubscribeMasterRealtime();
             _unsubscribeSelfProfileRealtime();
             _unsubscribeUsersModalRealtime();
+            _unsubscribeProductsModalRealtime();
             _unsubscribeBackupRealtime();
             if (_produtosRealtimeChannel) { sb.removeChannel(_produtosRealtimeChannel); _produtosRealtimeChannel = null; }
             await sb.auth.signOut();
@@ -5248,7 +5485,7 @@
 
                 // Restaura botões de nav e preview exclusivos do master
                 [
-                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnProducts', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'tab-preview-btn',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup'
                 ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
@@ -5260,7 +5497,7 @@
                 const hideForEmbarque = [
                     'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                     'section-descartes',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnProducts', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail', 'navBtnPdfParceiros', 'navGroupRelatorios',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup', 'tab-preview-btn',
                     'preview-column'
@@ -5283,7 +5520,7 @@
                     'section-nfe', 'section-produto-cliente', 'section-resp-cruzamento',
                     'section-resp-embarque', 'section-veiculo', 'section-temperaturas',
                     'section-descartes', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnProducts', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'tab-preview-btn'
@@ -5299,7 +5536,7 @@
                     'section-resp-cruzamento',
                     'section-resp-embarque', 'section-veiculo', 'section-pallets',
                     'section-temperaturas', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnProducts', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'tab-preview-btn'
@@ -5322,7 +5559,7 @@
                     'section-produto-cliente', 'section-resp-cruzamento',
                     'section-resp-embarque', 'section-pallets',
                     'section-temperaturas', 'section-descartes', 'section-adicional', 'section-fotos',
-                    'navBtnSettings', 'navBtnUsers', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
+                    'navBtnSettings', 'navBtnUsers', 'navBtnProducts', 'navBtnBackup', 'navBtnHistorico', 'navBtnAnalisar',
                     'navBtnPdfInterno', 'navBtnPdfEmail',
                     'mobileNavAnalisar', 'mobileNavPdfGroup', 'mobileNavMenuGroup',
                     'tab-preview-btn'
@@ -5532,6 +5769,117 @@
             } catch(e) { alert('Erro: ' + e.message); }
         }
 
+        // ===== GERENCIAR PRODUTOS =====
+        // Diferente de Gerenciar Usuários (que passa pela Edge Function admin-users
+        // por mexer no Supabase Auth), aqui é uma tabela comum — grava direto pelo
+        // client, protegida por RLS (só master pode insert/update/delete, ver
+        // schema.sql). Qualquer mudança dispara fetchProductUnits() pra atualizar
+        // na hora os cálculos de un/caixa usados nos pallets.
+        let _productsModalRealtimeChannel = null;
+
+        function _unsubscribeProductsModalRealtime() {
+            if (_productsModalRealtimeChannel) {
+                sb.removeChannel(_productsModalRealtimeChannel);
+                _productsModalRealtimeChannel = null;
+            }
+        }
+
+        async function openProductsModal() {
+            document.getElementById('productsModal').classList.remove('hidden');
+            lockScroll();
+            lucide.createIcons();
+            await loadProductsList();
+            // Enquanto o modal está aberto, qualquer criação/edição/exclusão de
+            // produto (nesta aba ou em outra) atualiza a lista sozinha.
+            _unsubscribeProductsModalRealtime();
+            _productsModalRealtimeChannel = sb
+                .channel('products-modal-live')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'produtos' }, () => loadProductsList())
+                .subscribe();
+        }
+
+        function closeProductsModal() {
+            _unsubscribeProductsModalRealtime();
+            document.getElementById('productsModal').classList.add('hidden');
+            unlockScroll();
+        }
+
+        async function loadProductsList() {
+            const list = document.getElementById('productsList');
+            list.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">Carregando...</div>';
+            try {
+                const { data, error } = await sb.from('produtos').select('*').order('produto', { ascending: true });
+                if (error) throw error;
+
+                if (!data || !data.length) {
+                    list.innerHTML = '<div class="text-center py-4 text-slate-400 text-xs">Nenhum produto cadastrado.</div>';
+                    return;
+                }
+
+                list.innerHTML = data.map((p) => {
+                    const nomeAttr = String(p.produto || '').replace(/'/g, "\\'");
+                    const unidades = (p.unidades_por_caixa === null || p.unidades_por_caixa === undefined) ? '' : p.unidades_por_caixa;
+                    return `
+                        <div class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-800 truncate">${p.produto}</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Unidades por caixa</p>
+                            </div>
+                            <input type="number" min="0" step="any" value="${unidades}" placeholder="—"
+                                onchange="updateProductUnits('${nomeAttr}', this.value)"
+                                class="w-20 p-2 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-indigo-400 outline-none text-center">
+                            <button onclick="deleteProduct('${nomeAttr}')" title="Excluir produto"
+                                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+                lucide.createIcons();
+            } catch(e) {
+                list.innerHTML = `<div class="text-center py-4 text-rose-500 text-xs">Erro: ${e.message}</div>`;
+            }
+        }
+
+        async function addProduct() {
+            const nomeEl = document.getElementById('newProductNome');
+            const unidEl = document.getElementById('newProductUnidades');
+            const nome = nomeEl.value.trim();
+            if (!nome) { alert('Informe o nome do produto.'); return; }
+            const unidades = unidEl.value.trim() === '' ? null : (parseFloat(unidEl.value) || 0);
+
+            try {
+                const { error } = await sb.from('produtos').upsert({ produto: nome, unidades_por_caixa: unidades }, { onConflict: 'produto' });
+                if (error) throw error;
+                nomeEl.value = '';
+                unidEl.value = '';
+                await loadProductsList();
+                fetchProductUnits();
+            } catch(e) { alert('Erro: ' + e.message); }
+        }
+
+        async function updateProductUnits(produto, value) {
+            const unidades = value.trim() === '' ? null : (parseFloat(value) || 0);
+            try {
+                const { error } = await sb.from('produtos').update({ unidades_por_caixa: unidades }).eq('produto', produto);
+                if (error) throw error;
+                fetchProductUnits();
+            } catch(e) {
+                alert('Erro ao salvar: ' + e.message);
+                loadProductsList(); // reverte o campo pro valor salvo, já que a edição falhou
+            }
+        }
+
+        async function deleteProduct(produto) {
+            if (!confirm(`Excluir o produto "${produto}"? Pallets que já usam esse produto não serão afetados, mas o cálculo de unidades por caixa deixará de funcionar para novos lotes.`)) return;
+            try {
+                const { error } = await sb.from('produtos').delete().eq('produto', produto);
+                if (error) throw error;
+                await loadProductsList();
+                fetchProductUnits();
+            } catch(e) { alert('Erro: ' + e.message); }
+        }
+
         // ---------- BACKUP (registros apagados) ----------
         let _backupRows = [];
         let _backupRowsFiltered = [];
@@ -5667,7 +6015,7 @@
         }
 
         // ---------- NFe ----------
-        function addNfe() { nfeList.push(""); renderNfeInputs(); }
+        function addNfe() { nfeList.push(""); renderNfeInputs(); updatePreview(); }
         function removeNfe(idx) {
             if (nfeList.length === 1) { nfeList[0] = ""; } else { nfeList.splice(idx, 1); }
             renderNfeInputs();
@@ -5848,11 +6196,17 @@
             try {
                 const result = await callBackend({ action: 'listProdutos' });
                 if (result.success && Array.isArray(result.produtos)) {
+                    // Reconstrói do zero (não só mescla): a aba Gerenciar Produtos permite
+                    // excluir um produto, e um merge aditivo nunca removeria o fator antigo
+                    // da memória — o cálculo de un/caixa continuaria usando um produto já
+                    // apagado do banco até a página ser recarregada.
+                    const fresh = {};
                     result.produtos.forEach(p => {
                         const nome = String(p.produto || '').trim();
                         if (!nome) return;
-                        PRODUCT_UNITS[nome] = parseFloat(p.unidadesPorCaixa) || 0;
+                        fresh[nome] = parseFloat(p.unidadesPorCaixa) || 0;
                     });
+                    PRODUCT_UNITS = fresh;
                     renderPallets();
                     updatePreview();
                 }
@@ -5891,7 +6245,7 @@
             const found = PARTNER_PRESETS.find(p => p.toLowerCase() === target.toLowerCase());
             return found ? { sel: found, custom: '' } : { sel: 'Outro', custom: target };
         }
-        function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); }
+        function addPartner() { partnersData.push({ name: '', nameCustom: '', qty: '', unit: 'Brócolis Inteiro', unitCustom: '', harvestDate: '' }); renderPartners(); updatePreview(); }
         function removePartner(idx) { partnersData.splice(idx, 1); renderPartners(); updatePreview(); }
         function updatePartner(idx, field, value) {
             partnersData[idx][field] = value;
@@ -6902,7 +7256,7 @@
             'Rachado e Estragado',
             'Talo com Fungo e Passado'
         ];
-        function addDiscard() { discardsData.push({ id: _genItemId(), partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); }
+        function addDiscard() { discardsData.push({ id: _genItemId(), partner: '', partnerSel: '', weight: '', cultura: '', reason: '', photos: [] }); _collapsedDiscards.push(true); renderDiscards(); updatePreview(); }
 
         // ---------- Colar informação do descarte ----------
         function openPasteDiscardModal() {
@@ -7147,7 +7501,7 @@
         }
 
         // ---------- Temperaturas Personalizadas ----------
-        function addCustomTemp() { customTempsData.push({ preset: '', labelCustom: '', value: '', photos: [] }); _collapsedTemps.push(true); renderCustomTemps(); }
+        function addCustomTemp() { customTempsData.push({ preset: '', labelCustom: '', value: '', photos: [] }); _collapsedTemps.push(true); renderCustomTemps(); updatePreview(); }
         function removeCustomTemp(idx) { customTempsData.splice(idx, 1); _collapsedTemps.splice(idx, 1); renderCustomTemps(); updatePreview(); }
         function toggleCustomTemp(idx) { _collapsedTemps[idx] = !_collapsedTemps[idx]; renderCustomTemps(); }
         function clearCustomTempPreset(idx) { customTempsData[idx].preset = ''; customTempsData[idx].labelCustom = ''; renderCustomTemps(); updatePreview(); }
@@ -7463,10 +7817,37 @@
 
         // ---------- Vídeos ----------
 
-        function removeVideo(idx) {
+        async function removeVideo(idx) {
+            const removed = videosData[idx];
             videosData.splice(idx, 1);
             renderVideos();
             updatePreview();
+            // Remove o vídeo do banco imediatamente (mesma lógica de removePhoto):
+            // sem isso, o próximo auto-save mesclava aditivamente com o servidor
+            // (que ainda tinha o vídeo) e o trazia de volta, desfazendo a remoção.
+            if (!removed || !removed.dataUrl) return; // upload em andamento/erro: nunca foi salvo no servidor
+            const codigo = (document.getElementById('embarqueCodigo')?.value || '').trim();
+            if (!codigo) return;
+            try {
+                const merged = await _fetchMergedMidias(codigo);
+                const finalVideos = (merged ? merged.videos : _syncableVideos()).filter(v => v.dataUrl !== removed.dataUrl);
+                const payload = {
+                    action: 'saveSection',
+                    sectionType: 'midias',
+                    codigo,
+                    photosData: merged ? merged.photos : photosData,
+                    videosData: finalVideos,
+                    reportDate: document.getElementById('reportDate')?.value || '',
+                    departureTime: document.getElementById('departureTime')?.value || '',
+                    customTempsData,
+                    palletsData,
+                    thermostatMode: document.getElementById('thermostatMode')?.value || '',
+                    thermostatValue: document.getElementById('thermostatValue')?.value || '',
+                    additionalInfoData,
+                };
+                const result = await callBackend(payload);
+                if (result && result.success && result.data) _applyConvertedSectionData(result.data);
+            } catch(_) {}
             saveToLocalStorage();
         }
 
@@ -7569,7 +7950,7 @@
 
         // ---------- Informações Adicionais ----------
         const INFO_TOPICS = ['Temperatura', 'Carregamento'];
-        function addAdditionalInfo() { additionalInfoData.push({ topic: '', text: '' }); renderAdditionalInfo(); }
+        function addAdditionalInfo() { additionalInfoData.push({ topic: '', text: '' }); renderAdditionalInfo(); updatePreview(); }
         function removeAdditionalInfo(idx) { additionalInfoData.splice(idx, 1); renderAdditionalInfo(); updatePreview(); }
         function clearAdditionalInfoTopic(idx) { additionalInfoData[idx].topic = ''; additionalInfoData[idx].topicCustom = ''; renderAdditionalInfo(); updatePreview(); }
         function updateAdditionalInfo(idx, field, value) {
