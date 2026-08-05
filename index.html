@@ -967,6 +967,20 @@
                 <p class="text-[10px] text-slate-400 mt-1">URL raw do GitHub. O app verifica atualizações automaticamente na abertura e a cada 30 minutos.</p>
             </div>
 
+            <div class="border-t border-slate-100 my-4"></div>
+
+            <!-- Manutenção: limpar cache/cookies locais -->
+            <div class="mb-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-5 h-5 rounded bg-rose-100 text-rose-600 flex items-center justify-center shrink-0"><i data-lucide="eraser" class="w-3 h-3"></i></div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Manutenção</label>
+                </div>
+                <p class="text-[10px] text-slate-400 mb-2">Use se o app estiver com dados desatualizados ou travando (ex: erro de permissão após uma mudança de perfil). Apaga o rascunho local, as configurações desta tela e desconecta sua sessão.</p>
+                <button type="button" onclick="confirmClearAppCache()" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpar Cache e Sair
+                </button>
+            </div>
+
             <div class="grid grid-cols-3 gap-2 mt-4">
                 <button onclick="closeSettings()" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Cancelar</button>
                 <button onclick="testApiKey()" class="px-3 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all">Testar IA</button>
@@ -5451,6 +5465,55 @@
             document.getElementById('loginOverlay').style.display = 'flex';
             document.body.style.overflow = 'hidden';
             lucide.createIcons();
+        }
+
+        // ===== MANUTENÇÃO: LIMPAR CACHE/COOKIES LOCAIS =====
+        // Botão de emergência (tela de Configurações) para quando o app fica com
+        // dados desatualizados presos no dispositivo — ex: o perfil do usuário
+        // mudou no banco (Gerenciar Usuários) mas o navegador ainda usa a sessão
+        // antiga, causando erros de permissão (RLS) como "new row violates row-level
+        // security policy". Apaga localStorage, sessionStorage, o IndexedDB do
+        // rascunho do formulário e a sessão do Supabase Auth, depois recarrega.
+        function confirmClearAppCache() {
+            showConfirmModal({
+                title: 'Limpar cache do aplicativo?',
+                text: 'Isso apaga o rascunho do formulário, as configurações salvas neste dispositivo (chave de API, URL de atualização) e desconecta sua sessão. Você precisará fazer login novamente. Esta ação não pode ser desfeita.',
+                confirmLabel: 'Limpar e sair',
+                type: 'danger',
+                onConfirm: () => _executeClearAppCache()
+            });
+        }
+
+        async function _executeClearAppCache() {
+            closeSettings();
+            showSaveLoadingModal();
+            setSaveProgress(20, 'Limpando cache', 'Encerrando sessão...');
+            try {
+                _unsubscribeSectionRealtime();
+                _unsubscribeMasterRealtime();
+                _unsubscribeSelfProfileRealtime();
+                _unsubscribeUsersModalRealtime();
+                _unsubscribeProductsModalRealtime();
+                _unsubscribeBackupRealtime();
+                if (_produtosRealtimeChannel) { sb.removeChannel(_produtosRealtimeChannel); _produtosRealtimeChannel = null; }
+                await sb.auth.signOut().catch(() => {});
+
+                setSaveProgress(60, 'Limpando cache', 'Apagando dados salvos no dispositivo...');
+                try { localStorage.clear(); } catch(_) {}
+                try { sessionStorage.clear(); } catch(_) {}
+                await new Promise((resolve) => {
+                    try {
+                        const req = indexedDB.deleteDatabase(_IDB_NAME);
+                        req.onsuccess = resolve;
+                        req.onerror = resolve;
+                        req.onblocked = resolve;
+                    } catch(_) { resolve(); }
+                });
+
+                setSaveProgress(100, 'Concluído', 'Recarregando o aplicativo...');
+            } finally {
+                setTimeout(() => window.location.reload(), 500);
+            }
         }
 
         // ===== HELPERS DE PERFIL =====
