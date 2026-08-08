@@ -2090,6 +2090,91 @@
         function _syncableVideos() {
             return videosData.filter(v => v.dataUrl);
         }
+
+        // ===== FOTOS OFFLINE: anexar sem conexão e reenviar sozinho ao reconectar =====
+        // Uma foto "pendente" é reconhecida por ainda guardar o base64 comprimido
+        // como fonte (dataUrl/src começando com "data:") em vez do link do Drive —
+        // mesma convenção já usada acima para vídeos (dataUrl nulo = não sincronizável).
+        function _isPendingPhotoSrc(src) { return !!src && src.startsWith('data:'); }
+
+        // Fotos do embarque prontas para sincronizar com o servidor: exclui as
+        // ainda pendentes de upload (adicionadas sem conexão), para nunca gravar
+        // o base64 bruto na coluna Fotos do banco — o link do Drive chega no
+        // próximo save, assim que _retryPendingPhotoUploads() concluir o envio.
+        function _syncablePhotos() {
+            return photosData.filter(p => p && p.dataUrl && !_isPendingPhotoSrc(p.dataUrl));
+        }
+
+        function _hasPendingPhotos() {
+            return photosData.some(p => _isPendingPhotoSrc(p.dataUrl))
+                || palletsData.some(pl => (pl.photos || []).some(_isPendingPhotoSrc))
+                || discardsData.some(d => (d.photos || []).some(_isPendingPhotoSrc))
+                || customTempsData.some(t => (t.photos || []).some(_isPendingPhotoSrc));
+        }
+
+        let _pendingUploadRetryTimer = null;
+        let _pendingUploadRetrying = false;
+
+        function _schedulePendingUploadsRetry() {
+            clearTimeout(_pendingUploadRetryTimer);
+            _pendingUploadRetryTimer = setTimeout(_retryPendingPhotoUploads, 20000);
+        }
+
+        // Percorre fotos do embarque, dos pallets, dos descartes e das temperaturas
+        // à procura de itens ainda pendentes (anexados sem conexão) e tenta
+        // reenviá-los ao Drive. Chamada ao voltar a conexão (evento 'online'), na
+        // inicialização do app e reagendada a cada 20s enquanto restar pendência —
+        // assim a foto sobe sozinha assim que a pessoa chega perto de um Wi-Fi/sinal,
+        // sem precisar reabrir a tela ou tocar em "Adicionar" de novo.
+        async function _retryPendingPhotoUploads() {
+            if (_pendingUploadRetrying || !_hasPendingPhotos()) return;
+            _pendingUploadRetrying = true;
+            try {
+                const info = await _tryGetPhotoUploadInfo();
+                if (!info) { _schedulePendingUploadsRetry(); return; }
+
+                let uploadedAny = false;
+                const tryUpload = async (src) => {
+                    try { const url = await _uploadPhotoDataUrlToDrive(src, info); uploadedAny = true; return url; }
+                    catch (_) { return src; } // continua pendente; tenta de novo na próxima rodada
+                };
+
+                for (const p of photosData) {
+                    if (_isPendingPhotoSrc(p.dataUrl)) p.dataUrl = await tryUpload(p.dataUrl);
+                }
+                for (const pl of palletsData) {
+                    if (!Array.isArray(pl.photos)) continue;
+                    for (let i = 0; i < pl.photos.length; i++) {
+                        if (_isPendingPhotoSrc(pl.photos[i])) pl.photos[i] = await tryUpload(pl.photos[i]);
+                    }
+                }
+                for (const d of discardsData) {
+                    if (!Array.isArray(d.photos)) continue;
+                    for (let i = 0; i < d.photos.length; i++) {
+                        if (_isPendingPhotoSrc(d.photos[i])) d.photos[i] = await tryUpload(d.photos[i]);
+                    }
+                }
+                for (const t of customTempsData) {
+                    if (!Array.isArray(t.photos)) continue;
+                    for (let i = 0; i < t.photos.length; i++) {
+                        if (_isPendingPhotoSrc(t.photos[i])) t.photos[i] = await tryUpload(t.photos[i]);
+                    }
+                }
+
+                if (uploadedAny) {
+                    renderPhotos(); renderPallets(); renderDiscards(); renderCustomTemps();
+                    updatePreview();
+                    saveToLocalStorage();
+                    _setAutoSaveToast(_ICON_CHECK, 'Foto(s) pendente(s) enviada(s) ao Drive!');
+                }
+            } finally {
+                _pendingUploadRetrying = false;
+                if (_hasPendingPhotos()) _schedulePendingUploadsRetry();
+            }
+        }
+
+        window.addEventListener('online', _retryPendingPhotoUploads);
+        // ===== FIM FOTOS OFFLINE =====
         // Atualiza o baseline (UpdatedAt) usado pela trava otimista das seções.
         function _trackSectionUpdatedAt(sectionType, updatedAt) {
             if (updatedAt && Object.prototype.hasOwnProperty.call(_loadedSectionUpdatedAt, sectionType)) {
@@ -2114,7 +2199,10 @@
                 const localPhotoByUrl = new Map(photosData.filter(p => p.dataUrl).map(p => [p.dataUrl, p]));
                 const localVideoByUrl = new Map(_syncableVideos().map(v => [v.dataUrl, v]));
                 return {
-                    photos: [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ...photosData.filter(p => p.dataUrl && !photoUrls.has(p.dataUrl))],
+                    // Fotos ainda pendentes (sem conexão) ficam de fora do que é
+                    // mandado ao servidor — só sobem quando _retryPendingPhotoUploads()
+                    // trocar o base64 pelo link do Drive.
+                    photos: [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ..._syncablePhotos().filter(p => !photoUrls.has(p.dataUrl))],
                     videos: [...serverVideos.map(v => localVideoByUrl.get(v.dataUrl) || v), ..._syncableVideos().filter(v => !videoUrls.has(v.dataUrl))]
                 };
             } catch(_) { return null; }
@@ -2510,7 +2598,7 @@
                 discardsData,
                 additionalInfoData,
                 aiSummary,
-                photosData,
+                photosData: _syncablePhotos(),
                 videosData: _syncableVideos(),
                 driverName: document.getElementById('driverName').value,
                 vehiclePlate: document.getElementById('vehiclePlate').value,
@@ -2789,7 +2877,7 @@
                 // Une com o que já está no servidor: outro usuário do perfil embarque
                 // pode ter salvo fotos/vídeos no mesmo código enquanto este editava.
                 const merged = await _fetchMergedMidias(codigo);
-                payload.photosData      = merged ? merged.photos : photosData;
+                payload.photosData      = merged ? merged.photos : _syncablePhotos();
                 payload.videosData      = merged ? merged.videos : _syncableVideos();
                 payload.reportDate      = document.getElementById('reportDate')?.value    || '';
                 payload.departureTime   = document.getElementById('departureTime')?.value || '';
@@ -3007,7 +3095,10 @@
                                 // Midias nesse push de sincronização logo após salvar.
                                 const localPhotoByUrl = new Map(photosData.filter(p => p.dataUrl).map(p => [p.dataUrl, p]));
                                 const localVideoByUrl = new Map(videosData.filter(v => v.dataUrl).map(v => [v.dataUrl, v]));
-                                const mergedPhotos = [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ...photosData.filter(p => p.dataUrl && !serverPhotoUrls.has(p.dataUrl))];
+                                // Fotos ainda pendentes (sem conexão) ficam de fora do que é
+                                // enviado, mas voltam pro array local depois — continuam
+                                // visíveis e são reenviadas por _retryPendingPhotoUploads().
+                                const mergedPhotos = [...serverPhotos.map(p => localPhotoByUrl.get(p.dataUrl) || p), ..._syncablePhotos().filter(p => !serverPhotoUrls.has(p.dataUrl))];
                                 const mergedVideos = [...serverVideos.map(v => localVideoByUrl.get(v.dataUrl) || v), ...videosData.filter(v => v.dataUrl && !serverVideoUrls.has(v.dataUrl))];
 
                                 const resultPush = await callBackend({
@@ -3021,7 +3112,8 @@
                                     additionalInfoData
                                 });
                                 if (resultPush && resultPush.success) {
-                                    photosData = mergedPhotos;
+                                    const stillPending = photosData.filter(p => _isPendingPhotoSrc(p.dataUrl));
+                                    photosData = [...mergedPhotos, ...stillPending];
                                     videosData = mergedVideos;
                                     if (resultPush.data) _applyConvertedSectionData(resultPush.data);
                                     renderPhotos();
@@ -4646,33 +4738,67 @@
             btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Verificando...`;
 
             // Consulta o banco pra checar duplicata
-            {
-                try {
-                    const result = await callBackend({ action: 'list' });
-                    if (result.success) {
-                        const exists = (result.rows || []).find(r => String(r.Codigo || '').trim() === codigo);
-                        if (exists) {
-                            errEl.textContent = `O embarque Nº ${codigo} já existe na planilha. Escolha outro número.`;
-                            errEl.classList.remove('hidden');
-                            btn.disabled = false;
-                            btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário`;
-                            lucide.createIcons();
-                            input.focus();
-                            return;
-                        }
-                    }
-                } catch(_) { /* sem conexão: prossegue sem verificar */ }
+            let existsAlready = false;
+            try {
+                const result = await callBackend({ action: 'list' });
+                if (result.success) {
+                    existsAlready = (result.rows || []).some(r => String(r.Codigo || '').trim() === codigo);
+                }
+            } catch(_) { /* sem conexão: prossegue sem verificar */ }
+
+            if (existsAlready) {
+                errEl.textContent = `O embarque Nº ${codigo} já existe na planilha. Escolha outro número.`;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário`;
+                lucide.createIcons();
+                input.focus();
+                return;
             }
 
-            // Código válido: limpa o formulário, preenche o código e libera
+            // Código válido: cria o registro no servidor já agora (não só no primeiro
+            // "Salvar") para poder entrar em modo edição de verdade — igual à experiência
+            // de abrir um embarque já salvo pelo Histórico: código travado, auto-save de
+            // 4s ligado e badge "Editando: Embarque X" na barra superior.
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Criando embarque...`;
+            const today = new Date().toISOString().split('T')[0];
+            let createResult;
+            try {
+                createResult = await callBackend({ embarqueCodigo: codigo, reportDate: today, statusRegistro: 'pendente' });
+            } catch (err) {
+                createResult = { success: false, error: (err && err.message) || String(err) };
+            }
+
+            if (!createResult || !createResult.success) {
+                errEl.textContent = 'Erro ao criar o embarque: ' + (createResult && createResult.error ? createResult.error : 'falha de conexão') + '. Tente novamente.';
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário`;
+                lucide.createIcons();
+                return;
+            }
+
             editModeTimestamp = null;
             _editPassword     = null;
             _editSnapshot     = null;
+            _editOriginalRow  = null;
             executeClearForm();
 
             const codigoEl = document.getElementById('embarqueCodigo');
             if (codigoEl) { codigoEl.value = codigo; }
+            document.getElementById('reportDate').value = today;
             if (currentUser && currentUser.perfil === 'master') _subscribeMasterRealtime(codigo);
+
+            editModeTimestamp = String(createResult.timestamp);
+            _masterSaveStatus = 'pendente';
+            _updateCodigoFieldLock();
+            _updateEditModeTopBarBadge();
+            const banner = document.getElementById('editModeBanner');
+            document.getElementById('editModeBannerText').textContent = _buildEditBannerText('edit', codigo, today);
+            banner.classList.remove('hidden');
+            _persistEditMode('edit', codigo, today);
+
+            _editSnapshot = _snapshotFormData();
             saveToLocalStorage();
             updatePreview();
             _closeWelcomeModal();
@@ -5080,6 +5206,9 @@
             // para não sobrescrever o registro do servidor com dados locais antigos após F5
             if (editModeTimestamp && !_autoSaveTimestamp) _autoSaveDirty = false;
             startUpdateChecker();
+            // Fotos deixadas pendentes numa sessão offline anterior (persistidas no
+            // IndexedDB/localStorage) tentam subir de novo assim que o app reabre com rede.
+            if (_hasPendingPhotos()) _retryPendingPhotoUploads();
 
             // Detecta se a página foi recarregada pelo iOS ao retornar de câmera/galeria.
             // Nesse caso: não mostra modal de retomada e reanexar handlers nos inputs.
@@ -7255,22 +7384,36 @@
             event.target.value = '';
             if (!files.length) return;
             if (!palletsData[idx].photos) palletsData[idx].photos = [];
-            let info;
-            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
+            // Sem conexão (ou token indisponível): guarda a foto comprimida no
+            // aparelho em vez de descartá-la; _retryPendingPhotoUploads() reenvia
+            // sozinho assim que a rede voltar (ver bloco "FOTOS OFFLINE" acima).
+            const info = await _tryGetPhotoUploadInfo();
+            let anyPending = false;
             for (const file of files) {
-                try {
-                    const dataUrl = await _compressImage(file);
-                    if (!dataUrl) continue;
-                    if (fromCamera) _savePhotoToGallery(dataUrl);
-                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                    palletsData[idx].photos.push(url);
-                    renderPallets();
-                    updatePreview();
-                } catch(err) {
-                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                if (info) {
+                    try {
+                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                        palletsData[idx].photos.push(url);
+                        renderPallets();
+                        updatePreview();
+                        continue;
+                    } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
+                palletsData[idx].photos.push(dataUrl);
+                renderPallets();
+                updatePreview();
+                anyPending = true;
             }
-            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            saveToLocalStorage();
+            if (anyPending) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão: foto(s) salva(s) no aparelho — envio automático ao reconectar.');
+                _schedulePendingUploadsRetry();
+            } else {
+                _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            }
         }
         function removePalletPhoto(idx, pidx) {
             palletsData[idx].photos.splice(pidx, 1);
@@ -7294,7 +7437,7 @@
                             payload.palletsData = palletsData;
                         }
                         if (sectionType === 'midias') {
-                            payload.photosData      = photosData;
+                            payload.photosData      = _syncablePhotos();
                             payload.videosData      = _syncableVideos();
                             payload.reportDate      = document.getElementById('reportDate')?.value || '';
                             payload.departureTime   = document.getElementById('departureTime')?.value || '';
@@ -7526,22 +7669,33 @@
             event.target.value = '';
             if (!files.length) return;
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
-            let info;
-            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
+            const info = await _tryGetPhotoUploadInfo();
+            let anyPending = false;
             for (const file of files) {
-                try {
-                    const dataUrl = await _compressImage(file);
-                    if (!dataUrl) continue;
-                    if (fromCamera) _savePhotoToGallery(dataUrl);
-                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                    discardsData[idx].photos.push(url);
-                    renderDiscards();
-                    updatePreview();
-                } catch(err) {
-                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                if (info) {
+                    try {
+                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                        discardsData[idx].photos.push(url);
+                        renderDiscards();
+                        updatePreview();
+                        continue;
+                    } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
+                discardsData[idx].photos.push(dataUrl);
+                renderDiscards();
+                updatePreview();
+                anyPending = true;
             }
-            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            saveToLocalStorage();
+            if (anyPending) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão: foto(s) salva(s) no aparelho — envio automático ao reconectar.');
+                _schedulePendingUploadsRetry();
+            } else {
+                _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            }
         }
         function removeDiscardPhoto(idx, pidx) {
             discardsData[idx].photos.splice(pidx, 1);
@@ -7658,22 +7812,33 @@
             event.target.value = '';
             if (!files.length) return;
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
-            let info;
-            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
+            const info = await _tryGetPhotoUploadInfo();
+            let anyPending = false;
             for (const file of files) {
-                try {
-                    const dataUrl = await _compressImage(file);
-                    if (!dataUrl) continue;
-                    if (fromCamera) _savePhotoToGallery(dataUrl);
-                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                    customTempsData[idx].photos.push(url);
-                    renderCustomTemps();
-                    updatePreview();
-                } catch(err) {
-                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                if (info) {
+                    try {
+                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                        customTempsData[idx].photos.push(url);
+                        renderCustomTemps();
+                        updatePreview();
+                        continue;
+                    } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
+                customTempsData[idx].photos.push(dataUrl);
+                renderCustomTemps();
+                updatePreview();
+                anyPending = true;
             }
-            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            saveToLocalStorage();
+            if (anyPending) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão: foto(s) salva(s) no aparelho — envio automático ao reconectar.');
+                _schedulePendingUploadsRetry();
+            } else {
+                _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            }
         }
         function removeTempPhoto(idx, pidx) {
             customTempsData[idx].photos.splice(pidx, 1);
@@ -7790,14 +7955,15 @@
 
         // Busca o token de upload uma única vez por lote de arquivos selecionados.
         // Lança erro (com toast já exibido) se não conseguir autenticar.
-        async function _getPhotoUploadInfoOrToast() {
-            _setAutoSaveToast(_ICON_SPIN, 'Enviando foto(s) para o Drive...', false);
-            const info = await callBackend({ action: 'getUploadInfo' });
-            if (!info.success) {
-                _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + (info.error || 'erro desconhecido'));
-                throw new Error(info.error || 'Erro ao autenticar com o Drive.');
-            }
-            return info;
+        // Busca o token de upload uma única vez por lote de arquivos selecionados.
+        // Não lança erro nem mostra toast — devolve null quando não há conexão
+        // (ou o backend falha), pra quem chama decidir guardar a foto como
+        // pendente em vez de travar o fluxo (ver bloco "FOTOS OFFLINE" acima).
+        async function _tryGetPhotoUploadInfo() {
+            try {
+                const info = await callBackend({ action: 'getUploadInfo' });
+                return (info && info.success) ? info : null;
+            } catch (_) { return null; }
         }
 
         async function handlePhotoUpload(event) {
@@ -7805,24 +7971,35 @@
             const fromCamera = _lastPhotoSource === 'camera';
             event.target.value = '';
             if (!files.length) return;
-            let info;
-            try { info = await _getPhotoUploadInfoOrToast(); } catch(_) { return; }
+            const info = await _tryGetPhotoUploadInfo();
+            let anyPending = false;
             // Sequencial (for..of + await): com forEach(async), as compressões
             // terminavam fora de ordem e as fotos entravam embaralhadas.
             for (const file of files) {
-                try {
-                    const dataUrl = await _compressImage(file);
-                    if (!dataUrl) continue;
-                    if (fromCamera) _savePhotoToGallery(dataUrl);
-                    const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                    photosData.push({ dataUrl: url, caption: '' });
-                    renderPhotos();
-                    updatePreview();
-                } catch(err) {
-                    _setAutoSaveToast(_ICON_WARN, 'Falha ao enviar foto: ' + err.message);
+                const dataUrl = await _compressImage(file);
+                if (!dataUrl) continue;
+                if (fromCamera) _savePhotoToGallery(dataUrl);
+                if (info) {
+                    try {
+                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
+                        photosData.push({ dataUrl: url, caption: '' });
+                        renderPhotos();
+                        updatePreview();
+                        continue;
+                    } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
+                photosData.push({ dataUrl, caption: '' });
+                renderPhotos();
+                updatePreview();
+                anyPending = true;
             }
-            _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            saveToLocalStorage();
+            if (anyPending) {
+                _setAutoSaveToast(_ICON_WARN, 'Sem conexão: foto(s) salva(s) no aparelho — envio automático ao reconectar.');
+                _schedulePendingUploadsRetry();
+            } else {
+                _setAutoSaveToast(_ICON_CHECK, 'Foto(s) enviada(s) ao Drive!');
+            }
         }
         async function removePhoto(idx) {
             const removed = photosData[idx];
@@ -7840,7 +8017,7 @@
             if (!codigo) return;
             try {
                 const merged = await _fetchMergedMidias(codigo);
-                const finalPhotos = (merged ? merged.photos : photosData).filter(p => !removed || p.dataUrl !== removed.dataUrl);
+                const finalPhotos = (merged ? merged.photos : _syncablePhotos()).filter(p => !removed || p.dataUrl !== removed.dataUrl);
                 const payload = {
                     action: 'saveSection',
                     sectionType: 'midias',
@@ -7973,7 +8150,7 @@
                     action: 'saveSection',
                     sectionType: 'midias',
                     codigo,
-                    photosData: merged ? merged.photos : photosData,
+                    photosData: merged ? merged.photos : _syncablePhotos(),
                     videosData: finalVideos,
                     reportDate: document.getElementById('reportDate')?.value || '',
                     departureTime: document.getElementById('departureTime')?.value || '',
