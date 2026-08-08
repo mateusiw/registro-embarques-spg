@@ -114,6 +114,18 @@
         }
         @media (min-width: 1280px) {
             .mobile-tab-content { display: block !important; }
+
+            /* Prévia "congelada": no desktop ela fica fixa (sticky) logo abaixo
+               da barra de navegação enquanto o usuário rola os menus do
+               formulário à esquerda. --nav-h é atualizado via JS (ver
+               _initStickyPreview) para acompanhar a altura real da navbar. */
+            #preview-column {
+                position: sticky;
+                top: calc(var(--nav-h, 112px) + 12px);
+                align-self: flex-start;
+                max-height: calc(100vh - var(--nav-h, 112px) - 24px);
+                overflow-y: auto;
+            }
         }
 
         @media print {
@@ -147,7 +159,12 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            #preview-column { width: 100% !important; }
+            #preview-column {
+                width: 100% !important;
+                position: static !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
             #preview-scroll-wrapper { overflow: visible !important; }
             #report-card {
                 width: 100% !important;
@@ -339,7 +356,7 @@
     </div>
 
     <!-- Navbar -->
-    <div class="sticky top-0 z-40">
+    <div id="appStickyNav" class="sticky top-0 z-40">
         <!-- Barra superior: logo + usuário (clara/suave em mobile e desktop — ver #appTopBar no <style>) -->
         <div id="appTopBar" class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 px-4 py-2.5 flex justify-between items-center shadow-md">
             <div class="flex items-center gap-3 min-w-0 flex-1">
@@ -511,9 +528,6 @@
                     <p class="text-sm font-black text-amber-700 uppercase tracking-wide">Modo Edição</p>
                     <p id="editModeBannerText" class="text-xs text-amber-600 mt-0.5">Você está editando um registro já salvo. Ao salvar, o registro original será substituído.</p>
                 </div>
-                <button type="button" onclick="clearEditMode()" class="shrink-0 text-amber-400 hover:text-amber-700 transition-colors" title="Cancelar edição">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
             </div>
 
             <form id="checklistForm" class="space-y-5">
@@ -1355,6 +1369,20 @@
     </nav>
 
     <script>
+        // Mantém a prévia "congelada" (sticky) alinhada com a altura real da
+        // navbar (que varia conforme o perfil do usuário esconde/mostra
+        // botões). Ver regra #preview-column no <style> acima.
+        (function _initStickyPreview() {
+            const navEl = document.getElementById('appStickyNav');
+            if (!navEl) return;
+            const updateNavHeight = () => {
+                document.documentElement.style.setProperty('--nav-h', navEl.offsetHeight + 'px');
+            };
+            updateNavHeight();
+            window.addEventListener('resize', updateNavHeight);
+            if (window.ResizeObserver) new ResizeObserver(updateNavHeight).observe(navEl);
+        })();
+
         // ===== PWA: BRAND ASSETS =====
 
         function applyBrandAssets() {
