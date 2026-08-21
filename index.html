@@ -897,7 +897,7 @@
     </div>
 
     <!-- MODAL DE MENSAGEM -->
-    <div id="messageModal" class="fixed inset-0 bg-black/80 z-50 hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
+    <div id="messageModal" class="fixed inset-0 bg-black/80 z-[260] hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center border border-slate-200">
             <div id="msgIconContainer" class="mx-auto flex items-center justify-center h-12 w-12 rounded-xl bg-slate-100 mb-4 border border-slate-200"></div>
             <h3 id="msgTitle" class="text-lg font-black text-slate-800 uppercase tracking-tight mb-2"></h3>
@@ -3133,22 +3133,33 @@
                                         { action: 'saveSection', sectionType, codigo: codigoAtual, upsertItems: diff.upsert, deleteIds: diff.deleteIds },
                                         extraPayload
                                     ));
-                                    if (pushResult && pushResult.success && pushResult.updatedAt) {
-                                        _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
+                                    if (pushResult && pushResult.success) {
+                                        if (pushResult.updatedAt) _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
+                                        if (pushResult.mergedData) {
+                                            if (sectionType === 'parceiros') { palletsData = _ensureItemIds(pushResult.mergedData); renderPallets(); }
+                                            if (sectionType === 'descartes') { discardsData = _ensureItemIds(pushResult.mergedData); renderDiscards(); }
+                                        }
+                                        return true;
                                     }
-                                    if (pushResult && pushResult.success && pushResult.mergedData) {
-                                        if (sectionType === 'parceiros') { palletsData = _ensureItemIds(pushResult.mergedData); renderPallets(); }
-                                        if (sectionType === 'descartes') { discardsData = _ensureItemIds(pushResult.mergedData); renderDiscards(); }
-                                    }
-                                } catch(_) {}
+                                    return false;
+                                } catch(_) {
+                                    return false;
+                                }
                             };
 
-                            await Promise.all([
+                            const [_parceirosPushOk, _descartesPushOk] = await Promise.all([
                                 pushDelta('parceiros', palletsData, _lastSyncedPalletsData, {}),
                                 pushDelta('descartes', discardsData, _lastSyncedDiscardsData, { reportDate: document.getElementById('reportDate')?.value || '' })
                             ]);
-                            _snapshotSyncedPallets();
-                            _snapshotSyncedDiscards();
+                            // Só marca como sincronizado (baseline do próximo _diffItemsById) o que
+                            // realmente foi salvo no servidor — antes o snapshot avançava mesmo com
+                            // o push falho (rede instável), sem aviso nenhum; o diff seguinte comparava
+                            // com esse snapshot já "confirmado" e nunca mais reenviava a edição perdida.
+                            if (_parceirosPushOk) _snapshotSyncedPallets();
+                            if (_descartesPushOk) _snapshotSyncedDiscards();
+                            if (!_parceirosPushOk || !_descartesPushOk) {
+                                _setAutoSaveToast(_ICON_WARN, 'Alguns dados podem não ter sincronizado com outros perfis');
+                            }
                             updatePreview();
                         } catch(_) {}
                     })();
@@ -3253,7 +3264,7 @@
         }
 
         async function openHistory() {
-            _historyTab = 'todos';
+            _historyTab = 'pendentes';
             _updateHistoryTabUI();
             document.getElementById('historyModal').classList.remove('hidden');
             lockScroll();
@@ -3576,8 +3587,11 @@
                                 <span class="text-xs text-slate-400">${dateDisplay}</span>
                                 ${statusBadge}
                             </div>
-                            <div class="text-sm font-bold text-slate-800 truncate">${product}</div>
-                            <div class="text-xs text-slate-500">${inspector}${client ? ' · ' + client : ''}</div>
+                            <div class="text-sm font-bold text-slate-800 truncate">${client || 'Cliente não informado'}</div>
+                            <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                <span><span class="text-slate-400 font-semibold">Produto:</span> ${product}</span>
+                                ${inspector !== '—' ? `<span class="text-slate-300">•</span><span><span class="text-slate-400 font-semibold">Resp.:</span> ${inspector}</span>` : ''}
+                            </div>
                             ${sectionIndicators}
                         </div>
                         <div class="flex flex-col gap-1.5 shrink-0">
@@ -3780,8 +3794,19 @@
                 // vazia, ex: após apagar todas as fotos), senão a exclusão nunca "gruda".
                 const m = row._midias;
                 if (m) {
-                    photosData = parse(m.Fotos);
-                    videosData = parse(m.Videos);
+                    const mPhotos = parse(m.Fotos);
+                    const mVideos = parse(m.Videos);
+                    // Enxerta fotos/vídeos presentes só na coluna da aba Embarques
+                    // (row.Fotos/Videos): acontece quando o push secundário do master pra
+                    // aba Midias falha (ex: sem internet) depois do salvamento principal já
+                    // ter ido — sem esse merge, a foto ficava invisível pra sempre, pois a
+                    // aba Midias (m) é sempre preferida assim que existe, mesmo desatualizada.
+                    const mPhotoUrls = new Set(mPhotos.map(p => p.dataUrl).filter(Boolean));
+                    const mVideoUrls = new Set(mVideos.map(v => v.dataUrl).filter(Boolean));
+                    const rowPhotos = parse(row.Fotos);
+                    const rowVideos = parse(row.Videos);
+                    photosData = [...mPhotos, ...rowPhotos.filter(p => p.dataUrl && !mPhotoUrls.has(p.dataUrl))];
+                    videosData = [...mVideos, ...rowVideos.filter(v => v.dataUrl && !mVideoUrls.has(v.dataUrl))];
                     _loadedSectionUpdatedAt.midias = m.UpdatedAt || null;
                     if (m.HorarioSaida) document.getElementById('departureTime').value = _parseHorarioSaida(m.HorarioSaida);
                     const mTemps = parse(m.Temperaturas);
@@ -3796,11 +3821,20 @@
                     const mPallets = parse(m.Pallets);
                     if (mPallets.length > 0) {
                         if (palletsData.length > 0) {
+                            // Casa pelo "id" do pallet (estável, gerado no cliente) quando
+                            // existe nos dois lados — evita que a foto de um pallet fique
+                            // grudada em outro pallet diferente se o perfil Parceiros excluir
+                            // ou reordenar pallets entre a foto ser tirada e este carregamento
+                            // (o merge por posição de array antes assumia que os dois arrays
+                            // sempre estavam na mesma ordem). Cai de volta pra posição quando
+                            // o id não existe em algum lado (dados salvos antes desse campo).
+                            const palletsById = new Map(palletsData.filter(pl => pl.id).map(pl => [pl.id, pl]));
                             mPallets.forEach((mp, i) => {
-                                if (palletsData[i]) {
-                                    if (mp.photos && mp.photos.length > 0) palletsData[i].photos = mp.photos;
-                                    if (mp.temp !== undefined && mp.temp !== '') palletsData[i].temp = mp.temp;
-                                    if (mp.client !== undefined && mp.client !== '') palletsData[i].client = mp.client;
+                                const target = (mp.id && palletsById.get(mp.id)) || palletsData[i];
+                                if (target) {
+                                    if (mp.photos && mp.photos.length > 0) target.photos = mp.photos;
+                                    if (mp.temp !== undefined && mp.temp !== '') target.temp = mp.temp;
+                                    if (mp.client !== undefined && mp.client !== '') target.client = mp.client;
                                 } else {
                                     palletsData.push(mp);
                                 }
@@ -4312,7 +4346,24 @@
                 renderNfeInputs();
             }
 
-            // Carrega dados da seção já existentes (se houver)
+            // Carrega dados da seção já existentes (se houver). Limpa fotos/vídeos/pallets/
+            // descartes/temperaturas/info locais do código anterior antes de buscar —
+            // _loadSectionData() não faz mais essa limpeza sozinho para fotos/pallets/descartes
+            // (agora faz merge por dataUrl/id em vez de sobrescrever, ver correção do bug de
+            // fotos que somem após F5/reload); já customTempsData/additionalInfoData só são
+            // sobrescritos ali quando o novo código TEM dados salvos — sem limpar aqui antes,
+            // temperaturas (e suas fotos!) e observações do código anterior ficavam grudadas
+            // na tela do código novo sempre que ele ainda não tivesse nenhuma salva.
+            photosData = [];
+            videosData = [];
+            palletsData = [];
+            discardsData = [];
+            customTempsData = [];
+            additionalInfoData = [];
+            const _thermoModeEl = document.getElementById('thermostatMode');
+            const _thermoValueEl = document.getElementById('thermostatValue');
+            if (_thermoModeEl) _thermoModeEl.value = 'CONTÍNUO';
+            if (_thermoValueEl) _thermoValueEl.value = '';
             _suppressSectionAutoSave = true;
             await _loadSectionData(codigo);
             updatePreview();
@@ -4569,7 +4620,14 @@
                     if (sectionType === 'parceiros') { palletsData = []; renderPallets(); _snapshotSyncedPallets(); }
                     else if (sectionType === 'descartes') { discardsData = []; renderDiscards(); _snapshotSyncedDiscards(); }
                     else if (sectionType === 'midias') {
-                        photosData = []; videosData = []; customTempsData = [];
+                        // NÃO zera photosData/videosData aqui: se esta chamada estiver
+                        // acontecendo durante o carregamento inicial do mesmo código
+                        // (initApp), o usuário pode já ter tirado uma foto nesse meio
+                        // tempo (ex: iOS recarrega a página ao voltar da câmera) — zerar
+                        // apagaria essa foto sem nunca ter sido salva em lugar nenhum.
+                        // A limpeza ao trocar de código é feita explicitamente por quem
+                        // chama esta função (ver _loadExistingSectionCodigo).
+                        customTempsData = [];
                         additionalInfoData = [];
                         const tmEl = document.getElementById('thermostatMode');
                         const tvEl = document.getElementById('thermostatValue');
@@ -4603,11 +4661,21 @@
                     const lc = document.getElementById('lacreNumber'); if (lc) lc.value = d.Lacre || '';
                     renderNfeInputs();
                 } else if (sectionType === 'parceiros') {
-                    palletsData = _ensureItemIds(tryParse(d.ParceirosData));
+                    // Merge por "id" em vez de sobrescrever: preserva pallets adicionados/
+                    // editados localmente ainda não sincronizados com o servidor (ex: a
+                    // página recarregou sozinha nesse meio tempo) — mesmo problema já
+                    // corrigido para fotos logo acima (sectionType 'midias').
+                    const _serverPallets = _ensureItemIds(tryParse(d.ParceirosData));
+                    const _serverPalletIds = new Set(_serverPallets.map(pl => pl.id));
+                    const _localOnlyPallets = palletsData.filter(pl => pl && pl.id && !_serverPalletIds.has(pl.id));
+                    palletsData = [..._serverPallets, ..._localOnlyPallets];
                     renderPallets();
                     _snapshotSyncedPallets();
                 } else if (sectionType === 'descartes') {
-                    discardsData = _ensureItemIds(tryParse(d.DiscartsData));
+                    const _serverDiscards = _ensureItemIds(tryParse(d.DiscartsData));
+                    const _serverDiscardIds = new Set(_serverDiscards.map(dc => dc.id));
+                    const _localOnlyDiscards = discardsData.filter(dc => dc && dc.id && !_serverDiscardIds.has(dc.id));
+                    discardsData = [..._serverDiscards, ..._localOnlyDiscards];
                     renderDiscards();
                     _snapshotSyncedDiscards();
                     // Carrega também Parceiros/Pallets (somente leitura) — o perfil descartes
@@ -4622,8 +4690,20 @@
                     // Parceiros — igual loadHistoryReport() já fazia — e só depois sobrepõe
                     // fotos/temperatura da própria aba Mídias por índice.
                     palletsData = await _fetchParceirosPallets(codigo);
-                    photosData = tryParse(d.Fotos);
-                    videosData = tryParse(d.Videos);
+                    // Merge por dataUrl em vez de sobrescrever: preserva fotos/vídeos
+                    // adicionados localmente enquanto esta busca estava em andamento
+                    // (ex: pendentes offline, ou capturados durante o próprio carregamento
+                    // inicial — iOS às vezes recarrega a página ao voltar da câmera). Uma
+                    // sobrescrita direta apagava silenciosamente qualquer foto ainda não
+                    // sincronizada com o servidor.
+                    const _serverPhotos = tryParse(d.Fotos);
+                    const _serverVideos = tryParse(d.Videos);
+                    const _serverPhotoUrls = new Set(_serverPhotos.map(p => p.dataUrl).filter(Boolean));
+                    const _serverVideoUrls = new Set(_serverVideos.map(v => v.dataUrl).filter(Boolean));
+                    const _localOnlyPhotos = photosData.filter(p => p && p.dataUrl && (_isPendingPhotoSrc(p.dataUrl) || !_serverPhotoUrls.has(p.dataUrl)));
+                    const _localOnlyVideos = videosData.filter(v => v && (v.uploading || (v.dataUrl && !_serverVideoUrls.has(v.dataUrl))));
+                    photosData = [..._serverPhotos, ..._localOnlyPhotos];
+                    videosData = [..._serverVideos, ..._localOnlyVideos];
                     if (d.HorarioSaida) {
                         const dtEl = document.getElementById('departureTime');
                         if (dtEl) dtEl.value = _parseHorarioSaida(d.HorarioSaida);
@@ -4639,11 +4719,14 @@
                     const savedPallets = tryParse(d.Pallets);
                     if (savedPallets.length > 0) {
                         if (palletsData.length > 0) {
+                            // Merge por "id" — ver comentário equivalente em loadHistoryReport().
+                            const palletsById = new Map(palletsData.filter(pl => pl.id).map(pl => [pl.id, pl]));
                             savedPallets.forEach((sp, i) => {
-                                if (palletsData[i]) {
-                                    if (sp.photos && sp.photos.length > 0) palletsData[i].photos = sp.photos;
-                                    if (sp.temp !== undefined && sp.temp !== '') palletsData[i].temp = sp.temp;
-                                    if (sp.client !== undefined && sp.client !== '') palletsData[i].client = sp.client;
+                                const target = (sp.id && palletsById.get(sp.id)) || palletsData[i];
+                                if (target) {
+                                    if (sp.photos && sp.photos.length > 0) target.photos = sp.photos;
+                                    if (sp.temp !== undefined && sp.temp !== '') target.temp = sp.temp;
+                                    if (sp.client !== undefined && sp.client !== '') target.client = sp.client;
                                 } else {
                                     palletsData.push(sp);
                                 }
@@ -6094,7 +6177,7 @@
             const nomeEl = document.getElementById('newProductNome');
             const unidEl = document.getElementById('newProductUnidades');
             const nome = nomeEl.value.trim();
-            if (!nome) { alert('Informe o nome do produto.'); return; }
+            if (!nome) { showMessageModal('Nome obrigatório', 'Informe o nome do produto.', 'error'); return; }
             const unidades = unidEl.value.trim() === '' ? null : (parseFloat(unidEl.value) || 0);
 
             try {
@@ -6104,7 +6187,7 @@
                 unidEl.value = '';
                 await loadProductsList();
                 fetchProductUnits();
-            } catch(e) { alert('Erro: ' + e.message); }
+            } catch(e) { showMessageModal('Erro ao adicionar', e.message, 'error'); }
         }
 
         async function updateProductUnits(produto, value) {
@@ -6114,19 +6197,28 @@
                 if (error) throw error;
                 fetchProductUnits();
             } catch(e) {
-                alert('Erro ao salvar: ' + e.message);
+                showMessageModal('Erro ao salvar', e.message, 'error');
                 loadProductsList(); // reverte o campo pro valor salvo, já que a edição falhou
             }
         }
 
-        async function deleteProduct(produto) {
-            if (!confirm(`Excluir o produto "${produto}"? Pallets que já usam esse produto não serão afetados, mas o cálculo de unidades por caixa deixará de funcionar para novos lotes.`)) return;
+        function deleteProduct(produto) {
+            showConfirmModal({
+                title: 'Excluir produto?',
+                text: `O produto "${produto}" será removido do cadastro. Pallets que já usam esse produto não serão afetados, mas o cálculo de unidades por caixa deixará de funcionar para novos lotes.`,
+                confirmLabel: 'Excluir',
+                type: 'danger',
+                onConfirm: () => _executeDeleteProduct(produto)
+            });
+        }
+
+        async function _executeDeleteProduct(produto) {
             try {
                 const { error } = await sb.from('produtos').delete().eq('produto', produto);
                 if (error) throw error;
                 await loadProductsList();
                 fetchProductUnits();
-            } catch(e) { alert('Erro: ' + e.message); }
+            } catch(e) { showMessageModal('Erro ao excluir', e.message, 'error'); }
         }
 
         // ---------- BACKUP (registros apagados) ----------
@@ -7242,6 +7334,11 @@
             if (!palletsData[pIdx].partnerGroups) palletsData[pIdx].partnerGroups = [];
             palletsData[pIdx].partnerGroups.push({ name: '', nameCustom: '', collapsed: false, lots: [] });
             renderPallets();
+            // Sem isso, _autoSaveDirty nunca ficava true e o grupo recém-aberto (ainda não
+            // salvo) era apagado silenciosamente se um evento de realtime chegasse logo em
+            // seguida — _onSectionRealtimeChange() só recarrega do servidor quando não há
+            // edição local pendente, mas sem marcar o dirty aqui ele achava que não havia.
+            updatePreview();
         }
         function removePalletPartnerGroup(pIdx, gIdx) { palletsData[pIdx].partnerGroups.splice(gIdx, 1); renderPallets(); updatePreview(); }
         function confirmClearAllPalletPartners() {
@@ -7273,6 +7370,10 @@
             palletsData[pIdx].partnerGroups[gIdx].lots.push({ product: '', productCustom: '', boxType: '', boxTypeCustom: '', boxes: '', harvestDate: '' });
             palletsData[pIdx].partnerGroups[gIdx].collapsed = false; // abre o grupo para mostrar o novo lote
             renderPallets();
+            // Sem isso, _autoSaveDirty nunca ficava true e o lote recém-adicionado (ainda não
+            // salvo) era apagado e o grupo recolhia sozinho se um evento de realtime chegasse
+            // logo em seguida — mesmo problema do addPalletPartnerGroup acima.
+            updatePreview();
         }
         function removePalletLot(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots.splice(lIdx, 1); renderPallets(); updatePreview(); }
         function _refreshPalletTotalDisplay(pIdx) {
