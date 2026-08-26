@@ -2268,6 +2268,48 @@
                 _setAutoSaveToast(_ICON_WARN, 'Outro usuário atualizou este embarque — salve para sincronizar');
                 return;
             }
+
+            if (sectionType === 'parceiros' || sectionType === 'descartes') {
+                // Esta notificação em geral é o ECO da própria gravação deste cliente
+                // (o cliente está inscrito na mesma tabela em que acabou de escrever) e
+                // chega bem na janela entre o auto-save zerar _autoSaveDirty e a pessoa
+                // retomar a digitação — ex: ela consultou o caderno por alguns segundos
+                // antes de continuar preenchendo. _loadSectionData faz reload completo
+                // (correto na carga inicial da tela), mas aqui destruiria/recriaria o
+                // DOM sem ter nada de novo pra mostrar, derrubando o foco/seleção que a
+                // pessoa está prestes a usar. Por isso busca o dado bruto e reconcilia
+                // por "id" (mesma lógica do auto-save, ver _reconcileServerMerge),
+                // usando o último baseline confirmado como referência do que "já era
+                // esperado" — só re-renderiza se algo realmente novo chegou.
+                try {
+                    const result = await callBackend({ action: 'getSection', sectionType, codigo });
+                    if (!result.success || !result.data) return;
+                    const tryParse = s => { try { return JSON.parse(s || '[]'); } catch(_) { return []; } };
+                    if (sectionType === 'parceiros') {
+                        const serverArr = _ensureItemIds(tryParse(result.data.ParceirosData));
+                        const { merged, pending } = _reconcileServerMerge(palletsData, _lastSyncedPalletsData || [], serverArr);
+                        const changed = _stableStringify(merged) !== _stableStringify(palletsData);
+                        palletsData = merged;
+                        _lastSyncedPalletsData = JSON.parse(JSON.stringify(serverArr));
+                        if (pending) _autoSaveDirty = true;
+                        if (!changed) return;
+                        renderPallets();
+                    } else {
+                        const serverArr = _ensureItemIds(tryParse(result.data.DiscartsData));
+                        const { merged, pending } = _reconcileServerMerge(discardsData, _lastSyncedDiscardsData || [], serverArr);
+                        const changed = _stableStringify(merged) !== _stableStringify(discardsData);
+                        discardsData = merged;
+                        _lastSyncedDiscardsData = JSON.parse(JSON.stringify(serverArr));
+                        if (pending) _autoSaveDirty = true;
+                        if (!changed) return;
+                        renderDiscards();
+                    }
+                } catch(_) { return; }
+                updatePreview();
+                _setAutoSaveToast(_ICON_CHECK, 'Atualizado por outro usuário');
+                return;
+            }
+
             _suppressSectionAutoSave = true;
             await _loadSectionData(codigo);
             updatePreview();
@@ -2840,6 +2882,13 @@
                 setSaveProgress(10, 'Salvando seção', 'Enviando dados...');
             }
 
+            // Snapshot do que está indo pro servidor NESTE exato momento (antes do
+            // await) — usado para diferenciar, quando a resposta voltar, o que já foi
+            // enviado do que a pessoa digitou enquanto a requisição estava em voo
+            // (ver _reconcileServerMerge).
+            let sentPalletsSnapshot = null, sentDiscardsSnapshot = null;
+            let pendingPalletEdits = false, pendingDiscardEdits = false;
+
             let payload = { action: 'saveSection', sectionType, codigo };
 
             if (sectionType === 'nf') {
@@ -2868,11 +2917,13 @@
                 payload.upsertItems = diff.upsert;
                 payload.deleteIds   = diff.deleteIds;
                 payload.reportDate  = document.getElementById('reportDate')?.value || '';
+                sentPalletsSnapshot = JSON.parse(JSON.stringify(palletsData));
             } else if (sectionType === 'descartes') {
                 const diff = _diffItemsById(discardsData, _lastSyncedDiscardsData);
                 payload.upsertItems = diff.upsert;
                 payload.deleteIds   = diff.deleteIds;
                 payload.reportDate  = document.getElementById('reportDate')?.value || '';
+                sentDiscardsSnapshot = JSON.parse(JSON.stringify(discardsData));
             } else if (sectionType === 'midias') {
                 // Une com o que já está no servidor: outro usuário do perfil embarque
                 // pode ter salvo fotos/vídeos no mesmo código enquanto este editava.
@@ -2895,21 +2946,33 @@
 
                 if (!result.success) throw new Error(result.error || 'Erro desconhecido');
 
-                // Pallets/descartes: adota o array já mesclado pelo servidor (por "id"),
-                // que inclui itens que outra pessoa salvou nesse meio tempo em ids
-                // diferentes dos que esta sessão alterou. Só re-renderiza quando o
-                // merge realmente trouxe algo diferente do que já está em tela —
-                // senão o auto-save silencioso rouba o foco de quem estiver digitando.
+                // Pallets/descartes: reconcilia com o array mesclado pelo servidor (por
+                // "id"), preservando qualquer edição feita DEPOIS que o payload já
+                // tinha sido enviado (ver _reconcileServerMerge) — sem isso, a pessoa
+                // digitava um novo lote/quantidade enquanto o auto-save de 4s estava em
+                // voo, e a resposta (que só reflete o que foi enviado) apagava o que
+                // ela acabou de preencher. Só re-renderiza quando o merge realmente
+                // trouxe algo diferente do que já está em tela — senão o auto-save
+                // silencioso rouba o foco de quem estiver digitando.
                 if (sectionType === 'parceiros' && result.mergedData) {
-                    const merged = _ensureItemIds(result.mergedData);
-                    const changed = JSON.stringify(merged) !== JSON.stringify(palletsData);
-                    palletsData = merged;
+                    const serverMerged = _ensureItemIds(result.mergedData);
+                    const { merged: reconciled, pending } = _reconcileServerMerge(palletsData, sentPalletsSnapshot, serverMerged);
+                    const changed = _stableStringify(reconciled) !== _stableStringify(palletsData);
+                    palletsData = reconciled;
+                    // Baseline do próximo diff = exatamente o que o servidor confirmou
+                    // ter salvo — nunca o que está em tela agora, que pode incluir uma
+                    // edição ainda não enviada (senão ela nunca mais seria reenviada).
+                    _lastSyncedPalletsData = JSON.parse(JSON.stringify(serverMerged));
+                    pendingPalletEdits = pending;
                     if (changed) { renderPallets(); updatePreview(); }
                 }
                 if (sectionType === 'descartes' && result.mergedData) {
-                    const merged = _ensureItemIds(result.mergedData);
-                    const changed = JSON.stringify(merged) !== JSON.stringify(discardsData);
-                    discardsData = merged;
+                    const serverMerged = _ensureItemIds(result.mergedData);
+                    const { merged: reconciled, pending } = _reconcileServerMerge(discardsData, sentDiscardsSnapshot, serverMerged);
+                    const changed = _stableStringify(reconciled) !== _stableStringify(discardsData);
+                    discardsData = reconciled;
+                    _lastSyncedDiscardsData = JSON.parse(JSON.stringify(serverMerged));
+                    pendingDiscardEdits = pending;
                     if (changed) { renderDiscards(); updatePreview(); }
                 }
 
@@ -2933,9 +2996,14 @@
                 // Troca o base64 local pelos links do Drive devolvidos e marca como
                 // sincronizado — senão o auto-save reenviava tudo de novo.
                 if (result.data) _applyConvertedSectionData(result.data);
-                if (sectionType === 'parceiros' || sectionType === 'midias') _snapshotSyncedPallets();
-                if (sectionType === 'descartes') _snapshotSyncedDiscards();
-                _autoSaveDirty = false;
+                // Para parceiros/descartes a baseline já foi ajustada acima com a
+                // resposta real do servidor (serverMerged); chamar _snapshotSyncedPallets()/
+                // _snapshotSyncedDiscards() aqui de novo usaria "palletsData"/"discardsData"
+                // (que pode conter uma edição feita durante o envio, ainda não confirmada
+                // pelo servidor) como se já estivesse sincronizada — essa edição nunca
+                // mais seria reenviada.
+                if (sectionType === 'midias') _snapshotSyncedPallets();
+                _autoSaveDirty = pendingPalletEdits || pendingDiscardEdits;
                 // O código atual acabou de ser salvo: some da lista de "Descartes Pendentes"
                 // (ver checkDescartesPendingNotifications) sem precisar de F5.
                 if (sectionType === 'descartes') checkDescartesPendingNotifications();
@@ -3126,8 +3194,13 @@
                                 _setAutoSaveToast(_ICON_WARN, 'Fotos podem não ter sincronizado com outros perfis');
                             }
 
+                            // sentSnapshot é tirado ANTES do await: se a pessoa digitar mais alguma
+                            // coisa em palletsData/discardsData enquanto esta requisição está em voo,
+                            // _reconcileServerMerge preserva essa edição em vez de deixar a resposta
+                            // do servidor (que só reflete o que já tinha sido enviado) apagá-la.
                             const pushDelta = async (sectionType, currentArr, syncedArr, extraPayload) => {
                                 const diff = _diffItemsById(currentArr, syncedArr);
+                                const sentSnapshot = JSON.parse(JSON.stringify(currentArr));
                                 try {
                                     const pushResult = await callBackend(Object.assign(
                                         { action: 'saveSection', sectionType, codigo: codigoAtual, upsertItems: diff.upsert, deleteIds: diff.deleteIds },
@@ -3136,8 +3209,23 @@
                                     if (pushResult && pushResult.success) {
                                         if (pushResult.updatedAt) _loadedSectionUpdatedAt[sectionType] = pushResult.updatedAt;
                                         if (pushResult.mergedData) {
-                                            if (sectionType === 'parceiros') { palletsData = _ensureItemIds(pushResult.mergedData); renderPallets(); }
-                                            if (sectionType === 'descartes') { discardsData = _ensureItemIds(pushResult.mergedData); renderDiscards(); }
+                                            const serverMerged = _ensureItemIds(pushResult.mergedData);
+                                            if (sectionType === 'parceiros') {
+                                                const { merged, pending } = _reconcileServerMerge(palletsData, sentSnapshot, serverMerged);
+                                                const changed = _stableStringify(merged) !== _stableStringify(palletsData);
+                                                palletsData = merged;
+                                                _lastSyncedPalletsData = JSON.parse(JSON.stringify(serverMerged));
+                                                if (changed) renderPallets();
+                                                if (pending) _autoSaveDirty = true;
+                                            }
+                                            if (sectionType === 'descartes') {
+                                                const { merged, pending } = _reconcileServerMerge(discardsData, sentSnapshot, serverMerged);
+                                                const changed = _stableStringify(merged) !== _stableStringify(discardsData);
+                                                discardsData = merged;
+                                                _lastSyncedDiscardsData = JSON.parse(JSON.stringify(serverMerged));
+                                                if (changed) renderDiscards();
+                                                if (pending) _autoSaveDirty = true;
+                                            }
                                         }
                                         return true;
                                     }
@@ -3151,12 +3239,10 @@
                                 pushDelta('parceiros', palletsData, _lastSyncedPalletsData, {}),
                                 pushDelta('descartes', discardsData, _lastSyncedDiscardsData, { reportDate: document.getElementById('reportDate')?.value || '' })
                             ]);
-                            // Só marca como sincronizado (baseline do próximo _diffItemsById) o que
-                            // realmente foi salvo no servidor — antes o snapshot avançava mesmo com
-                            // o push falho (rede instável), sem aviso nenhum; o diff seguinte comparava
-                            // com esse snapshot já "confirmado" e nunca mais reenviava a edição perdida.
-                            if (_parceirosPushOk) _snapshotSyncedPallets();
-                            if (_descartesPushOk) _snapshotSyncedDiscards();
+                            // A baseline (_lastSyncedPalletsData/_lastSyncedDiscardsData) já foi
+                            // ajustada dentro de pushDelta, a partir do que o servidor de fato
+                            // confirmou (serverMerged) — nunca do que está em tela agora, que pode
+                            // incluir uma edição feita durante o envio e ainda não confirmada.
                             if (!_parceirosPushOk || !_descartesPushOk) {
                                 _setAutoSaveToast(_ICON_WARN, 'Alguns dados podem não ter sincronizado com outros perfis');
                             }
@@ -5436,6 +5522,21 @@
             (arr || []).forEach(item => { if (!item.id) item.id = _genItemId(); });
             return arr;
         }
+        // JSON.stringify comum é sensível à ordem das chaves do objeto. Colunas
+        // jsonb do Postgres NÃO preservam a ordem de inserção das chaves — todo
+        // valor que passa pelo banco volta com as chaves reordenadas mesmo que
+        // nada tenha mudado de fato. Comparar com JSON.stringify puro depois de
+        // um round-trip pelo servidor fazia itens intocados parecerem "alterados"
+        // só por causa da reordenação, disparando re-render (e perda de foco/
+        // digitação) a cada ciclo de auto-save. Esta versão ordena as chaves
+        // recursivamente antes de comparar, então só acusa diferença quando o
+        // conteúdo realmente mudou.
+        function _stableStringify(value) {
+            if (value === null || typeof value !== 'object') return JSON.stringify(value);
+            if (Array.isArray(value)) return '[' + value.map(_stableStringify).join(',') + ']';
+            const keys = Object.keys(value).sort();
+            return '{' + keys.map(k => JSON.stringify(k) + ':' + _stableStringify(value[k])).join(',') + '}';
+        }
         // Compara o array atual com o último snapshot confirmado no servidor
         // (por "id") e devolve só o que mudou: itens novos/alterados pra
         // upsert, e ids que saíram do array local pra apagar.
@@ -5447,10 +5548,47 @@
                 if (!it.id) it.id = _genItemId();
                 currentIds.add(it.id);
                 const prev = syncedById.get(it.id);
-                if (!prev || JSON.stringify(prev) !== JSON.stringify(it)) upsert.push(it);
+                if (!prev || _stableStringify(prev) !== _stableStringify(it)) upsert.push(it);
             });
             const deleteIds = (synced || []).map(it => it.id).filter(id => id && !currentIds.has(id));
             return { upsert, deleteIds };
+        }
+
+        // Reconcilia o array mesclado devolvido pelo servidor (resposta de um save)
+        // com o estado local atual, preservando qualquer edição feita DEPOIS que o
+        // payload já tinha sido enviado (ex: a pessoa digitou mais um lote enquanto a
+        // requisição de save ainda estava em voo). Sem isso, a resposta — que só
+        // reflete o que foi enviado — sobrescrevia esses campos e apagava o que
+        // acabou de ser digitado. Compara cada item local contra o snapshot enviado
+        // (sentSnapshotArr): se não mudou desde o envio, adota a versão do servidor
+        // (pode trazer o merge de outro usuário); se mudou, mantém a versão local
+        // intacta. Itens novos do servidor (criados por outro usuário nesse meio
+        // tempo) entram no fim; itens apagados localmente nesse meio tempo nunca são
+        // ressuscitados. Retorna também `pending`: true se sobrou algum item ainda
+        // não confirmado pelo servidor (o próximo auto-save precisa reenviá-lo).
+        function _reconcileServerMerge(liveArr, sentSnapshotArr, serverArr) {
+            const sentById = new Map((sentSnapshotArr || []).map(it => [it.id, it]));
+            const serverById = new Map((serverArr || []).map(it => [it.id, it]));
+            const liveIds = new Set((liveArr || []).map(it => it.id));
+            const deletedSinceSent = new Set(
+                (sentSnapshotArr || []).map(it => it.id).filter(id => id && !liveIds.has(id))
+            );
+
+            let pending = false;
+            const merged = (liveArr || []).map(liveItem => {
+                const sentVersion = sentById.get(liveItem.id);
+                const editedSinceSent = !sentVersion || _stableStringify(sentVersion) !== _stableStringify(liveItem);
+                if (editedSinceSent) { pending = true; return liveItem; }
+                return serverById.get(liveItem.id) || liveItem;
+            });
+
+            (serverArr || []).forEach(serverItem => {
+                if (!liveIds.has(serverItem.id) && !deletedSinceSent.has(serverItem.id)) {
+                    merged.push(serverItem);
+                }
+            });
+
+            return { merged, pending };
         }
 
         const _ICON_CHECK    = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:#34d399"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
