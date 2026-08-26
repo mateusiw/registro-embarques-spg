@@ -2305,7 +2305,7 @@
                         renderDiscards();
                     }
                 } catch(_) { return; }
-                updatePreview();
+                _renderPreviewOnly();
                 _setAutoSaveToast(_ICON_CHECK, 'Atualizado por outro usuário');
                 return;
             }
@@ -2964,7 +2964,7 @@
                     // edição ainda não enviada (senão ela nunca mais seria reenviada).
                     _lastSyncedPalletsData = JSON.parse(JSON.stringify(serverMerged));
                     pendingPalletEdits = pending;
-                    if (changed) { renderPallets(); updatePreview(); }
+                    if (changed) { renderPallets(); _renderPreviewOnly(); }
                 }
                 if (sectionType === 'descartes' && result.mergedData) {
                     const serverMerged = _ensureItemIds(result.mergedData);
@@ -2973,7 +2973,7 @@
                     discardsData = reconciled;
                     _lastSyncedDiscardsData = JSON.parse(JSON.stringify(serverMerged));
                     pendingDiscardEdits = pending;
-                    if (changed) { renderDiscards(); updatePreview(); }
+                    if (changed) { renderDiscards(); _renderPreviewOnly(); }
                 }
 
                 // Mídias: adota o array mesclado (inclui fotos do outro usuário),
@@ -7499,9 +7499,14 @@
             palletsData[pIdx].partnerGroups[gIdx].name = value;
             if (value !== 'Outro') palletsData[pIdx].partnerGroups[gIdx].nameCustom = '';
             renderPallets();
+            // Faltava aqui: sem marcar sujo/reagendar o auto-save, escolher o parceiro
+            // no <select> não era salvo sozinho (só "pegava carona" no próximo campo
+            // editado) — e nem entrava no rascunho local (saveToLocalStorage só roda
+            // dentro de updatePreview), podendo sumir se a página recarregasse antes.
+            updatePreview();
         }
         function updatePalletLotGroupField(pIdx, gIdx, field, value) { palletsData[pIdx].partnerGroups[gIdx][field] = value; updatePreview(); }
-        function clearPalletPartnerGroupName(pIdx, gIdx) { palletsData[pIdx].partnerGroups[gIdx].name = ''; palletsData[pIdx].partnerGroups[gIdx].nameCustom = ''; renderPallets(); }
+        function clearPalletPartnerGroupName(pIdx, gIdx) { palletsData[pIdx].partnerGroups[gIdx].name = ''; palletsData[pIdx].partnerGroups[gIdx].nameCustom = ''; renderPallets(); updatePreview(); }
         // --- Lotes dentro de um grupo ---
         function addPalletLot(pIdx, gIdx) {
             if (!palletsData[pIdx].partnerGroups[gIdx].lots) palletsData[pIdx].partnerGroups[gIdx].lots = [];
@@ -8570,6 +8575,19 @@
         function updatePreview() {
             _autoSaveDirty = true;
             _scheduleSectionAutoSave();
+            _renderPreviewOnly();
+        }
+
+        // Só reconstrói o HTML da prévia — sem marcar _autoSaveDirty nem reagendar
+        // o auto-save. updatePreview() (chamado por todo input do formulário) precisa
+        // dos dois, mas o handler de sucesso do auto-save (_doSaveSectionToCloud)
+        // chamava updatePreview() só pra atualizar a prévia depois de um merge do
+        // servidor — isso REARMAVA o auto-save por mais 4s a cada vez que a resposta
+        // trazia algo "diferente" (ver _stableStringify), disparando um novo ciclo de
+        // save/reconcile (e um novo renderPallets()) pouco depois, bem no meio da
+        // pessoa preenchendo o próximo campo do parceiro — sentido como "a lista
+        // recolheu sozinha" mesmo com os dados intactos.
+        function _renderPreviewOnly() {
             const dateVal = document.getElementById('reportDate').value;
             const codigo = document.getElementById('embarqueCodigo').value || '---';
             const product = (getProductName() || '---').toUpperCase();
