@@ -3865,12 +3865,22 @@
                     // preservar esses dois campos aqui, a troca de array abaixo os apagava.
                     const priorPallets = palletsData;
                     palletsData = parse(rowParceiros.ParceirosData);
+                    // Casa por "id" (estável) em vez de só por posição — pallets podem ter
+                    // sido criados/removidos por outro perfil nesse meio tempo, o que
+                    // desalinhava priorPallets[i] do pallet certo.
+                    const priorPalletsById = new Map(priorPallets.filter(pl => pl && pl.id).map(pl => [pl.id, pl]));
                     palletsData.forEach((pl, i) => {
-                        const prev = priorPallets[i];
+                        const prev = (pl.id && priorPalletsById.get(pl.id)) || priorPallets[i];
                         if (!prev) return;
                         if ((pl.temp === undefined || pl.temp === '') && prev.temp !== undefined && prev.temp !== '') pl.temp = prev.temp;
                         if ((pl.client === undefined || pl.client === '') && prev.client !== undefined && prev.client !== '') pl.client = prev.client;
                     });
+                    // Preserva fotos de pallet adicionadas localmente e ainda não
+                    // sincronizadas com o servidor (ex: reload logo após tirar a foto,
+                    // antes do auto-save de 4s disparar) — sem isso, o merge com a aba
+                    // Midias abaixo só recupera o que já tinha sido salvo, apagando
+                    // silenciosamente qualquer foto ainda pendente de envio.
+                    _preserveLocalPalletPhotos(palletsData, priorPallets);
                     _loadedSectionUpdatedAt.parceiros = rowParceiros.UpdatedAt || null;
                 }
 
@@ -4687,6 +4697,28 @@
             return [];
         }
 
+        // Preserva fotos de pallet adicionadas localmente e ainda não confirmadas no
+        // servidor (ex: reload/F5 logo após tirar a foto do pallet, ou o iOS recarrega
+        // a página sozinho ao voltar da câmera — antes do auto-save de 4s disparar).
+        // A estrutura de pallets é sempre rebuscada da aba Parceiros a cada carregamento
+        // (ver _fetchParceirosPallets acima); sem este merge, qualquer foto ainda não
+        // sincronizada com o servidor simplesmente sumia da tela ao reabrir/atualizar o
+        // embarque, mesmo a foto tendo sido "salva" com sucesso do ponto de vista do
+        // usuário. Casa por "id" (estável) — nunca por posição, que quebra se um pallet
+        // foi criado/removido/reordenado nesse meio tempo.
+        function _preserveLocalPalletPhotos(newPallets, priorPallets) {
+            if (!Array.isArray(priorPallets) || !priorPallets.length) return newPallets;
+            const priorById = new Map(priorPallets.filter(pl => pl && pl.id).map(pl => [pl.id, pl]));
+            (newPallets || []).forEach(pl => {
+                const prev = pl && pl.id && priorById.get(pl.id);
+                if (!prev || !Array.isArray(prev.photos) || !prev.photos.length) return;
+                const existing = new Set((pl.photos || []).filter(Boolean));
+                const missing = prev.photos.filter(src => src && !existing.has(src));
+                if (missing.length) pl.photos = [...(pl.photos || []), ...missing];
+            });
+            return newPallets;
+        }
+
         async function _loadSectionData(codigo) {
             if (!currentUser) return;
             const sectionMap = { parceiros: 'parceiros', descartes: 'descartes', nf: 'nf', embarque: 'midias' };
@@ -4721,7 +4753,13 @@
                         if (tvEl) tvEl.value = '';
                         // Mesmo sem Mídias salva ainda, os pallets do perfil parceiros já
                         // podem existir — carrega para o embarque poder anexar fotos neles.
+                        const priorPalletsNoData = palletsData;
                         palletsData = await _fetchParceirosPallets(codigo);
+                        // Preserva fotos ainda não sincronizadas (ver _preserveLocalPalletPhotos) —
+                        // essencial aqui pois é o caso mais comum do bug: a PRIMEIRA foto de um
+                        // pallet, tirada antes de qualquer save ter concluído, então a aba Mídias
+                        // ainda nem existe no servidor (por isso caímos neste bloco).
+                        _preserveLocalPalletPhotos(palletsData, priorPalletsNoData);
                         renderPhotos(); renderVideos(); renderCustomTemps(); renderPallets(); renderAdditionalInfo();
                         _snapshotSyncedPallets();
                     }
@@ -4775,6 +4813,7 @@
                     // Carrega primeiro a estrutura dos pallets (labels/parceiros) da aba
                     // Parceiros — igual loadHistoryReport() já fazia — e só depois sobrepõe
                     // fotos/temperatura da própria aba Mídias por índice.
+                    const priorPalletsMidias = palletsData;
                     palletsData = await _fetchParceirosPallets(codigo);
                     // Merge por dataUrl em vez de sobrescrever: preserva fotos/vídeos
                     // adicionados localmente enquanto esta busca estava em andamento
@@ -4821,6 +4860,13 @@
                             palletsData = savedPallets;
                         }
                     }
+                    // Reconciliação final: qualquer foto que estivesse no pallet ANTES desta
+                    // busca (ex: acabou de ser tirada, ainda não confirmada no servidor) e que
+                    // nem a estrutura da aba Parceiros nem o merge de savedPallets acima trouxe
+                    // de volta, é preservada aqui — savedPallets faz um REPLACE do array de
+                    // fotos (não união), então sem este passo uma foto pendente seria apagada
+                    // mesmo quando o pallet já tinha outras fotos confirmadas no servidor.
+                    _preserveLocalPalletPhotos(palletsData, priorPalletsMidias);
                     _ensureItemIds(palletsData);
                     renderPhotos();
                     renderVideos();
