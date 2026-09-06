@@ -355,6 +355,35 @@
         </div>
     </div>
 
+    <!-- Modal: Auditoria (histórico de alterações) -->
+    <div id="auditoriaModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex justify-center items-start backdrop-blur-sm overflow-y-auto p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 border border-slate-200">
+            <div class="flex items-center justify-between p-5 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0"><i data-lucide="scroll-text" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wide">Auditoria — Alterações</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Quem alterou o quê, quando, e como estava antes</p>
+                    </div>
+                </div>
+                <button onclick="closeAuditoriaModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="px-5 pt-3 flex flex-col sm:flex-row gap-2">
+                <input type="text" id="auditoriaSearch" placeholder="Buscar por código, produto ou cliente..." oninput="filterAuditoriaList()" class="flex-1 p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none">
+                <select id="auditoriaUserFilter" onchange="filterAuditoriaList()" class="p-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none sm:w-44">
+                    <option value="">Todos os usuários</option>
+                </select>
+            </div>
+            <div class="p-5 space-y-2">
+                <div id="auditoriaList" class="space-y-2 max-h-[62vh] overflow-y-auto">
+                    <div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navbar -->
     <div id="appStickyNav" class="sticky top-0 z-40">
         <!-- Barra superior: logo + usuário (clara/suave em mobile e desktop — ver #appTopBar no <style>) -->
@@ -416,7 +445,7 @@
                         <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
                         <span>Salvar</span>
                     </button>
-                    <button type="button" id="navBtnSincronizar" onclick="sincronizarDados()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Sincronizar dados da planilha">
+                    <button type="button" id="navBtnSincronizar" onclick="sincronizarDados()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Sincronizar dados da nuvem">
                         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                         <span>Atualizar</span>
                     </button>
@@ -424,6 +453,10 @@
                         <i data-lucide="history" class="w-3.5 h-3.5"></i>
                         <span>Histórico</span>
                         <span id="histPendingBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-orange-400 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 shadow"></span>
+                    </button>
+                    <button type="button" id="navBtnAuditoria" onclick="openAuditoriaModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95" title="Auditoria — histórico de alterações">
+                        <i data-lucide="scroll-text" class="w-3.5 h-3.5"></i>
+                        <span>Auditoria</span>
                     </button>
                 </div>
             </div>
@@ -571,39 +604,42 @@
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Cliente</label>
-                            <input type="text" id="varietyInput" placeholder="Ex: Nome do cliente" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <div id="varietyInputCombo" class="relative">
+                                <input type="text" id="varietyInput" autocomplete="off" placeholder="Ex: Nome do cliente"
+                                    oninput="_comboInput('varietyInput')" onfocus="_comboOpen('varietyInput')" onkeydown="_comboKey('varietyInput',event)"
+                                    class="field-card w-full p-2 pr-9 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                                <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="_comboToggle('varietyInput')"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                                <div id="varietyInputDrop" class="hidden absolute top-full left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1"></div>
+                            </div>
                         </div>
                     </div>
 
                     <div id="section-resp-cruzamento">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Cruzamento</label>
-                        <select id="inspectorSelect" required onchange="handleInspectorChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
-                            <option value="">Selecione</option>
-                            <option value="João Victor Gonçalves">João Victor Gonçalves</option>
-                            <option value="Thaynara Rodrigues da Silva">Thaynara Rodrigues da Silva</option>
-                            <option value="Alesandra Leitão">Alesandra Leitão</option>
-                            <option value="Francisco Fagner Isaias">Francisco Fagner Isaias</option>
-                            <option value="Outro">Outro...</option>
-                        </select>
-                        <div id="customInspectorContainer" class="hidden relative">
-                            <input type="text" id="customInspectorName" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
-                            <button type="button" onclick="clearInspectorSelect()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        <div id="inspectorSelectCombo" class="relative">
+                            <input type="text" id="inspectorSelect" required autocomplete="off" placeholder="Selecione ou digite"
+                                oninput="_comboInput('inspectorSelect')" onfocus="_comboOpen('inspectorSelect')" onkeydown="_comboKey('inspectorSelect',event)"
+                                class="field-card w-full p-2 pr-9 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="_comboToggle('inspectorSelect')"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                            <div id="inspectorSelectDrop" class="hidden absolute top-full left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1"></div>
                         </div>
+                        <input type="hidden" id="customInspectorName">
                     </div>
                     <div id="section-resp-embarque">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Responsável pelo Embarque</label>
-                        <select id="shipResponsible" onchange="handleShipResponsibleChange()" class="field-card w-full p-2 focus:ring-2 focus:ring-emerald-400 outline-none text-sm bg-slate-50 focus:bg-white border">
-                            <option value="">Selecione</option>
-                            <option value="João Victor Gonçalves">João Victor Gonçalves</option>
-                            <option value="Thaynara Rodrigues da Silva">Thaynara Rodrigues da Silva</option>
-                            <option value="Alesandra Leitão">Alesandra Leitão</option>
-                            <option value="Francisco Fagner Isaias">Francisco Fagner Isaias</option>
-                            <option value="Outro">Outro...</option>
-                        </select>
-                        <div id="customShipResponsibleContainer" class="hidden relative">
-                            <input type="text" id="customShipResponsible" placeholder="Qual?" oninput="updatePreview()" class="field-card w-full p-2 pr-8 bg-white text-sm focus:ring-2 focus:ring-emerald-400 outline-none border">
-                            <button type="button" onclick="clearShipResponsible()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
+                        <div id="shipResponsibleCombo" class="relative">
+                            <input type="text" id="shipResponsible" autocomplete="off" placeholder="Selecione ou digite"
+                                oninput="_comboInput('shipResponsible')" onfocus="_comboOpen('shipResponsible')" onkeydown="_comboKey('shipResponsible',event)"
+                                class="field-card w-full p-2 pr-9 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-400 outline-none border">
+                            <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="_comboToggle('shipResponsible')"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                            <div id="shipResponsibleDrop" class="hidden absolute top-full left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1"></div>
                         </div>
+                        <input type="hidden" id="customShipResponsible">
                     </div>
                 </div>
 
@@ -618,13 +654,27 @@
 
                     <div id="field-driverName" class="mb-3">
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Nome do Motorista</label>
-                        <input type="text" id="driverName" placeholder="Ex: João Silva" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                        <div id="driverNameCombo" class="relative">
+                            <input type="text" id="driverName" autocomplete="off" placeholder="Ex: João Silva"
+                                oninput="_comboInput('driverName')" onfocus="_comboOpen('driverName')" onkeydown="_comboKey('driverName',event)"
+                                class="field-card w-full p-2 pr-9 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border">
+                            <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="_comboToggle('driverName')"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                            <div id="driverNameDrop" class="hidden absolute top-full left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1"></div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <div id="field-vehiclePlate">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Placa do Veículo</label>
-                            <input type="text" id="vehiclePlate" placeholder="Ex: ABC-1234" oninput="updatePreview()" class="field-card w-full p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
+                            <div id="vehiclePlateCombo" class="relative">
+                                <input type="text" id="vehiclePlate" autocomplete="off" placeholder="Ex: ABC-1234"
+                                    oninput="_comboInput('vehiclePlate')" onfocus="_comboOpen('vehiclePlate')" onkeydown="_comboKey('vehiclePlate',event)"
+                                    class="field-card w-full p-2 pr-9 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-sky-400 outline-none border uppercase">
+                                <button type="button" tabindex="-1" onmousedown="event.preventDefault()" onclick="_comboToggle('vehiclePlate')"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                                <div id="vehiclePlateDrop" class="hidden absolute top-full left-0 right-0 z-30 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl py-1"></div>
+                            </div>
                         </div>
                         <div id="field-departureTime">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Horário da Saída</label>
@@ -862,7 +912,7 @@
             <h3 id="confirmModalTitle" class="text-xl font-black text-slate-800 text-center border-b border-slate-200 pb-3 mb-3 uppercase tracking-tight">Confirmar Emissão?</h3>
             <p id="confirmModalText" class="text-sm text-slate-600 text-center leading-relaxed font-medium">
                 Verifique se todos os dados do embarque estão corretos.<br><br>
-                <span class="text-slate-800 font-bold">O relatório será exportado e arquivado na planilha.</span>
+                <span class="text-slate-800 font-bold">O relatório será exportado e o registro arquivado na nuvem.</span>
             </p>
             <div class="grid grid-cols-2 gap-3 mt-6">
                 <button onclick="cancelConfirmModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors uppercase tracking-wider">Revisar</button>
@@ -1259,7 +1309,7 @@
             <div class="flex items-center justify-between gap-3 p-5 border-b border-slate-200 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
-                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Análise da IA</h3>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Resumo do Embarque (IA)</h3>
                 </div>
                 <button onclick="closeAnalysis()" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -1309,6 +1359,9 @@
                 <button id="mobileNavHistorico" type="button" onclick="openHistory();closeMobilePopups()" class="mnav-btn mnav-divider">
                     <span class="mnav-pill"><i data-lucide="history" class="mnav-icon"></i><span class="mnav-label">Histórico</span></span>
                 </button>
+                <button id="mobileNavAuditoriaPopup" type="button" onclick="openAuditoriaModal();closeMobilePopups()" class="mnav-btn mnav-divider">
+                    <span class="mnav-pill"><i data-lucide="scroll-text" class="mnav-icon"></i><span class="mnav-label">Auditoria</span></span>
+                </button>
                 <button id="mobileNavBackup" type="button" onclick="openBackupModal();closeMobilePopups()" class="mnav-btn mnav-divider">
                     <span class="mnav-pill"><i data-lucide="archive-restore" class="mnav-icon"></i><span class="mnav-label">Backup</span></span>
                 </button>
@@ -1350,6 +1403,10 @@
 
             <button type="button" id="mobileNavTrocarEmbarque" onclick="trocarEmbarqueSection()" class="mnav-btn mnav-divider" style="display:none;">
                 <span class="mnav-pill"><i data-lucide="replace" class="mnav-icon"></i><span class="mnav-label">Trocar</span></span>
+            </button>
+
+            <button type="button" id="mobileNavAuditoria" onclick="openAuditoriaModal()" class="mnav-btn mnav-divider" style="display:none;">
+                <span class="mnav-pill"><i data-lucide="scroll-text" class="mnav-icon"></i><span class="mnav-label">Auditoria</span></span>
             </button>
 
             <button id="mobileNavLimpar" type="button" onclick="clearForm()" class="mnav-btn mnav-danger">
@@ -1462,12 +1519,13 @@
                     case 'markPending':    return await _beSetStatus(payload, 'pendente');
                     case 'listBackup':     return await _beListBackup();
                     case 'restoreBackup':  return await _beRestoreBackup(payload);
+                    case 'listAuditoria':  return await _beListAuditoria(payload);
                     case 'listUsers':
                     case 'addUser':
                     case 'updateUser':
                     case 'deleteUser':     return await _beAdminUsers(payload);
                     case 'listProdutos':   return await _beListProdutos();
-                    case 'getUploadInfo':  return await _beGetUploadInfo();
+                    case 'getUploadInfo':  return await _beGetUploadInfo(payload);
                     // A senha compartilhada não existe mais — quem chega até aqui já
                     // está autenticado; a real barreira de segurança agora é o RLS.
                     case 'verifyPassword': return { success: !!(currentUser && currentUser.perfil === 'master') };
@@ -1789,6 +1847,56 @@
             return { success: true, codigo: data ? data.codigo : null, origem: data ? _origemToSheetName(data.origem) : null };
         }
 
+        // Rótulo amigável da "origem" (tabela) de um registro de auditoria.
+        function _auditOrigemLabel(origem) {
+            return {
+                embarques: 'Nota Fiscal / Dados',
+                secao_parceiros: 'Pallets / Parceiros',
+                secao_descartes: 'Descartes',
+                secao_midias: 'Fotos / Temperaturas',
+            }[origem] || origem;
+        }
+
+        // Mapa codigo -> { produto, cliente } a partir do cache da lista de
+        // embarques (historyRows). Vazio se a lista ainda não foi carregada.
+        function _auditEmbarqueMetaMap() {
+            const map = {};
+            (historyRows || []).forEach((r) => {
+                const cod = String(r.Codigo || '').trim();
+                if (cod) map[cod] = { produto: r.Produto || '', cliente: r.Cliente || '' };
+            });
+            return map;
+        }
+
+        // Lista o histórico de alterações (tabela "auditoria"). Enriquecido no
+        // cliente com produto/cliente do embarque, buscando no cache da lista.
+        async function _beListAuditoria(payload) {
+            payload = payload || {};
+            let q = sb.from('auditoria').select('*').order('feito_em', { ascending: false }).limit(payload.limit || 800);
+            if (payload.codigo) q = q.eq('codigo', String(payload.codigo).trim());
+            const { data, error } = await q;
+            if (error) throw error;
+            const meta = _auditEmbarqueMetaMap();
+            const rows = (data || []).map((r) => {
+                const m = meta[r.codigo] || {};
+                return {
+                    id: r.id,
+                    Origem: r.origem,
+                    OrigemLabel: _auditOrigemLabel(r.origem),
+                    Codigo: r.codigo || '—',
+                    Produto: m.produto || '',
+                    Cliente: m.cliente || '',
+                    Operacao: r.operacao,
+                    Por: r.feito_por_nome || 'Desconhecido',
+                    PorId: r.feito_por || '',
+                    Em: r.feito_em,
+                    Antes: r.dados_antes,
+                    Depois: r.dados_depois,
+                };
+            });
+            return { success: true, rows };
+        }
+
         // Lê a mensagem de erro de dentro da resposta de uma Edge Function
         // (supabase-js só devolve isso em "error.context", não em "data", quando
         // a function responde com status != 2xx).
@@ -1818,8 +1926,13 @@
             return { success: true, produtos: (data || []).map((r) => ({ produto: r.produto, unidadesPorCaixa: r.unidades_por_caixa })) };
         }
 
-        async function _beGetUploadInfo() {
-            const { data, error } = await sb.functions.invoke('drive-token');
+        async function _beGetUploadInfo(payload) {
+            // codigo/cliente: a Edge Function usa pra criar/reaproveitar uma pasta
+            // só desse embarque no Drive (fotos e vídeos juntos lá dentro).
+            const body = {};
+            if (payload && payload.codigo)  body.codigo  = payload.codigo;
+            if (payload && payload.cliente) body.cliente = payload.cliente;
+            const { data, error } = await sb.functions.invoke('drive-token', Object.keys(body).length ? { body } : undefined);
             if (error) return { success: false, error: await _edgeFunctionErrorMessage(error, 'Falha ao obter token de upload.') };
             return data;
         }
@@ -1968,15 +2081,21 @@
                 // item errado (substituiria/atualizaria o vídeo de outra posição).
                 const idxOf = () => videosData.findIndex(v => v.tempId === tempId);
                 try {
-                    // 1. Pegar token OAuth da Edge Function (1 requisição rápida)
-                    const info = await callBackend({ action: 'getUploadInfo' });
+                    // 1. Pegar token OAuth da Edge Function (1 requisição rápida).
+                    // codigo/cliente: a pasta desse embarque no Drive (fotos e vídeos juntos).
+                    const info = await callBackend({
+                        action: 'getUploadInfo',
+                        codigo: (document.getElementById('embarqueCodigo')?.value || '').trim(),
+                        cliente: (document.getElementById('varietyInput')?.value || '').trim(),
+                    });
                     if (!info.success) throw new Error(info.error || 'Erro ao autenticar com o Drive.');
 
                     // 2. Upload direto para a API do Drive com progresso real
+                    const vExt = (file.name.match(/\.[A-Za-z0-9]+$/) || ['.mp4'])[0];
                     const driveUrl = await _uploadToDriveApi(file, info.token, info.videoFolderId || info.folderId, (pct) => {
                         const i = idxOf();
                         if (i > -1) { videosData[i].uploadPct = pct; renderVideos(); }
-                    });
+                    }, _driveFileName(vExt));
 
                     const done = idxOf();
                     const finished = { dataUrl: driveUrl, caption: '', name: file.name, size: file.size };
@@ -1994,7 +2113,7 @@
             }
         }
 
-        async function _uploadToDriveApi(file, token, folderId, onProgress) {
+        async function _uploadToDriveApi(file, token, folderId, onProgress, overrideName) {
             // Inicia sessão de upload resumível (não envia dados ainda)
             const initResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
                 method: 'POST',
@@ -2004,7 +2123,7 @@
                     'X-Upload-Content-Type': file.type || 'video/mp4',
                     'X-Upload-Content-Length': String(file.size)
                 },
-                body: JSON.stringify({ name: file.name, parents: folderId ? [folderId] : [] })
+                body: JSON.stringify({ name: overrideName || file.name, parents: folderId ? [folderId] : [] })
             });
             if (!initResp.ok) throw new Error('Drive API HTTP ' + initResp.status + ' ao iniciar upload.');
             const uploadUrl = initResp.headers.get('Location');
@@ -2083,9 +2202,9 @@
         function _isVideoUploading() {
             return videosData.some(v => v.uploading);
         }
-        // Vídeos prontos para sincronizar com a planilha. Exclui uploads em
+        // Vídeos prontos para sincronizar com a nuvem. Exclui uploads em
         // andamento/com erro (dataUrl nulo) — sem esse filtro, o auto-save de 30s
-        // gravava itens "fantasma" {dataUrl:null, uploading:true} na planilha, que
+        // gravava itens "fantasma" {dataUrl:null, uploading:true} na nuvem, que
         // reapareciam como cards quebrados ao recarregar o registro.
         function _syncableVideos() {
             return videosData.filter(v => v.dataUrl);
@@ -2095,7 +2214,17 @@
         // Uma foto "pendente" é reconhecida por ainda guardar o base64 comprimido
         // como fonte (dataUrl/src começando com "data:") em vez do link do Drive —
         // mesma convenção já usada acima para vídeos (dataUrl nulo = não sincronizável).
-        function _isPendingPhotoSrc(src) { return !!src && src.startsWith('data:'); }
+
+        // Fotos de pallet/descarte/temperatura eram só string (o link). Agora cada
+        // foto é um objeto { dataUrl, by, at, name } (quem enviou / quando / nome no
+        // Drive). _photoUrl() aceita os dois formatos, então os pontos de render, PDF,
+        // merge e viewer que só querem o link continuam funcionando sem mudança.
+        function _photoUrl(x) {
+            if (typeof x === 'string') return x;
+            return (x && (x.dataUrl || x.url)) || '';
+        }
+
+        function _isPendingPhotoSrc(src) { const u = _photoUrl(src); return !!u && u.startsWith('data:'); }
 
         // Fotos do embarque prontas para sincronizar com o servidor: exclui as
         // ainda pendentes de upload (adicionadas sem conexão), para nunca gravar
@@ -2110,6 +2239,31 @@
                 || palletsData.some(pl => (pl.photos || []).some(_isPendingPhotoSrc))
                 || discardsData.some(d => (d.photos || []).some(_isPendingPhotoSrc))
                 || customTempsData.some(t => (t.photos || []).some(_isPendingPhotoSrc));
+        }
+
+        // Nome padronizado do arquivo no Drive: "«código» - «cliente» - «quem enviou» - «AAAA-MM-DD HHhMM»".
+        // seq (2,3,...) vira sufixo " (2)" para não repetir nome num lote de várias fotos.
+        function _driveFileName(ext, seq) {
+            const codigo  = (document.getElementById('embarqueCodigo')?.value || '').trim() || 'embarque';
+            const cliente = (document.getElementById('varietyInput')?.value || '').trim();
+            const quem    = (currentUser && currentUser.nome) ? currentUser.nome : 'desconhecido';
+            const d = new Date();
+            const p = n => String(n).padStart(2, '0');
+            const quando = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}h${p(d.getMinutes())}`;
+            let base = [codigo, cliente, quem, quando].filter(Boolean).join(' - ');
+            base = base.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120);
+            if (seq && seq > 1) base += ` (${seq})`;
+            return base + (ext || '');
+        }
+
+        // Monta a entrada de uma foto com metadados de auditoria (quem/quando/nome no Drive).
+        function _mkPhotoEntry(dataUrl, name, extra) {
+            return Object.assign({
+                dataUrl: dataUrl || '',
+                by: (currentUser && currentUser.nome) || '',
+                at: new Date().toISOString(),
+                name: name || '',
+            }, extra || {});
         }
 
         let _pendingUploadRetryTimer = null;
@@ -2134,30 +2288,44 @@
                 if (!info) { _schedulePendingUploadsRetry(); return; }
 
                 let uploadedAny = false;
-                const tryUpload = async (src) => {
-                    try { const url = await _uploadPhotoDataUrlToDrive(src, info); uploadedAny = true; return url; }
-                    catch (_) { return src; } // continua pendente; tenta de novo na próxima rodada
+                // Sobe uma entrada de foto pendente (string base64 legada OU objeto
+                // {dataUrl:'data:...'}). Devolve sempre um objeto com o link do Drive
+                // e os metadados (name/at) preenchidos; em caso de falha, mantém o
+                // que estava para tentar de novo na próxima rodada.
+                const tryUpload = async (entry) => {
+                    const src = _photoUrl(entry);
+                    if (!_isPendingPhotoSrc(src)) return entry;
+                    try {
+                        const up = await _uploadPhotoDataUrlToDrive(src, info);
+                        uploadedAny = true;
+                        const base = (entry && typeof entry === 'object') ? entry : {};
+                        return Object.assign({}, base, { dataUrl: up.url, name: up.name, at: base.at || new Date().toISOString() });
+                    } catch (_) {
+                        return (entry && typeof entry === 'object') ? entry : { dataUrl: src };
+                    }
                 };
 
-                for (const p of photosData) {
-                    if (_isPendingPhotoSrc(p.dataUrl)) p.dataUrl = await tryUpload(p.dataUrl);
+                for (let i = 0; i < photosData.length; i++) {
+                    if (_isPendingPhotoSrc(photosData[i] && photosData[i].dataUrl)) {
+                        photosData[i] = await tryUpload(photosData[i]);
+                    }
                 }
                 for (const pl of palletsData) {
                     if (!Array.isArray(pl.photos)) continue;
                     for (let i = 0; i < pl.photos.length; i++) {
-                        if (_isPendingPhotoSrc(pl.photos[i])) pl.photos[i] = await tryUpload(pl.photos[i]);
+                        pl.photos[i] = await tryUpload(pl.photos[i]);
                     }
                 }
                 for (const d of discardsData) {
                     if (!Array.isArray(d.photos)) continue;
                     for (let i = 0; i < d.photos.length; i++) {
-                        if (_isPendingPhotoSrc(d.photos[i])) d.photos[i] = await tryUpload(d.photos[i]);
+                        d.photos[i] = await tryUpload(d.photos[i]);
                     }
                 }
                 for (const t of customTempsData) {
                     if (!Array.isArray(t.photos)) continue;
                     for (let i = 0; i < t.photos.length; i++) {
-                        if (_isPendingPhotoSrc(t.photos[i])) t.photos[i] = await tryUpload(t.photos[i]);
+                        t.photos[i] = await tryUpload(t.photos[i]);
                     }
                 }
 
@@ -2837,10 +3005,13 @@
             let changed = false;
             remoteArr.forEach((r, i) => {
                 if (localArr[i] && r && Array.isArray(r.photos) && Array.isArray(localArr[i].photos)) {
-                    r.photos.forEach((src, pi) => {
-                        if (String(localArr[i].photos[pi] || '').startsWith('data:') &&
-                            src && !String(src).startsWith('data:')) {
-                            localArr[i].photos[pi] = src;
+                    r.photos.forEach((rem, pi) => {
+                        const localU = _photoUrl(localArr[i].photos[pi]);
+                        const remU = _photoUrl(rem);
+                        if (localU.startsWith('data:') && remU && !remU.startsWith('data:')) {
+                            // servidor já tem o link do Drive dessa foto — adota a entrada
+                            // do servidor (traz junto os metadados by/at/name).
+                            localArr[i].photos[pi] = rem;
                             changed = true;
                         }
                     });
@@ -3042,7 +3213,7 @@
                 let p = from;
                 serverInterval = setInterval(() => {
                     p += (98 - p) * 0.06;
-                    setSaveProgress(p, 'Processando no servidor', 'Gravando na planilha...');
+                    setSaveProgress(p, 'Processando no servidor', 'Gravando na nuvem...');
                 }, 400);
             };
 
@@ -3261,10 +3432,10 @@
                         if (silent) {
                             _setAutoSaveToast(_ICON_CHECK, 'Salvo automaticamente!');
                         } else {
-                            showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso na planilha.', 'success');
+                            showMessageModal('Atualizado!', 'O registro foi corrigido com sucesso.', 'success');
                         }
                     } else {
-                        showMessageModal('Salvo!', 'Registro salvo na planilha e fotos enviadas para o Google Drive.', 'success');
+                        showMessageModal('Salvo!', 'Registro salvo na nuvem e fotos enviadas para o Google Drive.', 'success');
                     }
 
                     // Master: dispara a análise de IA automaticamente após salvar — sem
@@ -3385,7 +3556,7 @@
             if (label) label.textContent = on ? 'Atualizando...' : 'Atualizar';
         }
 
-        // Busca a lista atual na planilha (sem mexer na UI). Lança erro em caso de falha.
+        // Busca a lista atual na nuvem (sem mexer na UI). Lança erro em caso de falha.
         async function _fetchHistoryRows() {
             const result = await callBackend({ action: 'list' });
             if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
@@ -3399,7 +3570,7 @@
             filterHistory(document.getElementById('historySearch').value);
         }
 
-        // Re-busca a lista na planilha e re-renderiza.
+        // Re-busca a lista na nuvem e re-renderiza.
         async function _fetchAndRenderHistory() {
             _setRefreshBtnLoading(true);
             try {
@@ -3411,8 +3582,8 @@
             }
         }
 
-        // Compara o conteúdo de duas linhas da planilha (ignorando Timestamp e StatusRegistro).
-        // Serve para saber se o registro mudou na planilha desde que o master o abriu.
+        // Compara o conteúdo de dois registros da nuvem (ignorando Timestamp e StatusRegistro).
+        // Serve para saber se o registro mudou na nuvem desde que o master o abriu.
         function _rowsDiffer(a, b) {
             const cols = ['Data','Codigo','Produto','Cliente','Responsavel','NFes','Sensor','Lacre',
                 'Motorista','Placa','TipoCaixa','HorarioSaida','QtdPallets','Termostato','ModoTermostato',
@@ -3442,7 +3613,7 @@
                 return;
             }
 
-            // Há edição pendente: busca a versão atual da planilha para checar conflito
+            // Há edição pendente: busca a versão atual da nuvem para checar conflito
             // (o perfil embarque pode ter reenviado o mesmo embarque enquanto o master editava).
             _setRefreshBtnLoading(true);
             let freshRows;
@@ -3460,7 +3631,7 @@
             const conflict = !!(latest && _editOriginalRow && _rowsDiffer(_editOriginalRow, latest));
 
             if (conflict) {
-                // O registro mudou na planilha desde que o master o abriu: deixa o master decidir.
+                // O registro mudou na nuvem desde que o master o abriu: deixa o master decidir.
                 showConflictModal({
                     onKeepMine: async () => {
                         historyRows = freshRows;
@@ -3480,7 +3651,7 @@
             // Sem conflito, mas o master tem alterações não enviadas: oferece enviar antes de atualizar.
             showConfirmModal({
                 title: 'Alterações não salvas',
-                text: 'Você fez alterações neste embarque que ainda não foram enviadas. Deseja enviá-las à planilha antes de atualizar com os dados mais recentes?',
+                text: 'Você fez alterações neste embarque que ainda não foram enviadas. Deseja enviá-las à nuvem antes de atualizar com os dados mais recentes?',
                 confirmLabel: 'Enviar e atualizar',
                 type: 'warning',
                 onConfirm: async () => {
@@ -3782,17 +3953,8 @@
 
                 document.getElementById('varietyInput').value = String((nfRow && nfRow.Cliente) || row.Cliente || '');
 
-                const inspSel = document.getElementById('inspectorSelect');
-                const knownInsps = Array.from(inspSel.options).map(o => o.value);
                 const responsavel = String((nfRow && nfRow.Responsavel) || row.Responsavel || '');
-                if (knownInsps.includes(responsavel)) {
-                    inspSel.value = responsavel;
-                    document.getElementById('customInspectorContainer').classList.add('hidden');
-                } else if (responsavel) {
-                    inspSel.value = 'Outro';
-                    document.getElementById('customInspectorContainer').classList.remove('hidden');
-                    document.getElementById('customInspectorName').value = responsavel;
-                }
+                document.getElementById('inspectorSelect').value = responsavel === 'Outro' ? '' : responsavel;
 
                 if (row.ModoTermostato) document.getElementById('thermostatMode').value = row.ModoTermostato;
                 if (row.Termostato !== undefined && row.Termostato !== '') document.getElementById('thermostatValue').value = row.Termostato;
@@ -3816,18 +3978,9 @@
                     if (nfValue !== undefined) el.value = col === 'Data' ? String(nfValue).substring(0, 10) : nfValue;
                 });
 
-                // RespEmbarque com suporte a "Outro"
                 if (row.RespEmbarque !== undefined) {
-                    const knownShip = Array.from(document.getElementById('shipResponsible').options).map(o => o.value);
                     const respEmb = String(row.RespEmbarque || '');
-                    if (knownShip.includes(respEmb)) {
-                        document.getElementById('shipResponsible').value = respEmb;
-                        document.getElementById('customShipResponsibleContainer').classList.add('hidden');
-                    } else if (respEmb) {
-                        document.getElementById('shipResponsible').value = 'Outro';
-                        document.getElementById('customShipResponsibleContainer').classList.remove('hidden');
-                        document.getElementById('customShipResponsible').value = respEmb;
-                    }
+                    document.getElementById('shipResponsible').value = respEmb === 'Outro' ? '' : respEmb;
                 }
 
                 // HorarioSaida pode vir como ISO em UTC do Sheets (ex: 1899-12-30T20:30:00.000Z,
@@ -4017,7 +4170,7 @@
 
         let _editPassword = null;
         let _editSnapshot = null;
-        // Cópia crua da linha da planilha no momento em que o master abriu para edição.
+        // Cópia crua do registro da nuvem no momento em que o master abriu para edição.
         // Usada para detectar se o perfil embarque enviou uma versão mais nova enquanto editava.
         let _editOriginalRow = null;
 
@@ -4140,7 +4293,7 @@
             return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : String(value || '');
         }
 
-        // Converte o HorarioSaida vindo da planilha para HH:MM no fuso local.
+        // Converte o HorarioSaida vindo da nuvem para HH:MM no fuso local.
         // O Sheets devolve horários como Date serializado em UTC (ex: ...T20:30:00Z = 17:30 local);
         // usar getHours/getMinutes locais recupera o horário originalmente digitado.
         // Se já vier como "HH:MM" (texto puro), retorna como está.
@@ -4194,7 +4347,7 @@
             _updateCodigoFieldLock();
             _updateEditModeTopBarBadge();
             // Após um F5, _editOriginalRow não sobrevive. Rebusca a linha original da
-            // planilha (por Timestamp) para que a detecção de conflito volte a funcionar.
+            // nuvem (por Timestamp) para que a detecção de conflito volte a funcionar.
             _fetchHistoryRows().then(rows => {
                 const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
                 if (row) {
@@ -4423,7 +4576,7 @@
             const codigoEl = document.getElementById('embarqueCodigo');
             const dateEl   = document.getElementById('reportDate');
             if (codigoEl) codigoEl.value = emb.Codigo || codigo;
-            // A planilha devolve Data como string ISO completa (ex: 2026-07-22T00:00:00.000Z)
+            // O servidor devolve Data como string ISO completa (ex: 2026-07-22T00:00:00.000Z)
             // — um <input type="date"> só aceita "YYYY-MM-DD" e ignora silenciosamente
             // qualquer outro formato, deixando o campo em branco. Por isso, sempre corta
             // para os 10 primeiros caracteres antes de atribuir (mesmo padrão já usado em
@@ -4712,8 +4865,8 @@
             (newPallets || []).forEach(pl => {
                 const prev = pl && pl.id && priorById.get(pl.id);
                 if (!prev || !Array.isArray(prev.photos) || !prev.photos.length) return;
-                const existing = new Set((pl.photos || []).filter(Boolean));
-                const missing = prev.photos.filter(src => src && !existing.has(src));
+                const existing = new Set((pl.photos || []).map(_photoUrl).filter(Boolean));
+                const missing = prev.photos.filter(p => { const u = _photoUrl(p); return u && !existing.has(u); });
                 if (missing.length) pl.photos = [...(pl.photos || []), ...missing];
             });
             return newPallets;
@@ -4962,7 +5115,7 @@
             } catch(_) { /* sem conexão: prossegue sem verificar */ }
 
             if (existsAlready) {
-                errEl.textContent = `O embarque Nº ${codigo} já existe na planilha. Escolha outro número.`;
+                errEl.textContent = `O embarque Nº ${codigo} já existe. Escolha outro número.`;
                 errEl.classList.remove('hidden');
                 btn.disabled = false;
                 btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Confirmar e Abrir Formulário`;
@@ -5055,7 +5208,8 @@
             ['reportDate','embarqueCodigo','varietyInput','customProductName',
              'driverName','vehiclePlate','departureTime',
              'sensorNumber','lacreNumber','thermostatValue',
-             'customInspectorName','tempObservation'].forEach(id => {
+             'inspectorSelect','shipResponsible',
+             'customInspectorName','customShipResponsible','tempObservation'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -5064,13 +5218,6 @@
             _productSelected.clear();
             _productOutro = false;
             renderProductCheckboxes();
-
-            const inspectorSelect = document.getElementById('inspectorSelect');
-            if (inspectorSelect) inspectorSelect.value = '';
-            document.getElementById('customInspectorContainer')?.classList.add('hidden');
-            document.getElementById('shipResponsible').value = '';
-            document.getElementById('customShipResponsibleContainer').classList.add('hidden');
-            document.getElementById('customShipResponsible').value = '';
 
             // Reseta arrays de dados
             nfeList = [''];
@@ -5184,7 +5331,7 @@
 
             showConfirmModal({
                 title: 'Apagar embarque?',
-                text: `O embarque "${codigo}" será removido permanentemente da planilha. Esta ação não pode ser desfeita.`,
+                text: `O embarque "${codigo}" será removido permanentemente. Esta ação não pode ser desfeita.`,
                 confirmLabel: 'Apagar',
                 type: 'danger',
                 onConfirm: () => _executeDelete(rowTs, codigo)
@@ -5193,7 +5340,7 @@
 
         function _executeDelete(ts, codigo) {
             showSaveLoadingModal();
-            setSaveProgress(10, 'Apagando registro', 'Removendo da planilha...');
+            setSaveProgress(10, 'Apagando registro', 'Removendo da nuvem...');
 
             const row = _findRowByTs(ts);
             callBackend({ action: 'delete', originalTimestamp: ts, codigo: row ? row.Codigo : undefined, deletedBy: currentUser ? currentUser.nome : 'Desconhecido' })
@@ -5202,7 +5349,7 @@
                 setTimeout(() => {
                     hideSaveLoadingModal();
                     if (result.success) {
-                        showMessageModal('Apagado!', `O embarque "${codigo}" foi removido da planilha.`, 'success');
+                        showMessageModal('Apagado!', `O embarque "${codigo}" foi removido.`, 'success');
                         openHistory(); // recarrega lista
                     } else {
                         showMessageModal('Erro ao apagar', result.error || 'Tente novamente.', 'error');
@@ -5306,19 +5453,14 @@
                 // Compatível com formato antigo (productSelect='Outro' + customProductName) e novo (string combinada)
                 _setProductFromString(data.productSelect === 'Outro' ? (data.customProductName || '') : (data.productSelect || ''));
                 if (data.varietyInput) document.getElementById('varietyInput').value = data.varietyInput;
-                if (data.inspectorSelect) {
-                    document.getElementById('inspectorSelect').value = data.inspectorSelect;
-                    if (data.inspectorSelect === 'Outro') {
-                        document.getElementById('customInspectorContainer').classList.remove('hidden');
-                        document.getElementById('customInspectorName').value = data.customInspectorName || '';
-                    }
+                if (data.inspectorSelect !== undefined) {
+                    // Dados antigos podiam ter "Outro" + nome à parte; hoje é um valor só.
+                    document.getElementById('inspectorSelect').value = data.inspectorSelect === 'Outro'
+                        ? (data.customInspectorName || '') : (data.inspectorSelect || '');
                 }
                 if (data.shipResponsible !== undefined) {
-                    document.getElementById('shipResponsible').value = data.shipResponsible || '';
-                    if (data.shipResponsible === 'Outro') {
-                        document.getElementById('customShipResponsibleContainer').classList.remove('hidden');
-                        document.getElementById('customShipResponsible').value = data.customShipResponsible || '';
-                    }
+                    document.getElementById('shipResponsible').value = data.shipResponsible === 'Outro'
+                        ? (data.customShipResponsible || '') : (data.shipResponsible || '');
                 }
                 if (data.thermostatMode) document.getElementById('thermostatMode').value = data.thermostatMode;
                 if (data.thermostatValue !== undefined) document.getElementById('thermostatValue').value = data.thermostatValue;
@@ -5411,6 +5553,7 @@
             renderAdditionalInfo();
             renderPhotos();
             renderVideos();
+            _refreshClientesDatalist();
             updatePreview();
             applyProfileRestrictions();
             _restoreEditMode();
@@ -5712,7 +5855,7 @@
 
         function sincronizarDados() {
             // Recarrega a página de verdade (igual ao botão de atualizar do navegador),
-            // em vez de só buscar a lista da planilha em segundo plano. O estado do
+            // em vez de só buscar a lista da nuvem em segundo plano. O estado do
             // formulário sobrevive normalmente via localStorage/IndexedDB (ver initApp()),
             // e initApp() já resincroniza com o servidor logo após o reload.
             window.location.reload();
@@ -6122,6 +6265,13 @@
             const btnMobileAtualizar = document.getElementById('mobileNavAtualizar');
             if (btnMobileAtualizar) btnMobileAtualizar.style.display = isEmbarque ? 'flex' : 'none';
 
+            // Auditoria (histórico de alterações): visível para todos os perfis, no
+            // desktop (navBtnAuditoria já fica visível por não estar em nenhuma lista
+            // de ocultar). No mobile: master usa a entrada dentro do popup "Mais";
+            // os demais perfis (sem popup) ganham um botão dedicado na linha inferior.
+            const btnMobileAuditoria = document.getElementById('mobileNavAuditoria');
+            if (btnMobileAuditoria) btnMobileAuditoria.style.display = isMaster ? 'none' : 'flex';
+
             // Botão "PDF Parceiros" direto no mobile: o perfil descartes não tem o menu
             // completo de PDF (Interno/Parceiros/Email), mas precisa consultar a tabela
             // de Parceiros/Quantidades para saber quem enviou cada pallet ao registrar descartes.
@@ -6515,7 +6665,7 @@
             const info = _backupOrigemInfo(row ? row.Origem : '');
             showConfirmModal({
                 title: 'Restaurar registro?',
-                text: `O registro "${row ? row.Codigo : ''}" (${info.label}) será restaurado para a planilha de origem. Se já existir um registro com o mesmo código, ele será substituído por este.`,
+                text: `O registro "${row ? row.Codigo : ''}" (${info.label}) será restaurado para a tabela de origem. Se já existir um registro com o mesmo código, ele será substituído por este.`,
                 confirmLabel: 'Restaurar',
                 type: 'info',
                 onConfirm: () => _executeRestoreBackup(rowIndex)
@@ -6537,6 +6687,357 @@
                 hideSaveLoadingModal();
                 showMessageModal('Erro ao restaurar', err.message, 'error');
             }
+        }
+
+        // ---------- AUDITORIA (histórico de alterações) ----------
+        let _auditRows = [];
+        let _auditSessionsFiltered = [];
+        let _auditRealtimeChannel = null;
+        const _auditExpanded = new Set();
+
+        const AUDIT_COL_LABELS = {
+            data: 'Data', produto: 'Produto', cliente: 'Cliente', responsavel: 'Resp. cruzamento',
+            resp_embarque: 'Resp. embarque', nfes: 'NFe(s)', sensor: 'Sensor', lacre: 'Lacre',
+            motorista: 'Motorista', placa: 'Placa', tipo_caixa: 'Tipo de caixa', horario_saida: 'Horário de saída',
+            qtd_pallets: 'Qtd. pallets', termostato: 'Termostato', modo_termostato: 'Modo do termostato',
+            status_registro: 'Status', ai_summary: 'Análise IA', fotos: 'Fotos', videos: 'Vídeos',
+            temperaturas: 'Temperaturas', pallets: 'Pallets', parceiros: 'Parceiros (legado)',
+            parceiros_data: 'Pallets / Parceiros', discarts_data: 'Descartes', descartes: 'Descartes (legado)',
+            info_adicionais: 'Informações adicionais',
+        };
+        const AUDIT_IGNORE = new Set(['updated_at', 'created_at', 'id', 'codigo']);
+        const AUDIT_OP_INFO = {
+            INSERT: { label: 'Criou', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+            UPDATE: { label: 'Editou', bg: 'bg-amber-100', text: 'text-amber-700' },
+            DELETE: { label: 'Apagou', bg: 'bg-rose-100', text: 'text-rose-700' },
+        };
+
+        function _auditEsc(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function _auditVal(v) {
+            if (v === null || v === undefined || v === '') return '—';
+            return String(v);
+        }
+        function _auditIsScalar(v) { return v === null || ['string', 'number', 'boolean'].includes(typeof v); }
+
+        // Diff de listas de fotos/vídeos. Cada entrada pode ser string (link) ou
+        // objeto { dataUrl, by, at, name }. Compara pelo link; devolve as entradas.
+        function _auditListDiff(before, after) {
+            const key = x => _photoUrl(x) || JSON.stringify(x);
+            const bk = new Set((before || []).map(key));
+            const ak = new Set((after || []).map(key));
+            return {
+                added: (after || []).filter(x => !bk.has(key(x))),
+                removed: (before || []).filter(x => !ak.has(key(x))),
+            };
+        }
+        // "por Fulano" a partir das entradas de foto que têm metadado.
+        function _auditByLine(items) {
+            const bys = Array.from(new Set((items || []).map(it => it && typeof it === 'object' ? (it.by || '') : '').filter(Boolean)));
+            return bys.length ? ' — ' + bys.join(', ') : '';
+        }
+        function _auditByIdDiff(before, after) {
+            const key = (it, i) => (it && typeof it === 'object' && it.id != null) ? String(it.id) : ('#' + i);
+            const bm = new Map((before || []).map((it, i) => [key(it, i), it]));
+            const am = new Map((after || []).map((it, i) => [key(it, i), it]));
+            const added = [], removed = [], changed = [];
+            am.forEach((v, k) => {
+                if (!bm.has(k)) added.push(v);
+                else if (JSON.stringify(bm.get(k)) !== JSON.stringify(v)) changed.push([bm.get(k), v]);
+            });
+            bm.forEach((v, k) => { if (!am.has(k)) removed.push(v); });
+            return { added, removed, changed };
+        }
+
+        // Resumo curto de um item de array (pallet / descarte / temperatura).
+        function _auditItemSummary(col, it) {
+            if (!it || typeof it !== 'object') return _auditVal(it);
+            if (col === 'discarts_data') {
+                const nome = (it.partner || it.partnerSel || 'Descarte').toString().trim() || 'Descarte';
+                const peso = it.weight ? ` · ${_fmtBR(it.weight)} kg` : '';
+                const cult = it.cultura ? ` · ${it.cultura}` : '';
+                return `${nome}${cult}${peso}`;
+            }
+            // pallets (parceiros_data / pallets em midias)
+            const label = (it.label || it.name || 'Pallet').toString().trim() || 'Pallet';
+            const groups = it.partnerGroups || [];
+            const lots = groups.reduce((s, g) => s + ((g.lots || []).length), 0);
+            const boxes = groups.reduce((s, g) => s + (g.lots || []).reduce((ss, l) => ss + (parseFloat(l.boxes) || 0), 0), 0);
+            const kg = groups.reduce((s, g) => s + (g.lots || []).reduce((ss, l) => ss + _lotKg(l), 0), 0);
+            const partners = groups.map(g => (g.name === 'Outro' ? (g.nameCustom || '') : (g.name || '')).trim()).filter(Boolean);
+            const qty = _qtyLabel(boxes, 0, kg);
+            const bits = [label];
+            if (qty) bits.push(qty);
+            if (lots) bits.push(`${lots} lote(s)`);
+            if (partners.length) bits.push(partners.join(', '));
+            if ((it.photos || []).length) bits.push(`${it.photos.length} foto(s)`);
+            return bits.join(' · ');
+        }
+
+        // items: array de string (link) ou objeto { dataUrl, by, at, name }.
+        function _auditPhotoThumbs(items) {
+            if (!items || !items.length) return '';
+            const urls = items.map(_photoUrl).filter(Boolean);
+            if (!urls.length) return '';
+            const arr = JSON.stringify(urls);
+            const meta = items.filter(it => it && typeof it === 'object' && (it.by || it.name || it.at));
+            const metaLine = meta.length
+                ? `<div class="text-[10px] text-slate-400 mt-0.5 leading-snug">${meta.slice(0, 6).map(m =>
+                    _auditEsc([m.name, m.by ? 'por ' + m.by : '', m.at ? _formatBackupDate(m.at) : ''].filter(Boolean).join(' · '))
+                  ).join('<br>')}</div>`
+                : '';
+            return `<div class="flex flex-wrap gap-1 mt-1.5">${urls.slice(0, 10).map((u, i) =>
+                `<img src="${_auditEsc(u)}" loading="lazy" class="w-12 h-12 object-cover rounded-md border border-slate-200 cursor-pointer hover:opacity-80" onclick='openPhotoViewer(${arr}, ${i})'>`
+            ).join('')}${urls.length > 10 ? `<span class="text-[10px] text-slate-400 self-end">+${urls.length - 10}</span>` : ''}</div>${metaLine}`;
+        }
+
+        // Um lado ausente (criação ou exclusão): lista só os campos preenchidos.
+        function _auditSideList(obj, kind) {
+            const out = [];
+            const ARRAY_STR = new Set(['fotos', 'videos']);
+            Object.keys(obj || {}).forEach(k => {
+                if (AUDIT_IGNORE.has(k)) return;
+                const v = obj[k];
+                const label = AUDIT_COL_LABELS[k] || k;
+                if (v == null || v === '' || (Array.isArray(v) && v.length === 0)) return;
+                if (ARRAY_STR.has(k)) {
+                    out.push({ label, kind, text: `${v.length} ${k === 'fotos' ? 'foto(s)' : 'vídeo(s)'}${_auditByLine(v)}`, photos: k === 'fotos' ? v : null, urls: k === 'videos' ? v.map(_photoUrl) : null });
+                } else if (Array.isArray(v)) {
+                    v.forEach(it => out.push({ label, kind, text: _auditItemSummary(k, it) }));
+                } else if (_auditIsScalar(v)) {
+                    out.push({ label, kind, text: _auditVal(v) });
+                }
+            });
+            return out;
+        }
+
+        // Diferença entre dois snapshots de linha (antes/depois). Retorna lista de
+        // mudanças legíveis. antes/depois podem ser null (criação / exclusão).
+        function _auditDiff(antes, depois) {
+            if (!antes && depois) return _auditSideList(depois, 'add');
+            if (antes && !depois) return _auditSideList(antes, 'remove');
+            const A = antes || {}, B = depois || {};
+            const out = [];
+            const keys = new Set([...Object.keys(A), ...Object.keys(B)]);
+            const ARRAY_STR = new Set(['fotos', 'videos']);
+            keys.forEach(k => {
+                if (AUDIT_IGNORE.has(k)) return;
+                const av = A[k], bv = B[k];
+                if (JSON.stringify(av) === JSON.stringify(bv)) return;
+                const label = AUDIT_COL_LABELS[k] || k;
+                if (ARRAY_STR.has(k)) {
+                    const d = _auditListDiff(av, bv);
+                    if (d.added.length) out.push({ label, kind: 'add', text: `${d.added.length} ${k === 'fotos' ? 'foto(s)' : 'vídeo(s)'} adicionada(s)${_auditByLine(d.added)}`, photos: k === 'fotos' ? d.added : null, urls: k === 'videos' ? d.added.map(_photoUrl) : null });
+                    if (d.removed.length) out.push({ label, kind: 'remove', text: `${d.removed.length} ${k === 'fotos' ? 'foto(s)' : 'vídeo(s)'} removida(s)`, photos: k === 'fotos' ? d.removed : null, urls: k === 'videos' ? d.removed.map(_photoUrl) : null });
+                    return;
+                }
+                if (Array.isArray(av) || Array.isArray(bv)) {
+                    const d = _auditByIdDiff(Array.isArray(av) ? av : [], Array.isArray(bv) ? bv : []);
+                    d.added.forEach(it => out.push({ label, kind: 'add', text: _auditItemSummary(k, it), photos: (it && it.photos && it.photos.length) ? it.photos : null }));
+                    d.removed.forEach(it => out.push({ label, kind: 'remove', text: _auditItemSummary(k, it) }));
+                    d.changed.forEach(([x, y]) => {
+                        const sx = _auditItemSummary(k, x), sy = _auditItemSummary(k, y);
+                        if (sx !== sy) out.push({ label, kind: 'change', before: sx, after: sy });
+                        // Delta de fotos dentro do item alterado (pallet/descarte).
+                        const pd = _auditListDiff(x.photos, y.photos);
+                        const sub = sy.split(' · ')[0];
+                        if (pd.added.length) out.push({ label, kind: 'add', text: `${sub}: ${pd.added.length} foto(s) adicionada(s)${_auditByLine(pd.added)}`, photos: pd.added });
+                        if (pd.removed.length) out.push({ label, kind: 'remove', text: `${sub}: ${pd.removed.length} foto(s) removida(s)`, photos: pd.removed });
+                    });
+                    if (!d.added.length && !d.removed.length && !d.changed.length) out.push({ label, kind: 'change', text: 'alterado' });
+                    return;
+                }
+                if (_auditIsScalar(av) && _auditIsScalar(bv)) {
+                    out.push({ label, kind: 'change', before: _auditVal(av), after: _auditVal(bv) });
+                    return;
+                }
+                out.push({ label, kind: 'change', before: JSON.stringify(av), after: JSON.stringify(bv) });
+            });
+            return out;
+        }
+
+        // Agrupa gravações consecutivas do mesmo usuário/seção/embarque (intervalo
+        // <= 20 min) numa "sessão de edição". "antes" = 1ª gravação; "depois" = última.
+        function _auditGroupSessions(rows) {
+            const asc = [...rows].sort((a, b) => new Date(a.Em) - new Date(b.Em));
+            const GAP = 20 * 60 * 1000;
+            const sessions = [];
+            asc.forEach(r => {
+                const who = r.PorId || r.Por;
+                const last = sessions[sessions.length - 1];
+                if (last && last._key === `${r.Codigo}|${r.Origem}|${who}` && (new Date(r.Em) - new Date(last.fim)) <= GAP) {
+                    last.passos.push(r);
+                    last.fim = r.Em;
+                    last.depois = r.Depois;
+                    if (r.Operacao === 'DELETE') last.operacao = 'DELETE';
+                    else if (r.Operacao === 'INSERT' && last.operacao !== 'DELETE') last.operacao = 'INSERT';
+                } else {
+                    sessions.push({
+                        _key: `${r.Codigo}|${r.Origem}|${who}`,
+                        id: `${r.Codigo}|${r.Origem}|${who}|${r.Em}`,
+                        codigo: r.Codigo, origem: r.Origem, origemLabel: r.OrigemLabel,
+                        produto: r.Produto, cliente: r.Cliente,
+                        por: r.Por, inicio: r.Em, fim: r.Em,
+                        operacao: r.Operacao, antes: r.Antes, depois: r.Depois,
+                        passos: [r],
+                    });
+                }
+            });
+            return sessions.sort((a, b) => new Date(b.fim) - new Date(a.fim));
+        }
+
+        function _auditRangeLabel(inicio, fim) {
+            const a = _formatBackupDate(inicio);
+            if (!fim || fim === inicio) return a;
+            const di = new Date(inicio), df = new Date(fim);
+            const pad = n => String(n).padStart(2, '0');
+            const sameDay = di.toDateString() === df.toDateString();
+            const fimTxt = sameDay ? `${pad(df.getHours())}:${pad(df.getMinutes())}` : _formatBackupDate(fim);
+            return `${a} → ${fimTxt}`;
+        }
+
+        function _auditChangeRow(c) {
+            const dot = { add: 'bg-emerald-500', remove: 'bg-rose-500', change: 'bg-amber-500' }[c.kind] || 'bg-slate-400';
+            let body;
+            if (c.kind === 'change' && (c.before !== undefined || c.after !== undefined)) {
+                body = `<span class="text-slate-400 line-through">${_auditEsc(c.before)}</span> <span class="text-slate-400">→</span> <span class="font-semibold text-slate-800">${_auditEsc(c.after)}</span>`;
+            } else {
+                body = `<span class="${c.kind === 'remove' ? 'text-rose-700' : c.kind === 'add' ? 'text-emerald-700' : 'text-slate-800'} font-semibold">${_auditEsc(c.text || '')}</span>`;
+            }
+            const media = c.photos ? _auditPhotoThumbs(c.photos)
+                : (c.urls && c.urls.length ? `<div class="text-[11px] text-slate-400 mt-0.5 break-all">${c.urls.map(u => _auditEsc(u)).join('<br>')}</div>` : '');
+            return `<div class="flex gap-2 py-1">
+                <span class="w-1.5 h-1.5 rounded-full ${dot} mt-1.5 shrink-0"></span>
+                <div class="min-w-0 flex-1 text-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">${_auditEsc(c.label)}</span><br>
+                    ${body}${media}
+                </div>
+            </div>`;
+        }
+
+        function _auditSessionCard(s) {
+            const op = AUDIT_OP_INFO[s.operacao] || AUDIT_OP_INFO.UPDATE;
+            const changes = _auditDiff(s.antes, s.depois);
+            const changesHtml = changes.length
+                ? changes.map(_auditChangeRow).join('')
+                : `<div class="text-xs text-slate-400 py-1">Sem diferença líquida (edições que se cancelaram).</div>`;
+            const expanded = _auditExpanded.has(s.id);
+            const stepsHtml = (s.passos.length > 1 && expanded)
+                ? `<div class="mt-2 pt-2 border-t border-slate-100 space-y-2">
+                    ${s.passos.map(p => {
+                        const pc = _auditDiff(p.Antes, p.Depois);
+                        return `<div class="pl-2 border-l-2 border-slate-200">
+                            <div class="text-[10px] font-bold text-slate-400">${_formatBackupDate(p.Em)} · ${(AUDIT_OP_INFO[p.Operacao] || op).label}</div>
+                            ${pc.length ? pc.map(_auditChangeRow).join('') : '<div class="text-[11px] text-slate-400">—</div>'}
+                        </div>`;
+                    }).join('')}
+                </div>`
+                : '';
+            const toggle = s.passos.length > 1
+                ? `<button onclick="_toggleAuditSession('${_auditEsc(s.id)}')" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 mt-1.5">${expanded ? 'Ocultar' : `Ver as ${s.passos.length} gravações`}</button>`
+                : '';
+            return `<div class="border border-slate-200 rounded-xl p-3.5">
+                <div class="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${op.bg} ${op.text}">${op.label}</span>
+                    <span class="text-xs font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-lg">${_auditEsc(s.codigo)}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${_auditEsc(s.origemLabel)}</span>
+                    ${(s.produto || s.cliente) ? `<span class="text-xs text-slate-500 truncate">${_auditEsc([s.produto, s.cliente].filter(Boolean).join(' · '))}</span>` : ''}
+                </div>
+                <div class="text-xs text-slate-400 mb-2">Por <span class="font-bold text-slate-600">${_auditEsc(s.por)}</span> · ${_auditRangeLabel(s.inicio, s.fim)}</div>
+                <div class="space-y-0.5">${changesHtml}</div>
+                ${toggle}${stepsHtml}
+            </div>`;
+        }
+
+        function _toggleAuditSession(id) {
+            if (_auditExpanded.has(id)) _auditExpanded.delete(id); else _auditExpanded.add(id);
+            renderAuditoriaList(_auditSessionsFiltered);
+        }
+
+        function _renderAuditUserFilter() {
+            const sel = document.getElementById('auditoriaUserFilter');
+            if (!sel) return;
+            const cur = sel.value;
+            const names = Array.from(new Set(_auditRows.map(r => r.Por).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            sel.innerHTML = '<option value="">Todos os usuários</option>' + names.map(n => `<option value="${_auditEsc(n)}">${_auditEsc(n)}</option>`).join('');
+            if (names.includes(cur)) sel.value = cur;
+        }
+
+        function filterAuditoriaList() {
+            const q = (document.getElementById('auditoriaSearch')?.value || '').toLowerCase().trim();
+            const user = document.getElementById('auditoriaUserFilter')?.value || '';
+            let rows = _auditRows;
+            if (user) rows = rows.filter(r => r.Por === user);
+            if (q) rows = rows.filter(r =>
+                String(r.Codigo || '').toLowerCase().includes(q) ||
+                String(r.Produto || '').toLowerCase().includes(q) ||
+                String(r.Cliente || '').toLowerCase().includes(q) ||
+                String(r.Por || '').toLowerCase().includes(q));
+            _auditSessionsFiltered = _auditGroupSessions(rows);
+            renderAuditoriaList(_auditSessionsFiltered);
+        }
+
+        function renderAuditoriaList(sessions) {
+            const container = document.getElementById('auditoriaList');
+            if (!container) return;
+            if (!sessions.length) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Nenhuma alteração registrada.</div>';
+                return;
+            }
+            container.innerHTML = sessions.slice(0, 200).map(_auditSessionCard).join('')
+                + (sessions.length > 200 ? `<div class="text-center py-3 text-[11px] text-slate-400">Mostrando as 200 sessões mais recentes.</div>` : '');
+            lucide.createIcons();
+        }
+
+        function _unsubscribeAuditoriaRealtime() {
+            if (_auditRealtimeChannel) { sb.removeChannel(_auditRealtimeChannel); _auditRealtimeChannel = null; }
+        }
+
+        async function _reloadAuditoriaList() {
+            try {
+                const result = await callBackend({ action: 'listAuditoria' });
+                if (!result.success) return;
+                _auditRows = result.rows || [];
+                _renderAuditUserFilter();
+                filterAuditoriaList();
+            } catch (_) {}
+        }
+
+        async function openAuditoriaModal() {
+            document.getElementById('auditoriaModal').classList.remove('hidden');
+            lockScroll();
+            document.getElementById('auditoriaSearch').value = '';
+            _auditExpanded.clear();
+            document.getElementById('auditoriaList').innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>';
+            lucide.createIcons();
+            // Garante que produto/cliente apareçam: carrega a lista de embarques se ainda não veio.
+            if (!(historyRows && historyRows.length)) {
+                try {
+                    const lst = await callBackend({ action: 'list' });
+                    if (lst && lst.success) { historyRows = lst.rows || []; historyRowsFiltered = [...historyRows]; }
+                } catch (_) {}
+            }
+            try {
+                const result = await callBackend({ action: 'listAuditoria' });
+                if (!result.success) throw new Error(result.error || 'Erro ao carregar.');
+                _auditRows = result.rows || [];
+                _renderAuditUserFilter();
+                filterAuditoriaList();
+            } catch (err) {
+                document.getElementById('auditoriaList').innerHTML = `<div class="text-center py-8 text-red-400 text-sm font-bold">Erro: ${_auditEsc(err.message)}</div>`;
+            }
+            _unsubscribeAuditoriaRealtime();
+            _auditRealtimeChannel = sb
+                .channel('auditoria-modal-live')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'auditoria' }, () => _reloadAuditoriaList())
+                .subscribe();
+        }
+
+        function closeAuditoriaModal() {
+            _unsubscribeAuditoriaRealtime();
+            document.getElementById('auditoriaModal').classList.add('hidden');
+            unlockScroll();
         }
 
         // ---------- NFe ----------
@@ -6625,6 +7126,145 @@
             }
             renderProductCheckboxes();
         }
+        // ---------- Combobox moderno reutilizável ----------
+        // Campo de texto livre + lista suspensa estilizada que junta presets fixos
+        // com o que já foi usado (embarques carregados + digitados nesta máquina).
+        // O valor é sempre uma string simples e o <input> mantém o id de antes.
+        // wrap = <id>Combo   dropdown = <id>Drop
+        const _COMBOS = {
+            varietyInput:    { store: 'spg_clientes',   hist: 'Cliente',      icon: 'building-2',  presets: [] },
+            driverName:      { store: 'spg_motoristas', hist: 'Motorista',    icon: 'user',        presets: [] },
+            vehiclePlate:    { store: 'spg_placas',     hist: 'Placa',        icon: 'car',         presets: [], upper: true },
+            inspectorSelect: { store: 'spg_resp_cruz',  hist: 'Responsavel',  icon: 'user-check',  presets: ['Thaynara Rodrigues da Silva', 'Alesandra Leitão', 'Francisco Fagner Isaias'] },
+            shipResponsible: { store: 'spg_resp_emb',   hist: 'RespEmbarque', icon: 'user-check',  presets: ['Thaynara Rodrigues da Silva', 'Alesandra Leitão', 'Francisco Fagner Isaias'] },
+        };
+        const _comboState = {};   // id -> { active, cache }
+        const _cs = (id) => _comboState[id] || (_comboState[id] = { active: -1, cache: [] });
+
+        function _comboRemembered(store) {
+            try { const a = JSON.parse(localStorage.getItem(store) || '[]'); return Array.isArray(a) ? a : []; }
+            catch (_) { return []; }
+        }
+        function _comboRemember(id, v) {
+            const cfg = _COMBOS[id]; if (!cfg) return;
+            let nome = (v || '').trim();
+            if (cfg.upper) nome = nome.toUpperCase();
+            if (!nome || cfg.presets.some(p => p.toLowerCase() === nome.toLowerCase())) return;
+            const list = _comboRemembered(cfg.store);
+            if (list.some(x => x.toLowerCase() === nome.toLowerCase())) return;
+            list.push(nome);
+            try { localStorage.setItem(cfg.store, JSON.stringify(list.slice(-200))); } catch (_) {}
+        }
+        function _comboOptions(id) {
+            const cfg = _COMBOS[id]; if (!cfg) return [];
+            const norm = s => cfg.upper ? String(s).toUpperCase() : s;
+            const hist = (typeof historyRows !== 'undefined' ? historyRows : []).map(r => norm((r[cfg.hist] || '').trim()));
+            const extra = Array.from(new Map(
+                [...hist, ..._comboRemembered(cfg.store)]
+                    .filter(Boolean)
+                    .filter(n => !cfg.presets.some(p => p.toLowerCase() === n.toLowerCase()))
+                    .map(n => [n.toLowerCase(), n])
+            ).values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            return [...cfg.presets, ...extra];
+        }
+        function _comboRender(id) {
+            const cfg = _COMBOS[id];
+            const inp = document.getElementById(id);
+            const dd = document.getElementById(id + 'Drop');
+            if (!inp || !dd) return;
+            const st = _cs(id);
+            const q = (inp.value || '').trim().toLowerCase();
+            let opts = _comboOptions(id);
+            if (q) {
+                const s = opts.filter(o => o.toLowerCase().startsWith(q));
+                const c = opts.filter(o => !o.toLowerCase().startsWith(q) && o.toLowerCase().includes(q));
+                opts = [...s, ...c];
+            }
+            st.cache = opts.slice(0, 60);
+            if (st.active >= st.cache.length) st.active = st.cache.length - 1;
+            if (!st.cache.length) {
+                dd.innerHTML = `<div class="px-3 py-2 text-xs text-slate-400">${q ? 'Nenhum resultado — Enter para usar “' + _auditEsc(inp.value.trim()) + '”' : 'Nada cadastrado ainda'}</div>`;
+                return;
+            }
+            dd.innerHTML = st.cache.map((o, i) => `
+                <button type="button" onmousedown="event.preventDefault()" onclick="_comboSelect('${id}',${i})" onmouseenter="_comboHover('${id}',${i})"
+                    class="combo-opt w-full text-left px-3 py-2 text-sm ${i === st.active ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700'} hover:bg-emerald-50 flex items-center gap-2">
+                    <i data-lucide="${cfg.icon}" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                    <span class="truncate">${_auditEsc(o)}</span>
+                </button>`).join('');
+            if (window.lucide) lucide.createIcons();
+        }
+        function _comboPaint(id) {
+            const st = _cs(id);
+            document.querySelectorAll('#' + id + 'Drop .combo-opt').forEach((el, i) => {
+                el.classList.toggle('bg-emerald-50', i === st.active);
+                el.classList.toggle('text-emerald-800', i === st.active);
+                el.classList.toggle('text-slate-700', i !== st.active);
+                if (i === st.active) el.scrollIntoView({ block: 'nearest' });
+            });
+        }
+        function _comboHover(id, i) { _cs(id).active = i; _comboPaint(id); }
+        function _comboOpen(id) {
+            const dd = document.getElementById(id + 'Drop'); if (!dd) return;
+            _cs(id).active = -1;
+            _comboRender(id);
+            dd.classList.remove('hidden');
+        }
+        function _comboClose(id) {
+            const dd = document.getElementById(id + 'Drop'); if (dd) dd.classList.add('hidden');
+        }
+        function _comboToggle(id) {
+            const dd = document.getElementById(id + 'Drop'); if (!dd) return;
+            if (dd.classList.contains('hidden')) { document.getElementById(id).focus(); _comboOpen(id); }
+            else _comboClose(id);
+        }
+        function _comboInput(id) {
+            updatePreview();
+            _cs(id).active = -1;
+            _comboOpen(id);
+        }
+        function _comboSelect(id, i) {
+            const val = _cs(id).cache[i];
+            if (val == null) return;
+            document.getElementById(id).value = val;
+            _comboRemember(id, val);
+            _comboClose(id);
+            updatePreview();
+        }
+        function _comboKey(id, e) {
+            const dd = document.getElementById(id + 'Drop');
+            const open = dd && !dd.classList.contains('hidden');
+            const st = _cs(id);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!open) { _comboOpen(id); return; }
+                st.active = Math.min(st.active + 1, st.cache.length - 1); _comboPaint(id);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                st.active = Math.max(st.active - 1, 0); _comboPaint(id);
+            } else if (e.key === 'Enter') {
+                e.preventDefault(); // não deixa o Enter enviar o formulário
+                if (open && st.active >= 0) _comboSelect(id, st.active);
+                else { _comboRemember(id, e.target.value); _comboClose(id); }
+            } else if (e.key === 'Escape') {
+                if (open) { e.preventDefault(); _comboClose(id); }
+            }
+        }
+        // Fecha qualquer combo ao clicar fora dele e lembra o que foi digitado.
+        document.addEventListener('mousedown', (e) => {
+            Object.keys(_COMBOS).forEach(id => {
+                const wrap = document.getElementById(id + 'Combo');
+                const dd = document.getElementById(id + 'Drop');
+                if (wrap && dd && !dd.classList.contains('hidden') && !wrap.contains(e.target)) {
+                    _comboRemember(id, (document.getElementById(id) || {}).value || '');
+                    _comboClose(id);
+                }
+            });
+        });
+        // Compat com nomes antigos.
+        function _refreshClientesDatalist() {}
+        function _rememberCliente(v) { _comboRemember('varietyInput', v); }
+
         function getProductName() {
             const parts = PRODUCT_PRESETS.filter(p => _productSelected.has(p));
             if (_productOutro) {
@@ -6634,56 +7274,21 @@
             }
             return parts.join(', ');
         }
-        function handleInspectorChange() {
-            const sel = document.getElementById('inspectorSelect');
-            const container = document.getElementById('customInspectorContainer');
-            if (sel.value === 'Outro') {
-                sel.classList.add('hidden');
-                container.classList.remove('hidden');
-                setTimeout(() => document.getElementById('customInspectorName').focus(), 50);
-            } else {
-                sel.classList.remove('hidden');
-                container.classList.add('hidden');
-            }
-            updatePreview();
-        }
-        function clearInspectorSelect() {
-            document.getElementById('inspectorSelect').value = '';
-            document.getElementById('inspectorSelect').classList.remove('hidden');
-            document.getElementById('customInspectorContainer').classList.add('hidden');
-            document.getElementById('customInspectorName').value = '';
-            updatePreview();
-        }
+        // Os responsáveis agora são combobox de texto livre (ver _COMBOS). O nome é
+        // lido direto do <input>. Funções antigas viram no-op para compat.
+        function handleInspectorChange() {}
+        function clearInspectorSelect() { document.getElementById('inspectorSelect').value = ''; updatePreview(); }
         function getInspectorName() {
-            const sel = document.getElementById('inspectorSelect').value;
-            if (sel === 'Outro') return document.getElementById('customInspectorName').value;
-            return sel;
+            return (document.getElementById('inspectorSelect').value || '').trim();
         }
-        function handleShipResponsibleChange() {
-            const sel = document.getElementById('shipResponsible').value;
-            const container = document.getElementById('customShipResponsibleContainer');
-            if (sel === 'Outro') {
-                container.classList.remove('hidden');
-                setTimeout(() => document.getElementById('customShipResponsible').focus(), 50);
-            } else {
-                container.classList.add('hidden');
-            }
-            updatePreview();
-        }
-        function clearShipResponsible() {
-            document.getElementById('shipResponsible').value = '';
-            document.getElementById('customShipResponsibleContainer').classList.add('hidden');
-            document.getElementById('customShipResponsible').value = '';
-            updatePreview();
-        }
+        function handleShipResponsibleChange() {}
+        function clearShipResponsible() { document.getElementById('shipResponsible').value = ''; updatePreview(); }
         function getShipResponsibleName() {
-            const sel = document.getElementById('shipResponsible').value;
-            if (sel === 'Outro') return document.getElementById('customShipResponsible').value;
-            return sel;
+            return (document.getElementById('shipResponsible').value || '').trim();
         }
 
         // ---------- Produtos (lotes) / Unidades por caixa ----------
-        // Lista base para funcionar offline; a aba "Produtos" da planilha pode
+        // Lista base para funcionar offline; o cadastro de "Produtos" (tabela produtos) pode
         // adicionar novos produtos e sobrescrever as unidades por caixa sem
         // precisar mexer no código (ver fetchProductUnits()).
         const DEFAULT_LOT_PRODUCTS = ['Brócolis','Couve-Flor','Tomatitos','Pepinitos','Brócolis 300g','Pepino 280g','Tomate 180g','Brócolis 200g SPG Filetado','Brócolis In Natura'];
@@ -6704,12 +7309,25 @@
             return manual > 0 ? manual : _lotAutoFactor(lot);
         }
         function _lotUnits(lot) {
+            // No modo "kg" não há conversão em unidades — o peso é a medida.
+            if (lot && lot.qtyUnit === 'kg') return 0;
             const factor = _lotFactor(lot);
             const boxes = parseFloat(lot.boxes) || 0;
             return (factor > 0 && boxes > 0) ? Math.round(boxes * factor) : 0;
         }
-        function _qtyLabel(qty, unitsQty) {
-            return qty + ' cx' + (unitsQty > 0 ? ` (${unitsQty} un)` : '');
+        // Modo "kg": o lote tem um peso (lot.kg) e, opcionalmente, também um número
+        // de caixas (lot.boxes, digitado à mão — sem conversão). O peso soma num
+        // total de kg à parte; as caixas entram no total de cx normalmente.
+        function _lotKg(lot) {
+            return (lot && lot.qtyUnit === 'kg') ? (parseFloat(lot.kg) || 0) : 0;
+        }
+        function _qtyLabel(qty, unitsQty, kgQty) {
+            qty = parseFloat(qty) || 0;
+            kgQty = parseFloat(kgQty) || 0;
+            let s = '';
+            if (qty > 0 || kgQty === 0) s = qty + ' cx' + (unitsQty > 0 ? ` (${unitsQty} un)` : '');
+            if (kgQty > 0) s += (s ? ' e ' : '') + _fmtBR(kgQty) + ' kg';
+            return s;
         }
         // Formata número no padrão brasileiro (milhar com ".", decimal com ",") —
         // usado nos totais em kg do relatório/PDF (ex: 1173.3 -> "1.173,3").
@@ -6945,7 +7563,8 @@
                     if (!name) return;
                     const lots = g.lots || [];
                     const qty = lots.reduce((s, l) => s + (parseFloat(l.boxes) || 0), 0);
-                    if (qty <= 0) return;
+                    const kgQty = lots.reduce((s, l) => s + _lotKg(l), 0);
+                    if (qty <= 0 && kgQty <= 0) return;
                     const unitsQty = lots.reduce((s, l) => s + _lotUnits(l), 0);
                     const products = Array.from(new Set(lots
                         .map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim())
@@ -6956,7 +7575,7 @@
                     // preservada, e a data acabava não aparecendo em nenhum relatório.
                     const dates = Array.from(new Set(lots.map(l => l.harvestDate).filter(Boolean))).sort();
                     rows.push({
-                        name, qty, unitsQty, palletLabel: plLabel, client: (pl.client || '').trim(),
+                        name, qty, unitsQty, kgQty, palletLabel: plLabel, client: (pl.client || '').trim(),
                         unit: products.join(', '),
                         harvestDates: dates,
                         harvestDate: dates.join(',')
@@ -6971,20 +7590,21 @@
 
             // harvestDate aceita tanto uma data única (string) quanto várias (array) —
             // todas são somadas ao Set do parceiro, nunca descartadas por haver mais de uma.
-            const add = (name, qty, palletLabel, unit, harvestDate, unitsQty = 0) => {
-                if (!name || !(qty > 0)) return;
+            const add = (name, qty, palletLabel, unit, harvestDate, unitsQty = 0, kgQty = 0) => {
+                if (!name || !(qty > 0 || kgQty > 0)) return;
                 const key = _normalizePartnerKey(name);
                 const datesToAdd = Array.isArray(harvestDate) ? harvestDate.filter(Boolean) : (harvestDate ? [harvestDate] : []);
                 if (map.has(key)) {
                     const e = map.get(key);
                     e.qtyNum += qty;
                     e.unitsQty += unitsQty;
+                    e.kgQty = (e.kgQty || 0) + kgQty;
                     if (palletLabel) e._pallets.add(palletLabel);
                     if (unit) unit.split(', ').filter(Boolean).forEach(u => e._units.add(u));
                     datesToAdd.forEach(d => e._dates.add(d));
                 } else {
                     map.set(key, {
-                        name: name.trim(), nameCustom: '', qtyNum: qty, unitsQty,
+                        name: name.trim(), nameCustom: '', qtyNum: qty, unitsQty, kgQty,
                         _pallets: new Set(palletLabel ? [palletLabel] : []),
                         _units: new Set(unit ? unit.split(', ').filter(Boolean) : []),
                         _dates: new Set(datesToAdd)
@@ -6993,7 +7613,7 @@
             };
 
             // Fonte primária: grupos de parceiro dentro dos pallets (com lotes)
-            _flattenPalletPartnerGroups().forEach(r => add(r.name, r.qty, r.palletLabel, r.unit, r.harvestDates, r.unitsQty));
+            _flattenPalletPartnerGroups().forEach(r => add(r.name, r.qty, r.palletLabel, r.unit, r.harvestDates, r.unitsQty, r.kgQty));
 
             // Retrocompatibilidade: registros antigos guardavam parceiros em pl.partners
             palletsData.forEach(pl => {
@@ -7021,6 +7641,7 @@
                     name: e.name, nameCustom: '',
                     qty: String(e.qtyNum),
                     unitsQty: e.unitsQty || 0,
+                    kgQty: e.kgQty || 0,
                     unit: Array.from(e._units).join(', '), unitCustom: '',
                     harvestDate: dates.join(','),
                     palletLabel: labels.join(', ')
@@ -7566,9 +8187,12 @@
         }
         function removePalletLot(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots.splice(lIdx, 1); renderPallets(); updatePreview(); }
         function _refreshPalletTotalDisplay(pIdx) {
-            const total = (palletsData[pIdx].partnerGroups || []).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0);
+            const groups = palletsData[pIdx].partnerGroups || [];
+            const total = groups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0);
+            const totalUnits = groups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotUnits(l), 0), 0);
+            const totalKg = groups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotKg(l), 0), 0);
             const el = document.getElementById('pallet-total-' + pIdx);
-            if (el) el.textContent = total + ' cx';
+            if (el) el.textContent = _qtyLabel(total, totalUnits, totalKg);
         }
         function updatePalletLot(pIdx, gIdx, lIdx, field, value) {
             palletsData[pIdx].partnerGroups[gIdx].lots[lIdx][field] = value;
@@ -7611,7 +8235,15 @@
         // lot.unitsRaw e recalculamos assim que o produto (e seu fator) for escolhido.
         function updatePalletLotQty(pIdx, gIdx, lIdx, rawValue) {
             const lot = palletsData[pIdx].partnerGroups[gIdx].lots[lIdx];
-            const mode = lot.qtyUnit === 'un' ? 'un' : 'cx';
+            const mode = lot.qtyUnit === 'un' ? 'un' : (lot.qtyUnit === 'kg' ? 'kg' : 'cx');
+            // Modo "kg": guardamos o peso (lot.kg). As caixas do lote são digitadas
+            // à parte, no campo "Caixas" (updatePalletLot 'boxes'), sem conversão.
+            if (mode === 'kg') {
+                lot.kg = rawValue;
+                _refreshPalletTotalDisplay(pIdx);
+                updatePreview();
+                return;
+            }
             let boxesValue = rawValue;
             if (mode === 'un') {
                 lot.unitsRaw = rawValue;
@@ -7623,8 +8255,16 @@
             // foco); os rótulos calculados atualizam no blur do campo.
         }
         function updatePalletLotQtyUnit(pIdx, gIdx, lIdx, unit) {
-            palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].qtyUnit = unit;
+            const lot = palletsData[pIdx].partnerGroups[gIdx].lots[lIdx];
+            const prev = lot.qtyUnit === 'un' ? 'un' : (lot.qtyUnit === 'kg' ? 'kg' : 'cx');
+            lot.qtyUnit = unit;
+            if (unit !== 'un') lot.unitsRaw = '';
+            if (unit !== 'kg') lot.kg = '';
+            // Saindo do modo "un", lot.boxes guardava um valor convertido (às vezes
+            // fracionário) — zera pra não se confundir com caixas digitadas à mão.
+            if (prev === 'un' && unit !== 'un') lot.boxes = '';
             renderPallets();
+            updatePreview();
         }
         function clearPalletLotProduct(pIdx, gIdx, lIdx) { palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].product = ''; palletsData[pIdx].partnerGroups[gIdx].lots[lIdx].productCustom = ''; renderPallets(); }
 
@@ -7635,6 +8275,7 @@
             const groupsHtml = groups.map((g, gIdx) => {
                 const total = (g.lots||[]).reduce((s, lot) => s + (parseFloat(lot.boxes)||0), 0);
                 const totalUnits = (g.lots||[]).reduce((s, lot) => s + _lotUnits(lot), 0);
+                const totalKg = (g.lots||[]).reduce((s, lot) => s + _lotKg(lot), 0);
                 if (g.collapsed === undefined) g.collapsed = true; // padrão: recolhido
                 const collapsed = g.collapsed === true;
                 const nameSel = g.name || '';
@@ -7649,22 +8290,28 @@
                             : `<select onchange="handlePalletLotProductChange(${idx}, ${gIdx}, ${lIdx}, this)" class="w-full p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none"><option value="">Produto<\/option>${getLotProductOptions().map(p => `<option value="${p}" ${lot.product===p?'selected':''}>${p}<\/option>`).join('')}<option value="Outro">Outro...<\/option><\/select>`;
                         const lotUnits = _lotUnits(lot);
                         const lotFactor = _lotFactor(lot);
-                        const qtyMode = lot.qtyUnit === 'un' ? 'un' : 'cx';
+                        const qtyMode = lot.qtyUnit === 'un' ? 'un' : (lot.qtyUnit === 'kg' ? 'kg' : 'cx');
                         const boxesNum = parseFloat(lot.boxes) || 0;
-                        const qtyInputVal = qtyMode === 'un'
-                            ? (lotFactor > 0 ? (lotUnits || '') : (lot.unitsRaw || ''))
-                            : (lot.boxes === '' || lot.boxes == null ? '' : lot.boxes);
-                        const qtyOtherLabel = qtyMode === 'un'
-                            ? (lotFactor > 0
-                                ? (boxesNum > 0 ? ` = ${_fmtBR(boxesNum)} cx` : '')
-                                : (lot.unitsRaw ? ' (defina produto ou un/caixa p/ calcular cx)' : ''))
-                            : (lotUnits > 0 ? ` = ${lotUnits} un` : '');
-                        const qtyUnitSelect = `<select onchange="event.stopPropagation(); updatePalletLotQtyUnit(${idx}, ${gIdx}, ${lIdx}, this.value)" onclick="event.stopPropagation()" class="text-[11px] font-bold text-amber-600 bg-transparent border-none outline-none p-0 pr-0.5"><option value="cx" ${qtyMode==='cx'?'selected':''}>cx</option><option value="un" ${qtyMode==='un'?'selected':''}>un</option></select>`;
+                        const qtyInputVal = qtyMode === 'kg'
+                            ? (lot.kg == null ? '' : lot.kg)
+                            : qtyMode === 'un'
+                                ? (lotFactor > 0 ? (lotUnits || '') : (lot.unitsRaw || ''))
+                                : (lot.boxes === '' || lot.boxes == null ? '' : lot.boxes);
+                        const qtyOtherLabel = qtyMode === 'kg'
+                            ? ''
+                            : qtyMode === 'un'
+                                ? (lotFactor > 0
+                                    ? (boxesNum > 0 ? ` = ${_fmtBR(boxesNum)} cx` : '')
+                                    : (lot.unitsRaw ? ' (defina produto ou un/caixa p/ calcular cx)' : ''))
+                                : (lotUnits > 0 ? ` = ${lotUnits} un` : '');
+                        const qtyUnitSelect = `<select onchange="event.stopPropagation(); updatePalletLotQtyUnit(${idx}, ${gIdx}, ${lIdx}, this.value)" onclick="event.stopPropagation()" class="text-[11px] font-bold text-amber-600 bg-transparent border-none outline-none p-0 pr-0.5"><option value="cx" ${qtyMode==='cx'?'selected':''}>cx</option><option value="un" ${qtyMode==='un'?'selected':''}>un</option><option value="kg" ${qtyMode==='kg'?'selected':''}>kg</option></select>`;
                         const lotAutoFactor = _lotAutoFactor(lot);
-                        const factorRow = `<div class="flex items-center gap-2 pl-1"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Un\/caixa<\/label><input type="number" min="0" step="any" value="${lot.unitsPerBoxManual||''}" placeholder="${lotAutoFactor>0?lotAutoFactor:'manual'}" oninput="updatePalletLotFactor(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-20 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center" title="Unidades por caixa deste lote (substitui o padrão do produto quando preenchido)"><\/div>`;
-                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" value="${qtyInputVal}" placeholder="${qtyMode==='un'?'Un':'Cx'}" oninput="updatePalletLotQty(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2 flex items-center">${qtyUnitSelect}${qtyOtherLabel}<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div>${factorRow}<div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
+                        const factorRow = qtyMode === 'kg'
+                            ? `<div class="flex items-center gap-2 pl-1"><i data-lucide="package" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Caixas<\/label><input type="number" min="0" step="any" value="${lot.boxes===''||lot.boxes==null?'':lot.boxes}" placeholder="opcional" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'boxes', this.value)" onblur="renderPallets()" class="w-20 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center" title="Quantidade de caixas deste lote (além do peso em kg)"><\/div>`
+                            : `<div class="flex items-center gap-2 pl-1"><i data-lucide="hash" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Un\/caixa<\/label><input type="number" min="0" step="any" value="${lot.unitsPerBoxManual||''}" placeholder="${lotAutoFactor>0?lotAutoFactor:'manual'}" oninput="updatePalletLotFactor(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-20 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none text-center" title="Unidades por caixa deste lote (substitui o padrão do produto quando preenchido)"><\/div>`;
+                        return `<div class="flex flex-col gap-1 bg-white rounded-lg p-2 border border-emerald-100"><div class="flex gap-1.5 items-start"><div class="flex-1">${prodEl}<\/div><input type="number" min="0" step="any" value="${qtyInputVal}" placeholder="${qtyMode==='un'?'Un':(qtyMode==='kg'?'Kg':'Cx')}" oninput="updatePalletLotQty(${idx}, ${gIdx}, ${lIdx}, this.value)" onblur="renderPallets()" class="w-14 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none text-center"><span class="text-[11px] text-amber-600 font-bold shrink-0 mt-2 flex items-center">${qtyUnitSelect}${qtyOtherLabel}<\/span><button type="button" onclick="removePalletLot(${idx}, ${gIdx}, ${lIdx})" class="px-1 text-rose-400 hover:text-rose-600 mt-1"><i data-lucide="x" class="w-3.5 h-3.5"><\/i><\/button><\/div>${factorRow}<div class="flex items-center gap-2 pl-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"><\/i><label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">Data colheita<\/label><input type="date" value="${lot.harvestDate||''}" oninput="updatePalletLot(${idx}, ${gIdx}, ${lIdx}, 'harvestDate', this.value)" class="flex-1 p-1.5 rounded-lg border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none"><\/div><\/div>`;
                     }).join('')}<button type="button" onclick="addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-1 text-emerald-500 hover:text-emerald-700 text-[10px] font-bold mt-1"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar lote<\/button><\/div>`;
-                return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center flex-wrap gap-y-1.5 justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-[140px]"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">${_qtyLabel(total, totalUnits)}<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
+                return `<div class="rounded-xl border border-emerald-200 overflow-hidden"><div class="flex items-center flex-wrap gap-y-1.5 justify-between bg-emerald-50 px-3 py-2 cursor-pointer select-none" onclick="togglePalletPartnerGroup(${idx}, ${gIdx})"><div class="flex items-center gap-2 flex-1 min-w-[140px]"><i data-lucide="${collapsed?'chevron-right':'chevron-down'}" class="w-4 h-4 text-emerald-600 shrink-0"><\/i>${nameEl}<\/div><div class="flex items-center gap-2 shrink-0"><span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">${_qtyLabel(total, totalUnits, totalKg)}<\/span><button type="button" onclick="event.stopPropagation(); addPalletLot(${idx}, ${gIdx})" class="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 bg-white"><i data-lucide="plus" class="w-3 h-3"><\/i> Lote<\/button><button type="button" onclick="event.stopPropagation(); removePalletPartnerGroup(${idx}, ${gIdx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"><\/i><\/button><\/div><\/div>${collapsed?'':`<div class="p-2 space-y-1.5">${lotsHtml}<\/div>`}<\/div>`;
             }).join('');
             return `${groupsHtml}<button type="button" onclick="addPalletPartnerGroup(${idx})" class="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-amber-300 text-amber-500 hover:bg-amber-100 text-[11px] font-bold mt-1 transition-colors"><i data-lucide="plus-circle" class="w-3.5 h-3.5"><\/i> Adicionar parceiro<\/button>`;
         }
@@ -7679,20 +8326,22 @@
             // sozinho assim que a rede voltar (ver bloco "FOTOS OFFLINE" acima).
             const info = await _tryGetPhotoUploadInfo();
             let anyPending = false;
+            let seq = 0;
             for (const file of files) {
                 const dataUrl = await _compressImage(file);
                 if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
+                seq++;
                 if (info) {
                     try {
-                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                        palletsData[idx].photos.push(url);
+                        const up = await _uploadPhotoDataUrlToDrive(dataUrl, info, seq);
+                        palletsData[idx].photos.push(_mkPhotoEntry(up.url, up.name));
                         renderPallets();
                         updatePreview();
                         continue;
                     } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
-                palletsData[idx].photos.push(dataUrl);
+                palletsData[idx].photos.push(_mkPhotoEntry(dataUrl, ''));
                 renderPallets();
                 updatePreview();
                 anyPending = true;
@@ -7763,6 +8412,7 @@
                 const collapsed = !!_collapsedPallets[idx];
                 const totalBoxes = (pl.partnerGroups||[]).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0) + (pl.items||[]).reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
                 const totalUnitsPl = (pl.partnerGroups||[]).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotUnits(l), 0), 0);
+                const totalKgPl = (pl.partnerGroups||[]).reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotKg(l), 0), 0);
                 return `
                 <div id="pallet-card-${idx}" class="rounded-xl border border-amber-200 overflow-hidden" style="${pl.borderColor ? `border-color:${pl.borderColor};border-width:2px;` : ''}">
                     <div class="flex flex-col bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
@@ -7776,7 +8426,7 @@
                             </div>
                             <input type="color" value="${pl.borderColor || '#f59e0b'}" onclick="event.stopPropagation()" oninput="_livePalletBorderColor(${idx}, this.value)" onchange="updatePalletBorderColor(${idx}, this.value)" title="Cor da borda deste pallet" class="w-6 h-6 rounded-md border border-amber-300 cursor-pointer p-0 bg-transparent shrink-0">
                             ${pl.borderColor ? `<button type="button" onclick="event.stopPropagation(); resetPalletBorderColor(${idx})" class="text-slate-400 hover:text-slate-600 shrink-0" title="Restaurar cor padrão"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>` : ''}
-                            <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl)}</span>
+                            <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl, totalKgPl)}</span>
                             <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
                         <div class="flex items-center gap-2 mt-1.5 pl-6" onclick="event.stopPropagation()">
@@ -7789,7 +8439,7 @@
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${photos.map((src, pidx) => `
                                 <div class="relative group">
-                                    <img src="${src}" alt="Foto ${pidx+1}" onclick="openPhotoViewer(palletsData[${idx}].photos, ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-amber-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <img src="${_photoUrl(src)}" alt="Foto ${pidx+1}" onclick="openPhotoViewer(palletsData[${idx}].photos, ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-amber-200 cursor-pointer hover:opacity-80 transition-opacity">
                                     <button type="button" onclick="removePalletPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
                                 </div>
                             `).join('')}
@@ -7961,20 +8611,22 @@
             if (!discardsData[idx].photos) discardsData[idx].photos = [];
             const info = await _tryGetPhotoUploadInfo();
             let anyPending = false;
+            let seq = 0;
             for (const file of files) {
                 const dataUrl = await _compressImage(file);
                 if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
+                seq++;
                 if (info) {
                     try {
-                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                        discardsData[idx].photos.push(url);
+                        const up = await _uploadPhotoDataUrlToDrive(dataUrl, info, seq);
+                        discardsData[idx].photos.push(_mkPhotoEntry(up.url, up.name));
                         renderDiscards();
                         updatePreview();
                         continue;
                     } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
-                discardsData[idx].photos.push(dataUrl);
+                discardsData[idx].photos.push(_mkPhotoEntry(dataUrl, ''));
                 renderDiscards();
                 updatePreview();
                 anyPending = true;
@@ -8052,7 +8704,7 @@
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${photos.map((src, pidx) => `
                                 <div class="relative group">
-                                    <img src="${src}" alt="Comprovante ${pidx+1}" onclick="openPhotoViewer(discardsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-rose-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <img src="${_photoUrl(src)}" alt="Comprovante ${pidx+1}" onclick="openPhotoViewer(discardsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-rose-200 cursor-pointer hover:opacity-80 transition-opacity">
                                     <button type="button" onclick="removeDiscardPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
                                 </div>
                             `).join('')}
@@ -8104,20 +8756,22 @@
             if (!customTempsData[idx].photos) customTempsData[idx].photos = [];
             const info = await _tryGetPhotoUploadInfo();
             let anyPending = false;
+            let seq = 0;
             for (const file of files) {
                 const dataUrl = await _compressImage(file);
                 if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
+                seq++;
                 if (info) {
                     try {
-                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                        customTempsData[idx].photos.push(url);
+                        const up = await _uploadPhotoDataUrlToDrive(dataUrl, info, seq);
+                        customTempsData[idx].photos.push(_mkPhotoEntry(up.url, up.name));
                         renderCustomTemps();
                         updatePreview();
                         continue;
                     } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
-                customTempsData[idx].photos.push(dataUrl);
+                customTempsData[idx].photos.push(_mkPhotoEntry(dataUrl, ''));
                 renderCustomTemps();
                 updatePreview();
                 anyPending = true;
@@ -8177,7 +8831,7 @@
                         <div class="flex flex-wrap gap-2 items-center pl-1">
                             ${(t.photos || []).map((src, pidx) => `
                                 <div class="relative">
-                                    <img src="${src}" alt="Foto temp ${pidx+1}" onclick="openPhotoViewer(customTempsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-orange-200 cursor-pointer hover:opacity-80 transition-opacity">
+                                    <img src="${_photoUrl(src)}" alt="Foto temp ${pidx+1}" onclick="openPhotoViewer(customTempsData[${idx}].photos||[], ${pidx})" class="w-14 h-14 object-cover rounded-lg border border-orange-200 cursor-pointer hover:opacity-80 transition-opacity">
                                     <button type="button" onclick="removeTempPhoto(${idx}, ${pidx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"><i data-lucide="x" class="w-3 h-3"></i></button>
                                 </div>
                             `).join('')}
@@ -8230,17 +8884,20 @@
         // esse upload por trás, então isso passa a acontecer assim que a foto é
         // adicionada, não só no momento de salvar. "info" ({token, folderId}) é
         // buscado uma vez por lote de arquivos, não a cada foto.
-        async function _uploadPhotoDataUrlToDrive(dataUrl, info) {
+        // Devolve { url, name } — name é o nome padronizado usado no Drive, guardado
+        // junto da foto pra aparecer na Auditoria. seq (2,3,...) desempata nomes num
+        // lote de várias fotos.
+        async function _uploadPhotoDataUrlToDrive(dataUrl, info, seq) {
             const blob = await (await fetch(dataUrl)).blob();
-            const filename = 'foto_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '.jpg';
-            const fileObj = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+            const driveName = _driveFileName('.jpg', seq);
+            const fileObj = new File([blob], driveName, { type: blob.type || 'image/jpeg' });
             // _uploadToDriveApi devolve um link "/view" (bom para abrir em nova aba,
             // como os vídeos usam) — mas fotos são exibidas como <img>, que precisa
             // do formato lh3.googleusercontent.com pra renderizar a imagem direto
             // (mesmo formato que o backend antigo já gerava pra fotos).
-            const viewUrl = await _uploadToDriveApi(fileObj, info.token, info.folderId);
+            const viewUrl = await _uploadToDriveApi(fileObj, info.token, info.folderId, null, driveName);
             const m = viewUrl.match(/\/file\/d\/([^/]+)/);
-            return m ? ('https://lh3.googleusercontent.com/d/' + m[1]) : viewUrl;
+            return { url: (m ? ('https://lh3.googleusercontent.com/d/' + m[1]) : viewUrl), name: driveName };
         }
 
         // Busca o token de upload uma única vez por lote de arquivos selecionados.
@@ -8251,7 +8908,11 @@
         // pendente em vez de travar o fluxo (ver bloco "FOTOS OFFLINE" acima).
         async function _tryGetPhotoUploadInfo() {
             try {
-                const info = await callBackend({ action: 'getUploadInfo' });
+                const info = await callBackend({
+                    action: 'getUploadInfo',
+                    codigo: (document.getElementById('embarqueCodigo')?.value || '').trim(),
+                    cliente: (document.getElementById('varietyInput')?.value || '').trim(),
+                });
                 return (info && info.success) ? info : null;
             } catch (_) { return null; }
         }
@@ -8265,20 +8926,22 @@
             let anyPending = false;
             // Sequencial (for..of + await): com forEach(async), as compressões
             // terminavam fora de ordem e as fotos entravam embaralhadas.
+            let seq = 0;
             for (const file of files) {
                 const dataUrl = await _compressImage(file);
                 if (!dataUrl) continue;
                 if (fromCamera) _savePhotoToGallery(dataUrl);
+                seq++;
                 if (info) {
                     try {
-                        const url = await _uploadPhotoDataUrlToDrive(dataUrl, info);
-                        photosData.push({ dataUrl: url, caption: '' });
+                        const up = await _uploadPhotoDataUrlToDrive(dataUrl, info, seq);
+                        photosData.push(_mkPhotoEntry(up.url, up.name, { caption: '' }));
                         renderPhotos();
                         updatePreview();
                         continue;
                     } catch (_) { /* falhou no meio do lote: cai para pendente abaixo */ }
                 }
-                photosData.push({ dataUrl, caption: '' });
+                photosData.push(_mkPhotoEntry(dataUrl, '', { caption: '' }));
                 renderPhotos();
                 updatePreview();
                 anyPending = true;
@@ -8334,7 +8997,8 @@
         let _viewerPhotos = [], _viewerIdx = 0;
         let _vzScale = 1, _vzLastDist = 0;
         function openPhotoViewer(photos, idx) {
-            _viewerPhotos = Array.isArray(photos) ? photos : [photos];
+            // Aceita array de string (formato antigo) ou de objeto {dataUrl,...} (novo).
+            _viewerPhotos = (Array.isArray(photos) ? photos : [photos]).map(_photoUrl).filter(Boolean);
             _viewerIdx = idx || 0;
             _vzScale = 1; _vzLastDist = 0;
             _updateViewer();
@@ -8659,6 +9323,8 @@
             const validPartners = getGroupedPartners().sort((a, b) => getPartnerName(a).localeCompare(getPartnerName(b), 'pt-BR'));
             const validDiscards = getValidDiscards().sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
             const totalQty = validPartners.reduce((sum, p) => sum + parseFloat(p.qty), 0);
+            const totalUnitsQty = validPartners.reduce((sum, p) => sum + (p.unitsQty || 0), 0);
+            const totalKgQty = validPartners.reduce((sum, p) => sum + (p.kgQty || 0), 0);
             const totalDiscard = validDiscards.reduce((sum, d) => sum + parseFloat(d.weight), 0);
             const maxPartner = getMaxPartner();
             const maxDiscard = getMaxDiscardPartner();
@@ -8718,8 +9384,9 @@
                     const legacyItems  = (pl.items||[]).filter(it => it.boxes !== '' && it.boxes != null);
                     const totalBoxes = palletGroups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0)
                                      + legacyItems.reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
+                    const totalKgCell = palletGroups.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotKg(l), 0), 0);
                     const boxesHtml = (palletGroups.length || legacyItems.length)
-                        ? totalBoxes + ' cx'
+                        ? (_qtyLabel(totalBoxes, 0, totalKgCell) || (totalBoxes + ' cx'))
                         : (pl.boxes ? pl.boxes+' cx' : '—');
                     return `${rpTD(pl.label+(pl.client?' — '+pl.client:''),'font-weight:700')}${rpTD(temp,'font-weight:700;text-align:center;color:#92400e;')}${rpTD(boxesHtml,'font-weight:700;text-align:center;')}`;
                 };
@@ -8737,7 +9404,7 @@
             })())}
 
             <!-- 4. RESUMO (só no PDF interno) -->
-            ${showInternalSections ? rpSH(rn(),'Resumo do Embarque') + rpTable('<tr>'+rpTH('Total Caixas/Unid.')+rpTH('Parceiros')+rpTH('Total Descarte')+rpTH('Maior Envio')+rpTH('Maior Descarte')+'</tr><tr>'+rpTD(totalQty,'font-weight:900;font-size:13px;')+rpTD(validPartners.length,'font-size:13px;font-weight:700;')+rpTD(_fmtBR(totalDiscard)+' kg','font-weight:900;font-size:13px;color:#b91c1c;')+rpTD(maxPartner?getPartnerName(maxPartner):'—')+rpTD(maxDiscard?maxDiscard.partner+' ('+_fmtBR(maxDiscard.total)+' kg)':'—')+'</tr>') : ''}
+            ${showInternalSections ? rpSH(rn(),'Resumo do Embarque') + rpTable('<tr>'+rpTH('Total Caixas/Unid.')+rpTH('Parceiros')+rpTH('Total Descarte')+rpTH('Maior Envio')+rpTH('Maior Descarte')+'</tr><tr>'+rpTD(_qtyLabel(totalQty, totalUnitsQty, totalKgQty),'font-weight:900;font-size:13px;')+rpTD(validPartners.length,'font-size:13px;font-weight:700;')+rpTD(_fmtBR(totalDiscard)+' kg','font-weight:900;font-size:13px;color:#b91c1c;')+rpTD(maxPartner?getPartnerName(maxPartner):'—')+rpTD(maxDiscard?maxDiscard.partner+' ('+_fmtBR(maxDiscard.total)+' kg)':'—')+'</tr>') : ''}
 
             <!-- 5. TEMPERATURAS -->
             ${rpSH(rn(),'Temperaturas')}
@@ -8755,9 +9422,9 @@
                 const dateDisplay = p.harvestDate
                     ? p.harvestDate.split(',').map(hd => { const d = hd.split('-'); return d[2]+'/'+d[1]; }).join(', ')
                     : '—';
-                return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(_qtyLabel(p.qty, p.unitsQty||0),'font-weight:700;text-align:center;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
+                return `<tr style="${bg}">${rpTD(getPartnerName(p),isMax?'font-weight:700;':'')}${rpTD(p.palletLabel||'—','text-align:center;font-weight:700;')}${rpTD(_qtyLabel(p.qty, p.unitsQty||0, p.kgQty||0),'font-weight:700;text-align:center;')}${rpTD(getPartnerUnit(p))}${rpTD(dateDisplay,'text-align:center;font-weight:700;')}${rpTD(pct,'text-align:right;')}</tr>`;
             }).join('') : `<tr><td colspan="6" style="${S}padding:6px 8px;color:#888;font-size:10px;">Nenhum parceiro informado.</td></tr>`}
-            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(_qtyLabel(totalQty, validPartners.reduce((s,p)=>s+(p.unitsQty||0),0)),'font-weight:900;text-align:center;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
+            ${validPartners.length?`<tr style="background:#f1f5f9;">${rpTH('TOTAL')}${rpTD('')}${rpTD(_qtyLabel(totalQty, totalUnitsQty, totalKgQty),'font-weight:900;text-align:center;')}${rpTD('')}${rpTD('')}${rpTD('100%','text-align:right;font-weight:900;')}</tr>`:''}`)}
 
             <!-- 7. DESCARTES -->
             ${rpSH(rn(),'Descartes')}
@@ -8771,8 +9438,8 @@
             ` : ''}
 
             ${showInternalSections && aiSummary ? `
-            <!-- ANÁLISE IA (só no PDF interno) -->
-            ${rpSH(rn(),'Análise IA — Problemas e Recomendações')}
+            <!-- RESUMO IA (só no PDF interno) -->
+            ${rpSH(rn(),'Resumo do Embarque (IA)')}
             <div style="border-left:1px solid #d0d8e4;border-right:1px solid #d0d8e4;border-bottom:1px solid #d0d8e4;padding:10px 14px;background:#fdfaff;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;">
                 ${aiSummary.split('\n').filter(l=>l.trim()).map(line=>`<div style="font-size:10px;color:#3b2a6b;padding:3px 0;line-height:1.6;display:flex;gap:6px;"><span style="color:#7c5cbf;font-weight:900;flex-shrink:0;">•</span><span>${line.replace(/^[•\-\*]\s*/,'')}</span></div>`).join('')}
@@ -8867,7 +9534,7 @@
                     return chunks;
                 };
                 const photoRowDiv = (srcs, border, captionFn, onclickFn) =>
-                    photoChunks(srcs).map((chunk, chunkIdx) => {
+                    photoChunks((srcs || []).map(_photoUrl).filter(Boolean)).map((chunk, chunkIdx) => {
                         const cells = chunk.map((src, ci) => {
                             const gi = chunkIdx * PER_ROW + ci;
                             const ca = onclickFn ? 'onclick="' + onclickFn(gi) + '" ' : '';
@@ -8960,7 +9627,7 @@
         // Cancelar (botão "Revisar"): diferente de hideConfirmModal puro, também desfaz o
         // currentPdfMode='email'/'parceiros' setado por confirmBeforeSend(). Sem isso, a
         // pré-visualização em tela ficava escondendo Descartes/Análise IA (showInternalSections)
-        // até o usuário gerar um PDF interno com sucesso, mesmo esses dados já salvos na planilha.
+        // até o usuário gerar um PDF interno com sucesso, mesmo esses dados já salvos na nuvem.
         function cancelConfirmModal() {
             hideConfirmModal();
             if (currentPdfMode !== 'interno') {
@@ -9170,6 +9837,8 @@
             const validCustomTemps = getValidCustomTemps();
             const validPallets     = palletsData.filter(pl => pl.label && pl.label.trim() !== '');
             const totalQty         = validPartners.reduce((s,p) => s + parseFloat(p.qty||0), 0);
+            const totalUnitsQty    = validPartners.reduce((s,p) => s + (p.unitsQty||0), 0);
+            const totalKgQty       = validPartners.reduce((s,p) => s + (p.kgQty||0), 0);
             const totalDiscard     = validDiscards.reduce((s,d) => s + parseFloat(d.weight||0), 0);
             const maxPartner       = getMaxPartner();
 
@@ -9224,18 +9893,19 @@
                         if (!name) return;
                         const lots = g.lots || [];
                         const qty = lots.reduce((s, l) => s + (parseFloat(l.boxes) || 0), 0);
-                        if (qty <= 0) return;
+                        const kgQty = lots.reduce((s, l) => s + _lotKg(l), 0);
+                        if (qty <= 0 && kgQty <= 0) return;
                         const unitsQty = lots.reduce((s, l) => s + _lotUnits(l), 0);
                         const products = lots.map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim()).filter(Boolean);
                         const dates = lots.map(l => l.harvestDate).filter(Boolean);
                         const key = _normalizePartnerKey(name);
                         if (merged.has(key)) {
                             const e = merged.get(key);
-                            e.qty += qty; e.unitsQty += unitsQty;
+                            e.qty += qty; e.unitsQty += unitsQty; e.kgQty += kgQty;
                             products.forEach(p => e.products.add(p));
                             dates.forEach(d => e.dates.add(d));
                         } else {
-                            merged.set(key, { name, qty, unitsQty, products: new Set(products), dates: new Set(dates) });
+                            merged.set(key, { name, qty, unitsQty, kgQty, products: new Set(products), dates: new Set(dates) });
                         }
                     });
                     const partners = Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
@@ -9245,6 +9915,7 @@
                         partners,
                         qtyTotal: partners.reduce((s, p) => s + p.qty, 0),
                         unitsTotal: partners.reduce((s, p) => s + p.unitsQty, 0),
+                        kgTotal: partners.reduce((s, p) => s + (p.kgQty || 0), 0),
                     };
                 }).filter(c => c.partners.length > 0);
 
@@ -9253,13 +9924,16 @@
                 palletCards.forEach(c => c.partners.forEach(p => partnerSet.add(_normalizePartnerKey(p.name))));
                 const totalCaixas   = palletCards.reduce((s, c) => s + c.qtyTotal, 0);
                 const totalUnidades = palletCards.reduce((s, c) => s + c.unitsTotal, 0);
+                const totalKgGeral  = palletCards.reduce((s, c) => s + (c.kgTotal || 0), 0);
                 const tiles = [
                     { label: 'PALLETS', value: String(palletCards.length) },
                     { label: 'PARCEIROS', value: String(partnerSet.size) },
                     { label: 'CAIXAS TOTAL', value: totalCaixas.toLocaleString('pt-BR') },
                     { label: 'UNIDADES TOTAL', value: totalUnidades.toLocaleString('pt-BR') },
                 ];
-                const tileGap = 3, tileW = (CW - tileGap * 3) / 4, tileH = 14;
+                if (totalKgGeral > 0) tiles.push({ label: 'KG TOTAL', value: _fmtBR(totalKgGeral) });
+                const tileCount = tiles.length;
+                const tileGap = 3, tileW = (CW - tileGap * (tileCount - 1)) / tileCount, tileH = 14;
                 checkPage(tileH + 4);
                 tiles.forEach((t, i) => {
                     const tx = M + i * (tileW + tileGap);
@@ -9336,7 +10010,7 @@
                                 doc.text(fitText(p.name, nameColW), cx0 + 3, line1Y);
 
                                 doc.setFont('helvetica','bold'); doc.setFontSize(8.8); doc.setTextColor(...C.gText);
-                                doc.text(String(p.qty), cx0 + cardW - 21, line1Y, { align:'right' });
+                                doc.text(p.qty > 0 || !(p.kgQty > 0) ? String(p.qty) : '—', cx0 + cardW - 21, line1Y, { align:'right' });
                                 doc.text(p.unitsQty > 0 ? String(p.unitsQty) : '—', cx0 + cardW - 3, line1Y, { align:'right' });
 
                                 const prodStr = Array.from(p.products || []).join(', ');
@@ -9345,6 +10019,7 @@
                                     return d.length === 3 ? (d[2] + '/' + d[1]) : dt;
                                 });
                                 const subtitleParts = [];
+                                if (p.kgQty > 0) subtitleParts.push(_fmtBR(p.kgQty) + ' kg');
                                 if (prodStr) subtitleParts.push(prodStr);
                                 if (dateStrs.length) subtitleParts.push('Colheita: ' + dateStrs.join(', '));
                                 if (subtitleParts.length) {
@@ -9360,7 +10035,7 @@
                             doc.setFont('helvetica','bold'); doc.setFontSize(6.6); doc.setTextColor(...C.grayTxt);
                             doc.text('TOTAL PALLET', cx0 + 3, footY + 4.6);
                             doc.setFontSize(9); doc.setTextColor(...C.gDark);
-                            doc.text(_qtyLabel(card.qtyTotal, card.unitsTotal), cx0 + cardW - 3, footY + 4.6, { align:'right' });
+                            doc.text(_qtyLabel(card.qtyTotal, card.unitsTotal, card.kgTotal), cx0 + cardW - 3, footY + 4.6, { align:'right' });
                         });
                         y += cardH + cardGap;
                     }
@@ -9395,7 +10070,7 @@
                     ? ['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre','Total Cx/Unid.']
                     : ['Motorista','Placa','Horário Saída','Nº do Sensor','Nº do Lacre']],
                 body: [_isEmail
-                    ? [driverName, plate, depTime, sensor, lacre, totalQty ? totalQty+' cx' : '---']
+                    ? [driverName, plate, depTime, sensor, lacre, (totalQty || totalKgQty) ? _qtyLabel(totalQty, totalUnitsQty, totalKgQty) : '---']
                     : [driverName, plate, depTime, sensor, lacre]],
                 styles: { fontSize: 8, cellPadding: 1.8, textColor: C.black, lineColor: [208,216,228], lineWidth: 0.2, overflow: 'linebreak' },
                 columnStyles: _isEmail
@@ -9413,7 +10088,8 @@
                 const legItems = (pl.items||[]).filter(it => it.boxes!=='' && it.boxes!=null);
                 const totalBoxes = palGrps.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + (parseFloat(l.boxes)||0), 0), 0)
                                  + legItems.reduce((s, it) => s + (parseFloat(it.boxes)||0), 0);
-                const boxes = (palGrps.length || legItems.length) ? (totalBoxes + ' cx') : '—';
+                const totalKgCell = palGrps.reduce((s, g) => s + (g.lots||[]).reduce((ss, l) => ss + _lotKg(l), 0), 0);
+                const boxes = (palGrps.length || legItems.length) ? (_qtyLabel(totalBoxes, 0, totalKgCell) || (totalBoxes + ' cx')) : '—';
                 return [pl.label + (pl.client ? ' - ' + pl.client : ''), temp, boxes];
             });
             const palletRows = [];
@@ -9444,7 +10120,7 @@
                 doc.autoTable(tbl({ startY: y,
                     head: [['Total Caixas/Unid.','Parceiros','Total Descarte','Maior Envio','Maior Descarte']],
                     body: [[
-                        totalQty ? totalQty+' cx' : '---',
+                        (totalQty || totalKgQty) ? _qtyLabel(totalQty, totalUnitsQty, totalKgQty) : '---',
                         String(validPartners.length || 0),
                         {content:_fmtBR(totalDiscard||0)+' kg', styles:{textColor:totalDiscard>0?C.red:C.black, fontStyle:'bold'}},
                         maxPartner ? getPartnerName(maxPartner) : '—',
@@ -9473,12 +10149,12 @@
                         : '—';
                     const nm   = getPartnerName(p);
                     const star = maxPartner && getPartnerName(maxPartner)===nm;
-                    return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:(p.palletLabel||'—').replace(/, /g,'\n'),styles:{halign:'center',fontStyle:'bold'}}, _qtyLabel(parseFloat(p.qty), p.unitsQty||0), getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
+                    return [{content:nm, styles:{fontStyle:star?'bold':'normal'}}, {content:(p.palletLabel||'—').replace(/, /g,'\n'),styles:{halign:'center',fontStyle:'bold'}}, _qtyLabel(parseFloat(p.qty), p.unitsQty||0, p.kgQty||0), getPartnerUnit(p), hd, {content:pct,styles:{halign:'right'}}];
                 });
                 if (pRows.length) pRows.push([
                     {content:'TOTAL',styles:{fontStyle:'bold'}},
                     '',
-                    {content:_qtyLabel(totalQty, validPartners.reduce((s,p)=>s+(p.unitsQty||0),0)),styles:{fontStyle:'bold',halign:'right'}},
+                    {content:_qtyLabel(totalQty, totalUnitsQty, totalKgQty),styles:{fontStyle:'bold',halign:'right'}},
                     '','',{content:'100%',styles:{fontStyle:'bold',halign:'right'}},
                 ]);
                 doc.autoTable(tbl({ startY: y,
@@ -9511,9 +10187,9 @@
                 y = doc.lastAutoTable.finalY;
             }
 
-            // 8. Análise IA (só interno)
+            // 8. Resumo IA (só interno)
             if (currentPdfMode !== 'email' && aiSummary) {
-                y += 2; sec('Análise IA — Problemas e Recomendações');
+                y += 2; sec('Resumo do Embarque (IA)');
                 const aiLines = aiSummary.split('\n').map(l => _stripEmoji(l.replace(/^[•\-\*]\s*/, ''))).filter(l => l.trim());
                 doc.autoTable(tbl({ startY: y,
                     body: aiLines.map(l => [{
@@ -9557,12 +10233,12 @@
                 .map(v => _getDriveThumbnailUrl(v.dataUrl))
                 .filter(Boolean);
             const _allPhotoSrcs = [
-                ...discardsWP.flatMap(d => d.photos||[]),
-                ...tempsWP.flatMap(t => t.photos||[]),
-                ...palletsWP.flatMap(pl => pl.photos||[]),
-                ...photosData.map(p => p.dataUrl||p).filter(Boolean),
+                ...discardsWP.flatMap(d => (d.photos||[]).map(_photoUrl)),
+                ...tempsWP.flatMap(t => (t.photos||[]).map(_photoUrl)),
+                ...palletsWP.flatMap(pl => (pl.photos||[]).map(_photoUrl)),
+                ...photosData.map(_photoUrl).filter(Boolean),
                 ..._videoThumbSrcs,
-            ];
+            ].filter(Boolean);
             const _photoCache = await _preloadPhotos(_allPhotoSrcs);
             const _photo = src => src in _photoCache ? _photoCache[src] : src;
 
@@ -9610,16 +10286,16 @@
                 };
 
                 if (photosData.length) drawPhotos('Fotos do Embarque', C.gMed,
-                    [{ label: '', photos: photosData.map(p => p.dataUrl||p).filter(Boolean) }]);
+                    [{ label: '', photos: photosData.map(_photoUrl).filter(Boolean) }]);
 
                 if (discardsWP.length) drawPhotos('Comprovantes dos Descartes', C.red,
-                    discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner}${d.cultura?' · '+d.cultura:''} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: d.photos })));
+                    discardsWP.map(d => ({ label: `${d.partnerSel==='Outro'?d.partner:d.partnerSel||d.partner}${d.cultura?' · '+d.cultura:''} — ${d.weight} kg${d.reason?' · '+d.reason:''}`, photos: (d.photos||[]).map(_photoUrl) })));
 
                 if (tempsWP.length) drawPhotos('Comprovantes das Temperaturas', [154,52,18],
-                    tempsWP.map(t => ({ label: `${t.label}${t.value!==''?' — '+t.value+'°C':''}`, photos: t.photos })));
+                    tempsWP.map(t => ({ label: `${t.label}${t.value!==''?' — '+t.value+'°C':''}`, photos: (t.photos||[]).map(_photoUrl) })));
 
                 if (palletsWP.length) drawPhotos('Fotos dos Pallets', C.amber,
-                    palletsWP.map(pl => ({ label: `${pl.label}${pl.client?' — '+pl.client:''}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: pl.photos })));
+                    palletsWP.map(pl => ({ label: `${pl.label}${pl.client?' — '+pl.client:''}${pl.temp!==''?' — '+pl.temp+'°C':''}`, photos: (pl.photos||[]).map(_photoUrl) })));
             }
 
             // ── VÍDEOS ────────────────────────────────────────────────────────
@@ -9769,7 +10445,7 @@
         // unlockScroll esquecido travava a página), o estado é derivado dos modais
         // realmente visíveis. unlockScroll só libera quando nenhum modal está aberto.
         const _MODAL_IDS = [
-            'usersModal','backupModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
+            'usersModal','backupModal','auditoriaModal','saveConfirmModal','saveStatusModal','clearFormModal','confirmModal',
             'layoutModal','messageModal','historyModal','settingsModal','photoViewerModal',
             'photoSourceModal','videoSourceModal','videoLinkModal','pasteDiscardModal','pastePalletsModal','genericConfirmModal','conflictModal',
             'saveLoadingModal','analysisModal','welcomeModal'
@@ -9932,8 +10608,6 @@ Para todos os produtos:
 
 Com base no produto informado no embarque, aplique o conhecimento técnico correspondente e cruce com os dados abaixo para identificar o que realmente ocorreu.
 
-Analise os dados do seguinte registro de embarque e forneça uma análise detalhada em português, com linguagem clara e direta, como se estivesse explicando para o responsável pelo embarque o que aconteceu. Use tópicos com emojis para organizar.
-
 --- DADOS DO EMBARQUE ---
 Data: ${displayDate}
 Código: ${codigo}
@@ -9947,8 +10621,8 @@ Termostato: ${thermoMode} em ${thermoValue}°C
 ${validCustomTemps.length ? validCustomTemps.map(t => `${t.label}: ${t.value !== '' ? t.value + '°C' : 'não informado'}`).join('\n') : 'Nenhuma temperatura registrada.'}
 
 --- PARCEIROS / QUANTIDADES ---
-${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}${p.palletLabel ? ' ['+p.palletLabel+']' : ''}: ${p.qty} cx — Cultura: ${getPartnerUnit(p) || 'não informada'}`).join('\n') : 'Nenhum parceiro informado.'}
-Total: ${totalQty} unidades/caixas
+${validPartners.length ? validPartners.map(p => `${getPartnerName(p)}${p.palletLabel ? ' ['+p.palletLabel+']' : ''}: ${_qtyLabel(p.qty, p.unitsQty||0, p.kgQty||0)} — Cultura: ${getPartnerUnit(p) || 'não informada'}`).join('\n') : 'Nenhum parceiro informado.'}
+Total: ${_qtyLabel(totalQty, validPartners.reduce((s,p)=>s+(p.unitsQty||0),0), validPartners.reduce((s,p)=>s+(p.kgQty||0),0))}
 Maior envio: ${maxPartner ? getPartnerName(maxPartner) + ' (' + maxPartner.qty + ' cx - ' + getPartnerUnit(maxPartner) + ')' : '---'}
 
 --- DESCARTES ---
@@ -9959,26 +10633,13 @@ Maior descarte: ${maxDiscard ? maxDiscard.partner + ' (' + maxDiscard.total + ' 
 --- OBSERVAÇÃO DE TEMPERATURA ---
 ${tempObs}
 
-Estruture sua resposta EXATAMENTE neste formato, com as tags:
-
-[RESUMO]
-Gere de 3 a 5 bullets (•) curtos e diretos. NÃO inclua título, introdução ou repita estas instruções — a resposta deve começar direto no primeiro bullet. Cubra, quando aplicável:
-- Quais problemas ocorreram neste embarque (cruze motivos de descarte, temperaturas, volumes e a CULTURA de cada parceiro para identificar os problemas típicos daquele produto: amarelamento, manchas, murcha, podridão, etc.)
-- Quem foi o principal causador (parceiro com maior descarte, qual a cultura dele e qual problema predominou nela)
-- 1 ou 2 recomendações práticas e específicas para evitar a repetição nos próximos embarques (ex: temperatura ideal, ponto de colheita, tempo máximo pós-colheita, sinais de rejeição no campo)
-- Se os dados não indicarem problemas relevantes, informe que o embarque ocorreu dentro do padrão esperado.
-Seja técnico, objetivo e útil.
-[/RESUMO]
-
-[ANÁLISE]
-1. 📋 Resumo geral do embarque
-2. 🌡️ Análise das temperaturas (se estão adequadas para o produto, riscos, pontos de atenção)
-3. 📦 Análise da distribuição entre parceiros (quem enviou mais, concentração, equilíbrio e a cultura de cada parceiro)
-4. 🗑️ Análise dos descartes (volume, motivos, parceiro com maior descarte e o que isso pode indicar)
-5. ✅ Conclusão e recomendações para os próximos embarques
-[/ANÁLISE]
-
-Seja objetivo mas completo. Responda em português.`;
+Escreva um RESUMO curto do embarque em português, em 4 a 6 bullets (•). Sem título, sem introdução, sem repetir estas instruções — comece direto no primeiro bullet. No máximo uma frase por bullet. Cubra só o essencial:
+• O embarque: produto, cliente e volume total.
+• Temperatura: se está adequada para o produto ou se há risco (cite a faixa ideal só se houver problema).
+• Parceiros: quem enviou mais e se a distribuição está equilibrada.
+• Descartes (só se houver): volume total, principal motivo e o parceiro com maior descarte.
+• 1 ou 2 recomendações práticas, apenas se algo realmente precisar melhorar.
+Se os dados não indicarem problemas, diga em 1 bullet que o embarque ocorreu dentro do padrão esperado e pare por aí. Seja objetivo e técnico.`;
 
             const modal = document.getElementById('analysisModal');
             const content = document.getElementById('analysisContent');
@@ -9997,7 +10658,7 @@ Seja objetivo mas completo. Responda em português.`;
                     body: JSON.stringify({
                         model: 'openai/gpt-oss-120b',
                         messages: [{ role: 'user', content: prompt }],
-                        max_tokens: 1500
+                        max_tokens: 700
                     })
                 });
 
@@ -10009,31 +10670,21 @@ Seja objetivo mas completo. Responda em português.`;
                 const data = await response.json();
                 const text = data.choices?.[0]?.message?.content || 'Sem resposta.';
 
-                const resumoMatch = text.match(/\[RESUMO\]([\s\S]*?)\[\/RESUMO\]/);
-                const analiseMatch = text.match(/\[ANÁLISE\]([\s\S]*?)\[\/ANÁLISE\]/);
-                const resumoText = resumoMatch ? resumoMatch[1].trim() : null;
-                const analiseText = analiseMatch ? analiseMatch[1].trim() : text;
-
-                // O resumo alimenta o PDF. Se a IA não retornou a tag [RESUMO],
-                // usamos a análise (ou o texto completo, sem as tags) como fallback,
-                // para que a última análise SEMPRE entre no PDF automaticamente.
-                // Rede de segurança: apesar do prompt pedir para não repetir as
-                // instruções, alguns modelos ainda ecoam a frase de comando como se
-                // fosse o primeiro bullet — filtra essa linha caso apareça.
-                const summaryForPdf = (resumoText
-                    || analiseText
-                    || text || '')
-                    .replace(/\[\/?RESUMO\]/g, '')
-                    .replace(/\[\/?ANÁLISE\]/g, '')
+                // Só há um bloco agora (resumo curto). Limpa tags antigas caso o
+                // modelo ainda ecoe [RESUMO]/[ANÁLISE], e a linha de instrução.
+                const clean = String(text)
+                    .replace(/\[\/?RESUMO\]/gi, '')
+                    .replace(/\[\/?AN[ÁA]LISE\]/gi, '')
                     .split('\n')
-                    .filter(l => !/responda com bullets curtos/i.test(l))
+                    .filter(l => !/^\s*escreva um resumo curto/i.test(l))
                     .join('\n')
                     .trim();
-                aiSummary = summaryForPdf || null;
+
+                aiSummary = clean || null;   // alimenta o PDF interno
                 saveToLocalStorage();
                 updatePreview();
 
-                content.innerHTML = `<div class="prose prose-sm max-w-none">${analiseText.replace(/\n/g, '<br>')}</div>`;
+                content.innerHTML = `<div class="prose prose-sm max-w-none">${clean.replace(/\n/g, '<br>')}</div>`;
             } catch (err) {
                 content.innerHTML = `<div class="text-center py-8">
                     <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center mx-auto mb-3"><i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i></div>
