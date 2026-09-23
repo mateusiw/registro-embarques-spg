@@ -8159,6 +8159,33 @@
             updatePreview();
         }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
+        // Reordena manualmente (setas ▲▼ no cabeçalho do pallet). A ordem é gravada em
+        // cada pallet no campo "order": o merge por "id" do servidor
+        // (save_secao_parceiros) mantém a posição antiga de cada item no array, então só
+        // trocar as posições localmente se perderia no próximo carregamento. Renumerar
+        // "order" em todos marca cada pallet como alterado e o auto-save envia todos.
+        function movePallet(idx, dir) {
+            const to = idx + dir;
+            if (to < 0 || to >= palletsData.length) return;
+            [palletsData[idx], palletsData[to]] = [palletsData[to], palletsData[idx]];
+            [_collapsedPallets[idx], _collapsedPallets[to]] = [_collapsedPallets[to], _collapsedPallets[idx]];
+            palletsData.forEach((pl, i) => { pl.order = i; });
+            renderPallets();
+            updatePreview();
+        }
+        // Aplica o "order" salvo (ver movePallet) a qualquer palletsData que veio do
+        // servidor/rascunho. Pallets sem "order" (dados antigos ou recém-criados) ficam
+        // na posição relativa em que estão, depois dos ordenados. Move junto o estado
+        // de recolhido de cada card, que é paralelo por índice.
+        function _sortPalletsByOrder() {
+            if (!palletsData.some(pl => pl && typeof pl.order === 'number')) return;
+            const paired = palletsData.map((pl, i) => ({ pl, c: _collapsedPallets[i], i }));
+            const key = p => (p.pl && typeof p.pl.order === 'number') ? p.pl.order : Infinity;
+            paired.sort((a, b) => (key(a) - key(b)) || (a.i - b.i));
+            if (paired.every((p, i) => p.i === i)) return;
+            palletsData = paired.map(p => p.pl);
+            _collapsedPallets = paired.map(p => p.c);
+        }
         function togglePallet(idx) { _collapsedPallets[idx] = !_collapsedPallets[idx]; renderPallets(); }
         function updatePallet(idx, field, value) { palletsData[idx][field] = value; updatePreview(); }
         // Aplica a cor só visualmente enquanto o usuário arrasta no seletor nativo
@@ -8451,6 +8478,7 @@
             const container = document.getElementById('palletsContainer');
             const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
             while (_collapsedPallets.length < palletsData.length) _collapsedPallets.push(true);
+            _sortPalletsByOrder();
             container.innerHTML = palletsData.map((pl, idx) => {
                 const photos = pl.photos || [];
                 const collapsed = !!_collapsedPallets[idx];
@@ -8470,6 +8498,10 @@
                             </div>
                             <input type="color" value="${pl.borderColor || '#f59e0b'}" onclick="event.stopPropagation()" oninput="_livePalletBorderColor(${idx}, this.value)" onchange="updatePalletBorderColor(${idx}, this.value)" title="Cor da borda deste pallet" class="w-6 h-6 rounded-md border border-amber-300 cursor-pointer p-0 bg-transparent shrink-0">
                             ${pl.borderColor ? `<button type="button" onclick="event.stopPropagation(); resetPalletBorderColor(${idx})" class="text-slate-400 hover:text-slate-600 shrink-0" title="Restaurar cor padrão"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>` : ''}
+                            <div class="flex items-center shrink-0" onclick="event.stopPropagation()">
+                                <button type="button" onclick="movePallet(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-amber-600 hover:text-amber-800 disabled:opacity-25 disabled:cursor-not-allowed" title="Mover para cima"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
+                                <button type="button" onclick="movePallet(${idx}, 1)" ${idx === palletsData.length - 1 ? 'disabled' : ''} class="p-0.5 text-amber-600 hover:text-amber-800 disabled:opacity-25 disabled:cursor-not-allowed" title="Mover para baixo"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                            </div>
                             <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl, totalKgPl)}</span>
                             <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
