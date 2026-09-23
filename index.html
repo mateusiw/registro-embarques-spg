@@ -2534,10 +2534,16 @@
         let _masterRealtimeDebounceTimer = null;
         function _onMasterRealtimeChange(codigo) {
             const codigoAtual = document.getElementById('embarqueCodigo')?.value?.trim() || '';
-            console.log('[realtime master] _onMasterRealtimeChange', { codigoAtual, codigo, _isSaving });
-            if (codigoAtual !== codigo || _isSaving) return;
+            console.log('[realtime master] _onMasterRealtimeChange', { codigoAtual, codigo, _isSaving, _sectionAutoSaving });
+            if (codigoAtual !== codigo) return;
             clearTimeout(_masterRealtimeDebounceTimer);
-            _masterRealtimeDebounceTimer = setTimeout(() => _syncFromServer(false), 600);
+            _masterRealtimeDebounceTimer = setTimeout(function run() {
+                // Auto-save silencioso não liga _isSaving — sem checar _sectionAutoSaving,
+                // o eco do próprio auto-save disparava o recarregamento no meio do envio,
+                // enquanto a pessoa ainda preenchia o pallet. Espera o save terminar.
+                if (_isSaving || _sectionAutoSaving) { _masterRealtimeDebounceTimer = setTimeout(run, 1000); return; }
+                _syncFromServer(false);
+            }, 600);
         }
 
         // Assina mudanças no próprio perfil (tabela profiles) enquanto a sessão
@@ -3232,6 +3238,12 @@
                     data.codigo = data.embarqueCodigo;
                 }
                 if (silent) _setAutoSaveToast(_ICON_SPIN, 'Salvando automaticamente...', false);
+                // Cópia do que está indo pro servidor AGORA — collectFormData() devolve
+                // os arrays por referência, e a pessoa pode continuar preenchendo o
+                // pallet enquanto a requisição está em voo (ver _reconcileServerMerge).
+                _ensureItemIds(palletsData);
+                _ensureItemIds(discardsData);
+                const sentForm = _snapshotFormData();
                 const result = await callBackend(data);
                 if (serverInterval) clearInterval(serverInterval);
                 if (!silent) {
@@ -3243,23 +3255,33 @@
                     // Guarda: só substitui fotos/vídeos se o servidor devolveu URLs do Drive (não vazia/base64)
                     const _hasDriveUrl = arr => Array.isArray(arr) && arr.some(p => p.dataUrl && !p.dataUrl.startsWith('data:'));
                     const _safeUpdateMedia = (newArr, curArr) => (_hasDriveUrl(newArr) || curArr.length === 0) ? newArr : curArr;
+                    // Pallets/Descartes: a resposta só reflete o que foi enviado. Atribuir
+                    // direto apagava o parceiro/lote digitado durante o envio — reconcilia
+                    // por "id" e mantém intacto o que mudou desde o envio.
+                    const _adoptPallets  = (arr) => { palletsData  = _reconcileServerMerge(palletsData,  sentForm.palletsData,  _ensureItemIds(arr)).merged; };
+                    const _adoptDiscards = (arr) => { discardsData = _reconcileServerMerge(discardsData, sentForm.discardsData, _ensureItemIds(arr)).merged; };
                     if (result.changedColumns) {
                         const cc = result.changedColumns;
                         const parseJson = (v) => { try { return JSON.parse(v); } catch(_) { return []; } };
                         if (cc['Fotos'])        photosData   = _safeUpdateMedia(parseJson(cc['Fotos']),   photosData);
                         if (cc['Videos'])       videosData   = _safeUpdateMedia(parseJson(cc['Videos']),  videosData);
-                        if (cc['Descartes'])    discardsData = parseJson(cc['Descartes']);
+                        if (cc['Descartes'])    _adoptDiscards(parseJson(cc['Descartes']));
                         if (cc['Temperaturas']) customTempsData = parseJson(cc['Temperaturas']);
-                        if (cc['Pallets'])      palletsData = parseJson(cc['Pallets']);
+                        if (cc['Pallets'])      _adoptPallets(parseJson(cc['Pallets']));
                     } else if (result.data) {
                         const d = result.data;
                         if (d.photosData)      photosData   = _safeUpdateMedia(d.photosData,  photosData);
                         if (d.videosData)      videosData   = _safeUpdateMedia(d.videosData,  videosData);
-                        if (d.discardsData)    discardsData = d.discardsData;
+                        if (d.discardsData)    _adoptDiscards(d.discardsData);
                         if (d.customTempsData) customTempsData = d.customTempsData;
-                        if (d.palletsData)     palletsData = d.palletsData;
+                        if (d.palletsData)     _adoptPallets(d.palletsData);
                     }
                     saveToLocalStorage();
+                    // Versão "já enviada" de Pallets/Descartes quando sobrou edição feita
+                    // durante o envio ainda não confirmada (ver pushDelta abaixo) — usada
+                    // no _editSnapshot final pra essa edição continuar contando como
+                    // pendente.
+                    const _pendingSnapshotArrs = {};
                     // Já sincronizado: evita que o auto-save de 30s reenvie os mesmos
                     // dados logo em seguida (antes o formulário era limpo após salvar,
                     // o que zerava isso indiretamente; agora que o formulário permanece
@@ -3387,7 +3409,7 @@
                                                 palletsData = merged;
                                                 _lastSyncedPalletsData = JSON.parse(JSON.stringify(serverMerged));
                                                 if (changed) renderPallets();
-                                                if (pending) _autoSaveDirty = true;
+                                                if (pending) { _autoSaveDirty = true; _pendingSnapshotArrs.palletsData = sentSnapshot; }
                                             }
                                             if (sectionType === 'descartes') {
                                                 const { merged, pending } = _reconcileServerMerge(discardsData, sentSnapshot, serverMerged);
@@ -3395,7 +3417,7 @@
                                                 discardsData = merged;
                                                 _lastSyncedDiscardsData = JSON.parse(JSON.stringify(serverMerged));
                                                 if (changed) renderDiscards();
-                                                if (pending) _autoSaveDirty = true;
+                                                if (pending) { _autoSaveDirty = true; _pendingSnapshotArrs.discardsData = sentSnapshot; }
                                             }
                                         }
                                         return true;
@@ -3428,7 +3450,18 @@
                         // Continua em modo edição (não chama clearEditMode()): atualiza só o
                         // snapshot de comparação, senão o próximo "Atualizar" no histórico
                         // acharia que há alterações não salvas que na verdade já foram enviadas.
-                        _editSnapshot = _snapshotFormData();
+                        // Mas o que foi digitado DURANTE o envio não foi enviado: o baseline
+                        // guarda a versão enviada desses campos, senão o diff não enxergava
+                        // a edição, o realtime achava que não havia nada pendente e recarregava
+                        // a tela por cima dela (e o auto-save nunca a mandava).
+                        const newSnap = _snapshotFormData();
+                        const _mediaKeys = ['photosData', 'videosData', 'palletsData', 'discardsData', 'customTempsData', 'aiSummary', 'statusRegistro'];
+                        Object.keys(sentForm).forEach(k => {
+                            if (_mediaKeys.includes(k)) return; // podem mudar pela conversão de fotos do servidor
+                            if (JSON.stringify(newSnap[k]) !== JSON.stringify(sentForm[k])) newSnap[k] = sentForm[k];
+                        });
+                        Object.assign(newSnap, _pendingSnapshotArrs);
+                        _editSnapshot = newSnap;
                         if (silent) {
                             _setAutoSaveToast(_ICON_CHECK, 'Salvo automaticamente!');
                         } else {
@@ -5647,6 +5680,10 @@
         // só um toast pequeno (ver _setAutoSaveToast).
         let _sectionAutoSaveTimer = null;
         let _sectionAutoSaving = false;
+        // true entre uma edição e o disparo do auto-save (4s): há algo digitado que
+        // ainda nem começou a ser enviado. _syncFromServer usa isso pra nunca
+        // repintar a tela com dados do servidor por cima dessa edição.
+        let _sectionAutoSavePending = false;
         // true enquanto os dados na tela vieram de uma carga do servidor (não de
         // digitação do usuário) — evita agendar um auto-save logo após abrir o app
         // ou trocar de embarque, quando não há nada de novo pra salvar.
@@ -5665,11 +5702,13 @@
             if (_isVideoUploading()) return; // não interrompe upload de vídeo em andamento
             console.log('[realtime master] _scheduleSectionAutoSave: agendado p/ 4s');
             clearTimeout(_sectionAutoSaveTimer);
+            _sectionAutoSavePending = true;
             _sectionAutoSaveTimer = setTimeout(_runSectionAutoSave, 4000);
         }
         async function _runSectionAutoSave() {
             console.log('[realtime master] _runSectionAutoSave disparado', { perfil: currentUser?.perfil, editModeTimestamp, _sectionAutoSaving, _isSaving });
             // Já tem um save (automático ou manual) em andamento: tenta de novo em 4s.
+            _sectionAutoSavePending = false;
             if (_sectionAutoSaving || _isSaving) { _scheduleSectionAutoSave(); return; }
             _sectionAutoSaving = true;
             try {
@@ -5823,17 +5862,22 @@
             // relatório em editHistoryReport) já marca _autoSaveDirty=true mesmo sem o
             // usuário ter digitado nada. Isso fazia o master nunca puxar via realtime
             // a mudança de outro master enquanto tivesse um relatório aberto p/ editar.
-            const hasUnsavedEdit = (editModeTimestamp && _editSnapshot)
+            const _hasUnsavedEdit = () => _sectionAutoSavePending || _sectionAutoSaving || _isSaving || ((editModeTimestamp && _editSnapshot)
                 ? Object.keys(_computeEditDiff(collectFormData(), _editSnapshot)).length > 0
-                : _autoSaveDirty;
-            console.log('[realtime master] _syncFromServer', { force, hasUnsavedEdit, targetTs, codigoAtual });
+                : _autoSaveDirty);
+            console.log('[realtime master] _syncFromServer', { force, hasUnsavedEdit: _hasUnsavedEdit(), targetTs, codigoAtual });
             _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
             try {
                 const result = await callBackend({ action: 'list' });
                 if (!result.success) throw new Error(result.error || 'Erro');
                 historyRows = result.rows || [];
                 historyRowsFiltered = [...historyRows];
-                if (force || !hasUnsavedEdit) {
+                // Reavalia DEPOIS do await: a busca leva alguns segundos e, antes, a
+                // checagem feita só no início deixava passar o que a pessoa digitou
+                // nesse intervalo (ex: parceiro/lote novo no pallet) — o
+                // loadHistoryReport logo abaixo repintava a tela com os dados do
+                // servidor e apagava o que tinha acabado de ser preenchido.
+                if (force || !_hasUnsavedEdit()) {
                     let row = targetTs ? historyRows.find(r => String(r.Timestamp) === String(targetTs)) : null;
                     if (!row && codigoAtual) row = historyRows.find(r => String(r.Codigo || '').trim() === codigoAtual);
                     console.log('[realtime master] linha encontrada?', !!row);
