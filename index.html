@@ -8159,21 +8159,98 @@
             updatePreview();
         }
         function removePallet(idx) { palletsData.splice(idx, 1); _collapsedPallets.splice(idx, 1); renderPallets(); updatePreview(); }
-        // Reordena manualmente (setas ▲▼ no cabeçalho do pallet). A ordem é gravada em
-        // cada pallet no campo "order": o merge por "id" do servidor
+        // Reordena manualmente (arrastando a alça ⋮⋮ do cabeçalho do pallet). A ordem é
+        // gravada em cada pallet no campo "order": o merge por "id" do servidor
         // (save_secao_parceiros) mantém a posição antiga de cada item no array, então só
         // trocar as posições localmente se perderia no próximo carregamento. Renumerar
         // "order" em todos marca cada pallet como alterado e o auto-save envia todos.
-        function movePallet(idx, dir) {
-            const to = idx + dir;
-            if (to < 0 || to >= palletsData.length) return;
-            [palletsData[idx], palletsData[to]] = [palletsData[to], palletsData[idx]];
-            [_collapsedPallets[idx], _collapsedPallets[to]] = [_collapsedPallets[to], _collapsedPallets[idx]];
+        // Recebe a nova ordem como lista de ids (não índices): palletsData pode ser
+        // trocado por um merge do auto-save/realtime enquanto o arraste acontece.
+        function _applyPalletOrder(ids) {
+            const pos = new Map(ids.map((id, i) => [id, i]));
+            const paired = palletsData.map((pl, i) => ({ pl, c: _collapsedPallets[i], i }));
+            const key = p => pos.has(p.pl.id) ? pos.get(p.pl.id) : Infinity;
+            paired.sort((a, b) => (key(a) - key(b)) || (a.i - b.i));
+            palletsData = paired.map(p => p.pl);
+            _collapsedPallets = paired.map(p => p.c);
             palletsData.forEach((pl, i) => { pl.order = i; });
             renderPallets();
             updatePreview();
         }
-        // Aplica o "order" salvo (ver movePallet) a qualquer palletsData que veio do
+
+        // Arrastar e soltar com Pointer Events (mouse e toque): o card sai do fluxo
+        // (position:fixed) e segue o ponteiro, e um espaço tracejado marca onde ele vai
+        // cair. A tela rola sozinha perto das bordas, para dar conta de listas longas.
+        let _palletDrag = null;
+        function _startPalletDrag(e, idx) {
+            if (e.button !== undefined && e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const card = document.getElementById('pallet-card-' + idx);
+            const pl = palletsData[idx];
+            if (!card || !pl) return;
+            // Marca cada card com o id do seu pallet para ler a nova ordem ao soltar.
+            _ensureItemIds(palletsData);
+            palletsData.forEach((p, i) => {
+                const el = document.getElementById('pallet-card-' + i);
+                if (el) el.dataset.pid = p.id;
+            });
+            const rect = card.getBoundingClientRect();
+            const ph = document.createElement('div');
+            ph.className = 'rounded-xl border-2 border-dashed border-amber-400 bg-amber-100/50';
+            ph.style.height = rect.height + 'px';
+            card.parentNode.insertBefore(ph, card);
+            Object.assign(card.style, {
+                position: 'fixed', left: rect.left + 'px', top: rect.top + 'px', width: rect.width + 'px',
+                zIndex: '150', pointerEvents: 'none', boxShadow: '0 12px 28px rgba(15,23,42,0.25)', opacity: '0.95'
+            });
+            _palletDrag = { id: pl.id, card, ph, container: card.parentNode, offsetY: e.clientY - rect.top, lastY: e.clientY, raf: null };
+            document.addEventListener('pointermove', _onPalletDragMove, { passive: false });
+            document.addEventListener('pointerup', _endPalletDrag);
+            document.addEventListener('pointercancel', _endPalletDrag);
+            const tick = () => {
+                if (!_palletDrag) return;
+                const edge = 80, y = _palletDrag.lastY;
+                if (y < edge) window.scrollBy(0, -Math.ceil((edge - y) / 5));
+                else if (y > window.innerHeight - edge) window.scrollBy(0, Math.ceil((y - (window.innerHeight - edge)) / 5));
+                _placePalletPlaceholder();
+                _palletDrag.raf = requestAnimationFrame(tick);
+            };
+            _palletDrag.raf = requestAnimationFrame(tick);
+        }
+        function _placePalletPlaceholder() {
+            const d = _palletDrag;
+            const siblings = Array.from(d.container.children).filter(el => el !== d.card && el !== d.ph);
+            const before = siblings.find(el => {
+                const r = el.getBoundingClientRect();
+                return d.lastY < r.top + r.height / 2;
+            });
+            if (before) { if (d.ph.nextSibling !== before) d.container.insertBefore(d.ph, before); }
+            else if (d.container.lastElementChild !== d.ph) d.container.appendChild(d.ph);
+        }
+        function _onPalletDragMove(e) {
+            if (!_palletDrag) return;
+            e.preventDefault();
+            _palletDrag.lastY = e.clientY;
+            _palletDrag.card.style.top = (e.clientY - _palletDrag.offsetY) + 'px';
+        }
+        function _endPalletDrag() {
+            const d = _palletDrag;
+            if (!d) return;
+            _palletDrag = null;
+            cancelAnimationFrame(d.raf);
+            document.removeEventListener('pointermove', _onPalletDragMove);
+            document.removeEventListener('pointerup', _endPalletDrag);
+            document.removeEventListener('pointercancel', _endPalletDrag);
+            const ids = [];
+            Array.from(d.container.children).forEach(el => {
+                if (el === d.ph) ids.push(d.id);
+                else if (el !== d.card && el.dataset.pid) ids.push(el.dataset.pid);
+            });
+            d.ph.remove();
+            _applyPalletOrder(ids);
+        }
+        // Aplica o "order" salvo (ver _applyPalletOrder) a qualquer palletsData que veio do
         // servidor/rascunho. Pallets sem "order" (dados antigos ou recém-criados) ficam
         // na posição relativa em que estão, depois dos ordenados. Move junto o estado
         // de recolhido de cada card, que é paralelo por índice.
@@ -8477,6 +8554,9 @@
         function renderPallets() {
             const container = document.getElementById('palletsContainer');
             const isEmbarquePerfil = currentUser && currentUser.perfil === 'embarque';
+            // Um merge do auto-save/realtime no meio de um arraste recriaria o card que
+            // está sendo arrastado; a lista é redesenhada ao soltar (_applyPalletOrder).
+            if (_palletDrag) return;
             while (_collapsedPallets.length < palletsData.length) _collapsedPallets.push(true);
             _sortPalletsByOrder();
             container.innerHTML = palletsData.map((pl, idx) => {
@@ -8489,6 +8569,7 @@
                 <div id="pallet-card-${idx}" class="rounded-xl border border-amber-200 overflow-hidden" style="${pl.borderColor ? `border-color:${pl.borderColor};border-width:2px;` : ''}">
                     <div class="flex flex-col bg-amber-50 px-3 py-2 cursor-pointer select-none" onclick="togglePallet(${idx})">
                         <div class="flex items-center gap-2">
+                            <span onpointerdown="_startPalletDrag(event, ${idx})" onclick="event.stopPropagation()" title="Arraste para mudar a ordem" class="-ml-1 p-0.5 rounded text-amber-400 hover:text-amber-700 hover:bg-amber-100 cursor-grab active:cursor-grabbing shrink-0" style="touch-action:none"><i data-lucide="grip-vertical" class="w-4 h-4"></i></span>
                             <i data-lucide="${collapsed ? 'chevron-right' : 'chevron-down'}" class="w-4 h-4 text-amber-600 shrink-0"></i>
                             <input type="text" value="${(pl.label || '').replace(/"/g,'&quot;')}" placeholder="Ex: Pallet 1" oninput="updatePallet(${idx}, 'label', this.value)" onclick="event.stopPropagation()" class="w-24 shrink-0 p-1.5 rounded-lg border border-amber-200 text-sm bg-white focus:ring-2 focus:ring-amber-400 outline-none font-bold">
                             <div class="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 shrink-0" onclick="event.stopPropagation()">
@@ -8498,10 +8579,6 @@
                             </div>
                             <input type="color" value="${pl.borderColor || '#f59e0b'}" onclick="event.stopPropagation()" oninput="_livePalletBorderColor(${idx}, this.value)" onchange="updatePalletBorderColor(${idx}, this.value)" title="Cor da borda deste pallet" class="w-6 h-6 rounded-md border border-amber-300 cursor-pointer p-0 bg-transparent shrink-0">
                             ${pl.borderColor ? `<button type="button" onclick="event.stopPropagation(); resetPalletBorderColor(${idx})" class="text-slate-400 hover:text-slate-600 shrink-0" title="Restaurar cor padrão"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>` : ''}
-                            <div class="flex items-center shrink-0" onclick="event.stopPropagation()">
-                                <button type="button" onclick="movePallet(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-amber-600 hover:text-amber-800 disabled:opacity-25 disabled:cursor-not-allowed" title="Mover para cima"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
-                                <button type="button" onclick="movePallet(${idx}, 1)" ${idx === palletsData.length - 1 ? 'disabled' : ''} class="p-0.5 text-amber-600 hover:text-amber-800 disabled:opacity-25 disabled:cursor-not-allowed" title="Mover para baixo"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
-                            </div>
                             <span id="pallet-total-${idx}" class="text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full ml-auto">${_qtyLabel(totalBoxes, totalUnitsPl, totalKgPl)}</span>
                             <button type="button" onclick="event.stopPropagation(); removePallet(${idx})" class="px-1 text-rose-500 hover:text-rose-700"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
