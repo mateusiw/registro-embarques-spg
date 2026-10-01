@@ -1769,23 +1769,110 @@
             return { success: false, error: 'Tipo de seção desconhecido: ' + sectionType };
         }
 
+        const _oneRel = (v) => Array.isArray(v) ? (v[0] || null) : (v || null);
+
+        // Mesmo formato de linha usado pela lista completa (embarque + 3 seções).
+        function _shapeListRow(row) {
+            const shaped = _embarqueRowToAppShape(row);
+            return Object.assign({}, shaped, {
+                _nf: shaped,
+                _parceiros: _secaoParceirosToAppShape(_oneRel(row.secao_parceiros)),
+                _descartes: _secaoDescartesToAppShape(_oneRel(row.secao_descartes)),
+                _midias: _secaoMidiasToAppShape(_oneRel(row.secao_midias)),
+            });
+        }
+
+        // Lista do Histórico: só os pendentes (todos) + os 5 revisados mais recentes,
+        // em vez de todos os embarques com todos os JSONs. Embarques revisados mais
+        // antigos são achados pela busca do Histórico (_searchHistoryOnServer).
+        const _LIST_SELECT = '*, secao_parceiros(*), secao_descartes(*), secao_midias(*)';
+        const _HISTORY_REVISADOS_LIMIT = 5;
         async function _beList() {
+            const [pend, rev] = await Promise.all([
+                sb.from('embarques').select(_LIST_SELECT)
+                    .or('status_registro.is.null,status_registro.neq.revisado'),
+                sb.from('embarques').select(_LIST_SELECT)
+                    .eq('status_registro', 'revisado')
+                    .order('created_at', { ascending: false })
+                    .limit(_HISTORY_REVISADOS_LIMIT),
+            ]);
+            if (pend.error) throw pend.error;
+            if (rev.error) throw rev.error;
+            const byCodigo = new Map();
+            [...(pend.data || []), ...(rev.data || [])].forEach(r => byCodigo.set(r.codigo, r));
+            // O embarque aberto na tela sempre entra, mesmo sendo um revisado antigo —
+            // senão a checagem de conflito e o "Atualizar" do Histórico o perderiam.
+            const codigoAtual = (document.getElementById('embarqueCodigo')?.value || '').trim();
+            if (codigoAtual && !byCodigo.has(codigoAtual)) {
+                const { data: cur } = await sb.from('embarques').select(_LIST_SELECT).eq('codigo', codigoAtual).maybeSingle();
+                if (cur) byCodigo.set(cur.codigo, cur);
+            }
+            const rows = Array.from(byCodigo.values())
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+                .map(_shapeListRow);
+            return { success: true, rows };
+        }
+
+        // Busca no servidor (código, cliente, produto ou responsável) embarques que
+        // não vieram na lista reduzida — ex: um revisado antigo. Traz no máximo 20.
+        async function _searchHistoryOnServer(query) {
+            const q = String(query || '').replace(/[,()*%\\]/g, ' ').trim();
+            if (q.length < 2) return [];
+            const { data, error } = await sb.from('embarques').select(_LIST_SELECT)
+                .or(`codigo.ilike.*${q}*,cliente.ilike.*${q}*,produto.ilike.*${q}*,responsavel.ilike.*${q}*`)
+                .order('created_at', { ascending: false })
+                .limit(20);
+            if (error) throw error;
+            return (data || []).map(_shapeListRow);
+        }
+
+        // ===== ECONOMIA DE EGRESS (sem cache local) =====
+        // A lista completa passa de 7 MB e era baixada a cada evento de realtime do
+        // master, a cada F5 e nos avisos de pendentes. Aqui tudo continua vindo
+        // direto do servidor (nenhuma cópia guardada no aparelho), só que em menor
+        // quantidade: um embarque só, ou só as colunas de resumo.
+
+        // Busca UM embarque completo, no mesmo formato da lista.
+        async function _beGetOne(codigo) {
             const { data, error } = await sb
                 .from('embarques')
                 .select('*, secao_parceiros(*), secao_descartes(*), secao_midias(*)')
-                .order('created_at', { ascending: true });
+                .eq('codigo', codigo)
+                .maybeSingle();
             if (error) throw error;
-            const one = (v) => Array.isArray(v) ? (v[0] || null) : (v || null);
-            const rows = (data || []).map((row) => {
-                const shaped = _embarqueRowToAppShape(row);
-                return Object.assign({}, shaped, {
-                    _nf: shaped,
-                    _parceiros: _secaoParceirosToAppShape(one(row.secao_parceiros)),
-                    _descartes: _secaoDescartesToAppShape(one(row.secao_descartes)),
-                    _midias: _secaoMidiasToAppShape(one(row.secao_midias)),
-                });
+            return data ? _shapeListRow(data) : null;
+        }
+
+        // Coloca/atualiza uma linha completa em historyRows (e no filtro do histórico).
+        function _upsertHistoryRow(row) {
+            const cod = String(row.Codigo || '').trim();
+            const swap = (arr) => {
+                const i = arr.findIndex(r => String(r.Codigo || '').trim() === cod);
+                if (i > -1) { arr[i] = row; return true; }
+                return false;
+            };
+            if (!swap(historyRows)) historyRows.push(row);
+            swap(historyRowsFiltered);
+        }
+
+        // Resumo leve de todos os embarques: só colunas simples (sem pallets/fotos).
+        // Usado nos avisos de pendentes, sugestões dos campos e auditoria.
+        // NUNCA vai para historyRows (loadHistoryReport precisa da linha completa).
+        let _summaryRows = [];
+        async function _fetchSummaryRows(opts = {}) {
+            const cols = 'codigo, created_at, data, produto, cliente, responsavel, resp_embarque, motorista, placa, nfes, status_registro'
+                + (opts.withDescartes ? ', secao_descartes(discarts_data)' : '');
+            const { data, error } = await sb.from('embarques').select(cols).order('created_at', { ascending: true });
+            if (error) throw error;
+            return (data || []).map((r) => {
+                const s = {
+                    Timestamp: r.created_at, Codigo: r.codigo, Data: r.data, Produto: r.produto, Cliente: r.cliente,
+                    Responsavel: r.responsavel, RespEmbarque: r.resp_embarque, Motorista: r.motorista, Placa: r.placa,
+                    NFes: r.nfes, StatusRegistro: r.status_registro,
+                };
+                if (opts.withDescartes) s._descartes = _secaoDescartesToAppShape(_oneRel(r.secao_descartes));
+                return s;
             });
-            return { success: true, rows };
         }
 
         // markReviewed/markPending/delete só recebem o Timestamp (não o código) na
@@ -1861,7 +1948,7 @@
         // embarques (historyRows). Vazio se a lista ainda não foi carregada.
         function _auditEmbarqueMetaMap() {
             const map = {};
-            (historyRows || []).forEach((r) => {
+            [...(_summaryRows || []), ...(historyRows || [])].forEach((r) => {
                 const cod = String(r.Codigo || '').trim();
                 if (cod) map[cod] = { produto: r.Produto || '', cliente: r.Cliente || '' };
             });
@@ -1937,7 +2024,7 @@
             return data;
         }
 
-        const APP_VERSION = '20261001.1'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20261001.3'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -3733,9 +3820,14 @@
             if (rev) rev.className = _historyTab === 'revisados' ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white transition-all flex items-center gap-1.5' : baseFL;
         }
 
-        function _updatePendingUI() {
-            const pendentes  = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
-            const revisados  = historyRows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'revisado');
+        function _updatePendingUI(rows) {
+            if (!rows) {
+                const byCod = new Map();
+                [...(_summaryRows || []), ...(historyRows || [])].forEach(r => byCod.set(String(r.Codigo || r.Timestamp), r));
+                rows = Array.from(byCod.values());
+            }
+            const pendentes  = rows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'pendente');
+            const revisados  = rows.filter(r => (r.StatusRegistro || '').toLowerCase() === 'revisado');
             const countPend  = pendentes.length;
             const countRev   = revisados.length;
 
@@ -3776,15 +3868,36 @@
         async function checkPendingNotifications() {
             if (!currentUser || currentUser.perfil !== 'master') return;
             try {
-                const result = await callBackend({ action: 'list' });
-                if (!result.success) return;
-                historyRows = result.rows || [];
-                _updatePendingUI();
+                _summaryRows = await _fetchSummaryRows();
+                _updatePendingUI(_summaryRows);
             } catch(e) {}
         }
 
-        function filterHistory(query) {
+        let _historySearchTimer = null;
+        let _historySearchSeq = 0;
+        function filterHistory(query, _fromServer) {
             const q = query.toLowerCase().trim();
+            if (!_fromServer) {
+                clearTimeout(_historySearchTimer);
+                if (q.length >= 2) {
+                    const seq = ++_historySearchSeq;
+                    _historySearchTimer = setTimeout(async () => {
+                        try {
+                            const found = await _searchHistoryOnServer(query);
+                            if (seq !== _historySearchSeq || !found.length) return;
+                            let added = false;
+                            found.forEach(r => {
+                                const cod = String(r.Codigo || '').trim();
+                                if (!historyRows.some(x => String(x.Codigo || '').trim() === cod)) { historyRows.push(r); added = true; }
+                            });
+                            if (!added) return;
+                            historyRows.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
+                            const cur = document.getElementById('historySearch');
+                            if (cur && cur.value.toLowerCase().trim() === q) filterHistory(cur.value, true);
+                        } catch (_) {}
+                    }, 500);
+                }
+            }
             let base = q
                 ? historyRows.filter(r =>
                     String(r.Codigo||'').toLowerCase().includes(q) ||
@@ -3813,6 +3926,10 @@
                     }
                     infoEl.classList.remove('hidden');
                     if (clearBtn) clearBtn.classList.remove('hidden');
+                } else if (_historyTab !== 'pendentes') {
+                    infoEl.innerHTML = `<span class="inline-flex items-center gap-1 text-slate-500 font-bold"><i data-lucide="info" class="w-3.5 h-3.5"></i> Mostrando os ${_HISTORY_REVISADOS_LIMIT} revisados mais recentes. Para um mais antigo, use a busca.</span>`;
+                    infoEl.classList.remove('hidden');
+                    if (clearBtn) clearBtn.classList.add('hidden');
                 } else {
                     infoEl.classList.add('hidden');
                     if (clearBtn) clearBtn.classList.add('hidden');
@@ -3914,6 +4031,8 @@
                 row.StatusRegistro = 'revisado';
                 const globalRow = historyRows.find(r => String(r.Timestamp) === String(row.Timestamp));
                 if (globalRow) globalRow.StatusRegistro = 'revisado';
+                const sumRow = _summaryRows.find(r => String(r.Codigo || '').trim() === String(row.Codigo || '').trim());
+                if (sumRow) sumRow.StatusRegistro = 'revisado';
                 _updatePendingUI();
                 filterHistory(document.getElementById('historySearch').value);
             } catch(e) { alert('Erro ao marcar como revisado: ' + e.message); }
@@ -3928,6 +4047,8 @@
                 row.StatusRegistro = 'pendente';
                 const globalRow = historyRows.find(r => String(r.Timestamp) === String(row.Timestamp));
                 if (globalRow) globalRow.StatusRegistro = 'pendente';
+                const sumRow = _summaryRows.find(r => String(r.Codigo || '').trim() === String(row.Codigo || '').trim());
+                if (sumRow) sumRow.StatusRegistro = 'pendente';
                 _updatePendingUI();
                 filterHistory(document.getElementById('historySearch').value);
             } catch(e) { alert('Erro ao marcar como pendente: ' + e.message); }
@@ -4381,7 +4502,11 @@
             _updateEditModeTopBarBadge();
             // Após um F5, _editOriginalRow não sobrevive. Rebusca a linha original da
             // nuvem (por Timestamp) para que a detecção de conflito volte a funcionar.
-            _fetchHistoryRows().then(rows => {
+            const _savedCodigo = String(saved.codigo || '').trim();
+            const _rowsPromise = (_savedCodigo && _savedCodigo !== '—')
+                ? _beGetOne(_savedCodigo).then(r => r ? [r] : [])
+                : _fetchHistoryRows();
+            _rowsPromise.then(rows => {
                 const row = rows.find(r => String(r.Timestamp) === String(editModeTimestamp));
                 if (row) {
                     _editOriginalRow = JSON.parse(JSON.stringify(row));
@@ -4729,9 +4854,8 @@
         async function checkDescartesPendingNotifications() {
             if (!currentUser || currentUser.perfil !== 'descartes') return;
             try {
-                const result = await callBackend({ action: 'list' });
-                if (!result.success) return;
-                _descartesPendingRows = (result.rows || []).filter(r => !_rowHasDescartesFilled(r));
+                const rows = await _fetchSummaryRows({ withDescartes: true });
+                _descartesPendingRows = rows.filter(r => !_rowHasDescartesFilled(r));
                 _updateDescartesPendingUI();
             } catch (e) { /* sem conexão: mantém a última lista conhecida */ }
         }
@@ -5141,10 +5265,8 @@
             // Consulta o banco pra checar duplicata
             let existsAlready = false;
             try {
-                const result = await callBackend({ action: 'list' });
-                if (result.success) {
-                    existsAlready = (result.rows || []).some(r => String(r.Codigo || '').trim() === codigo);
-                }
+                const result = await callBackend({ action: 'checkCodigo', codigo });
+                if (result.success) existsAlready = !!result.exists;
             } catch(_) { /* sem conexão: prossegue sem verificar */ }
 
             if (existsAlready) {
@@ -5868,18 +5990,28 @@
             console.log('[realtime master] _syncFromServer', { force, hasUnsavedEdit: _hasUnsavedEdit(), targetTs, codigoAtual });
             _setAutoSaveToast(_ICON_SPIN, 'Atualizando dados...', false);
             try {
-                const result = await callBackend({ action: 'list' });
-                if (!result.success) throw new Error(result.error || 'Erro');
-                historyRows = result.rows || [];
-                historyRowsFiltered = [...historyRows];
+                // Com o código na tela, busca só esse embarque (~100 KB) em vez da
+                // lista inteira (~7 MB). Sem código (raro), usa a lista como antes.
+                let freshRow = null;
+                if (codigoAtual) {
+                    freshRow = await _beGetOne(codigoAtual);
+                    if (freshRow) _upsertHistoryRow(freshRow);
+                } else {
+                    const result = await callBackend({ action: 'list' });
+                    if (!result.success) throw new Error(result.error || 'Erro');
+                    historyRows = result.rows || [];
+                    historyRowsFiltered = [...historyRows];
+                }
                 // Reavalia DEPOIS do await: a busca leva alguns segundos e, antes, a
                 // checagem feita só no início deixava passar o que a pessoa digitou
                 // nesse intervalo (ex: parceiro/lote novo no pallet) — o
                 // loadHistoryReport logo abaixo repintava a tela com os dados do
                 // servidor e apagava o que tinha acabado de ser preenchido.
                 if (force || !_hasUnsavedEdit()) {
-                    let row = targetTs ? historyRows.find(r => String(r.Timestamp) === String(targetTs)) : null;
-                    if (!row && codigoAtual) row = historyRows.find(r => String(r.Codigo || '').trim() === codigoAtual);
+                    // Com código: só a linha recém-buscada no servidor (nunca uma cópia antiga).
+                    const row = codigoAtual
+                        ? freshRow
+                        : (targetTs ? historyRows.find(r => String(r.Timestamp) === String(targetTs)) : null);
                     console.log('[realtime master] linha encontrada?', !!row);
                     if (row) {
                         loadHistoryReport(String(row.Timestamp), { silent: true });
@@ -7055,12 +7187,9 @@
             _auditExpanded.clear();
             document.getElementById('auditoriaList').innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">Carregando...</div>';
             lucide.createIcons();
-            // Garante que produto/cliente apareçam: carrega a lista de embarques se ainda não veio.
-            if (!(historyRows && historyRows.length)) {
-                try {
-                    const lst = await callBackend({ action: 'list' });
-                    if (lst && lst.success) { historyRows = lst.rows || []; historyRowsFiltered = [...historyRows]; }
-                } catch (_) {}
+            // Garante que produto/cliente apareçam: carrega o resumo leve se ainda não veio.
+            if (!(_summaryRows && _summaryRows.length)) {
+                try { _summaryRows = await _fetchSummaryRows(); } catch (_) {}
             }
             try {
                 const result = await callBackend({ action: 'listAuditoria' });
@@ -7202,7 +7331,7 @@
         function _comboOptions(id) {
             const cfg = _COMBOS[id]; if (!cfg) return [];
             const norm = s => cfg.upper ? String(s).toUpperCase() : s;
-            const hist = (typeof historyRows !== 'undefined' ? historyRows : []).map(r => norm((r[cfg.hist] || '').trim()));
+            const hist = [...(typeof _summaryRows !== 'undefined' ? _summaryRows : []), ...(typeof historyRows !== 'undefined' ? historyRows : [])].map(r => norm((r[cfg.hist] || '').trim()));
             const extra = Array.from(new Map(
                 [...hist, ..._comboRemembered(cfg.store)]
                     .filter(Boolean)
