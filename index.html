@@ -1656,13 +1656,13 @@
             const { data: existing } = await sb.from('embarques').select('codigo').eq('codigo', codigo).maybeSingle();
             const updateObj = _buildEmbarqueUpdateObj(data);
             if (existing) {
-                const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select('created_at').maybeSingle();
+                const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select().maybeSingle();
                 if (error) throw error;
                 return { success: true, data, timestamp: saved ? saved.created_at : null };
             }
             updateObj.codigo = codigo;
             if (updateObj.status_registro === undefined) updateObj.status_registro = data.statusRegistro || 'pendente';
-            const { data: saved, error } = await sb.from('embarques').insert(updateObj).select('created_at').maybeSingle();
+            const { data: saved, error } = await sb.from('embarques').insert(updateObj).select().maybeSingle();
             if (error) throw error;
             return { success: true, data, timestamp: saved ? saved.created_at : null };
         }
@@ -1671,7 +1671,7 @@
             const codigo = (data.embarqueCodigo || '').toString().trim();
             if (!codigo) return { success: false, error: 'Código ausente.' };
             const updateObj = _buildEmbarqueUpdateObj(data);
-            const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select('created_at').maybeSingle();
+            const { data: saved, error } = await sb.from('embarques').update(updateObj).eq('codigo', codigo).select().maybeSingle();
             if (error) throw error;
             if (!saved) return { success: false, error: 'Registro original não encontrado.' };
             return { success: true, data, timestamp: saved.created_at };
@@ -1761,7 +1761,7 @@
             if (sectionType === 'midias') {
                 await _resolvePalletsDelta('midias', codigo, payload);
                 const obj = _buildMidiasUpsertObj(codigo, payload);
-                const { data: saved, error } = await sb.from('secao_midias').upsert(obj, { onConflict: 'codigo' }).select('updated_at').maybeSingle();
+                const { data: saved, error } = await sb.from('secao_midias').upsert(obj, { onConflict: 'codigo' }).select().maybeSingle();
                 if (error) throw error;
                 return { success: true, updatedAt: saved ? saved.updated_at : null };
             }
@@ -1769,105 +1769,20 @@
             return { success: false, error: 'Tipo de seção desconhecido: ' + sectionType };
         }
 
-        // ===== CACHE INCREMENTAL DA LISTA (economia de egress do Supabase) =====
-        // A lista completa (embarques + 3 seções, com todos os JSONs) passa de 7 MB.
-        // Ela era baixada inteira a cada "list" — inclusive a cada evento de
-        // realtime do master (_syncFromServer) — e estourou a cota de egress do
-        // plano gratuito. Agora cada "list" busca só codigo/updated_at de cada
-        // tabela (poucos KB) e baixa por completo apenas as linhas que mudaram
-        // desde a última vez. As linhas brutas ficam em memória e no IndexedDB
-        // (sobrevivem ao F5), separadas por usuário por causa do RLS por perfil.
-        const _LIST_CACHE_IDB = 'spg_list_cache';
-        const _LIST_CACHE_STORE = 'rows';
-        const _LIST_TABLES = ['embarques', 'secao_parceiros', 'secao_descartes', 'secao_midias'];
-        let _listCache = null;       // { userId, tables: { [tabela]: { [codigo]: linha } } }
-        let _listCacheSaveTimer = null;
-
-        function _openListCacheIDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(_LIST_CACHE_IDB, 1);
-                req.onupgradeneeded = e => e.target.result.createObjectStore(_LIST_CACHE_STORE);
-                req.onsuccess = e => resolve(e.target.result);
-                req.onerror = e => reject(e.target.error);
-            });
-        }
-
-        async function _getListCache() {
-            const { data: { session } } = await sb.auth.getSession();
-            const userId = session?.user?.id || '';
-            if (_listCache && _listCache.userId === userId) return _listCache;
-            let stored = null;
-            try {
-                const db = await _openListCacheIDB();
-                stored = await new Promise((resolve, reject) => {
-                    const req = db.transaction(_LIST_CACHE_STORE, 'readonly').objectStore(_LIST_CACHE_STORE).get(userId);
-                    req.onsuccess = e => resolve(e.target.result || null);
-                    req.onerror = e => reject(e.target.error);
-                });
-            } catch (_) {}
-            const tables = {};
-            _LIST_TABLES.forEach(t => { tables[t] = (stored && stored.tables && stored.tables[t]) || {}; });
-            _listCache = { userId, tables };
-            return _listCache;
-        }
-
-        function _persistListCache() {
-            clearTimeout(_listCacheSaveTimer);
-            _listCacheSaveTimer = setTimeout(async () => {
-                if (!_listCache) return;
-                try {
-                    const db = await _openListCacheIDB();
-                    db.transaction(_LIST_CACHE_STORE, 'readwrite').objectStore(_LIST_CACHE_STORE).put(_listCache, _listCache.userId);
-                } catch (_) {}
-            }, 1000);
-        }
-
         async function _beList() {
-            const cache = await _getListCache();
-            // 1) Índice leve: só código + updated_at de cada tabela, numa única requisição.
-            const { data: index, error } = await sb
+            const { data, error } = await sb
                 .from('embarques')
-                .select('codigo, created_at, updated_at, secao_parceiros(updated_at), secao_descartes(updated_at), secao_midias(updated_at)')
+                .select('*, secao_parceiros(*), secao_descartes(*), secao_midias(*)')
                 .order('created_at', { ascending: true });
             if (error) throw error;
             const one = (v) => Array.isArray(v) ? (v[0] || null) : (v || null);
-
-            // 2) Descobre, por tabela, o que é novo/alterado e o que sumiu do servidor.
-            const serverUpdated = {};
-            _LIST_TABLES.forEach(t => { serverUpdated[t] = {}; });
-            (index || []).forEach((r) => {
-                serverUpdated.embarques[r.codigo] = r.updated_at;
-                ['secao_parceiros', 'secao_descartes', 'secao_midias'].forEach((t) => {
-                    const s = one(r[t]);
-                    if (s) serverUpdated[t][r.codigo] = s.updated_at;
-                });
-            });
-            let changed = false;
-            await Promise.all(_LIST_TABLES.map(async (t) => {
-                const cached = cache.tables[t];
-                Object.keys(cached).forEach((cod) => {
-                    if (!(cod in serverUpdated[t])) { delete cached[cod]; changed = true; }
-                });
-                const stale = Object.keys(serverUpdated[t]).filter(cod => !cached[cod] || cached[cod].updated_at !== serverUpdated[t][cod]);
-                // 3) Baixa completas só as linhas desatualizadas (em lotes, pra não estourar a URL).
-                for (let i = 0; i < stale.length; i += 50) {
-                    const { data, error: e } = await sb.from(t).select('*').in('codigo', stale.slice(i, i + 50));
-                    if (e) throw e;
-                    (data || []).forEach((row) => { cached[row.codigo] = row; });
-                    changed = true;
-                }
-            }));
-            if (changed) _persistListCache();
-
-            // 4) Remonta a lista no mesmo formato de antes (objetos novos a cada
-            // chamada — o app pode mutá-los sem corromper o cache).
-            const rows = (index || []).map((r) => {
-                const shaped = _embarqueRowToAppShape(cache.tables.embarques[r.codigo] || r);
+            const rows = (data || []).map((row) => {
+                const shaped = _embarqueRowToAppShape(row);
                 return Object.assign({}, shaped, {
                     _nf: shaped,
-                    _parceiros: _secaoParceirosToAppShape(cache.tables.secao_parceiros[r.codigo] || null),
-                    _descartes: _secaoDescartesToAppShape(cache.tables.secao_descartes[r.codigo] || null),
-                    _midias: _secaoMidiasToAppShape(cache.tables.secao_midias[r.codigo] || null),
+                    _parceiros: _secaoParceirosToAppShape(one(row.secao_parceiros)),
+                    _descartes: _secaoDescartesToAppShape(one(row.secao_descartes)),
+                    _midias: _secaoMidiasToAppShape(one(row.secao_midias)),
                 });
             });
             return { success: true, rows };
@@ -2022,7 +1937,7 @@
             return data;
         }
 
-        const APP_VERSION = '20260928.1'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20261001.1'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -6206,15 +6121,6 @@
                 await new Promise((resolve) => {
                     try {
                         const req = indexedDB.deleteDatabase(_IDB_NAME);
-                        req.onsuccess = resolve;
-                        req.onerror = resolve;
-                        req.onblocked = resolve;
-                    } catch(_) { resolve(); }
-                });
-                _listCache = null;
-                await new Promise((resolve) => {
-                    try {
-                        const req = indexedDB.deleteDatabase(_LIST_CACHE_IDB);
                         req.onsuccess = resolve;
                         req.onerror = resolve;
                         req.onblocked = resolve;
