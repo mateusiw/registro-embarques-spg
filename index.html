@@ -2024,7 +2024,7 @@
             return data;
         }
 
-        const APP_VERSION = '20261001.3'; // Versão atual — atualizada a cada deploy
+        const APP_VERSION = '20261001.4'; // Versão atual — atualizada a cada deploy
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/mateusiw/registro-embarques-spg/main/index.html';
 
         let currentUser = null; // { nome, perfil }
@@ -2344,13 +2344,27 @@
         }
 
         // Monta a entrada de uma foto com metadados de auditoria (quem/quando/nome no Drive).
+        // "pid" é a identidade da foto (não muda quando o base64 vira link do Drive).
         function _mkPhotoEntry(dataUrl, name, extra) {
             return Object.assign({
+                pid: 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
                 dataUrl: dataUrl || '',
                 by: (currentUser && currentUser.nome) || '',
                 at: new Date().toISOString(),
                 name: name || '',
             }, extra || {});
+        }
+
+        // Chave estável de uma foto — precisa ser IGUAL a public._photo_key() do
+        // banco (supabase/migration_preserva_fotos_pallet.sql). O banco junta as
+        // fotos de cada pallet por essa chave a cada save, então uma foto só sai
+        // do pallet se a chave dela estiver em pallet.removedPhotos.
+        function _photoKey(p) {
+            if (p && typeof p === 'object') {
+                if (p.pid) return p.pid;
+                if (p.at) return (p.by || '') + '|' + p.at;
+            }
+            return _photoUrl(p);
         }
 
         let _pendingUploadRetryTimer = null;
@@ -4235,7 +4249,7 @@
                             mPallets.forEach((mp, i) => {
                                 const target = (mp.id && palletsById.get(mp.id)) || palletsData[i];
                                 if (target) {
-                                    if (mp.photos && mp.photos.length > 0) target.photos = mp.photos;
+                                    _adoptPalletPhotos(target, mp);
                                     if (mp.temp !== undefined && mp.temp !== '') target.temp = mp.temp;
                                     if (mp.client !== undefined && mp.client !== '') target.client = mp.client;
                                 } else {
@@ -5022,11 +5036,23 @@
             (newPallets || []).forEach(pl => {
                 const prev = pl && pl.id && priorById.get(pl.id);
                 if (!prev || !Array.isArray(prev.photos) || !prev.photos.length) return;
-                const existing = new Set((pl.photos || []).map(_photoUrl).filter(Boolean));
-                const missing = prev.photos.filter(p => { const u = _photoUrl(p); return u && !existing.has(u); });
+                // Exclusões marcadas aqui ou por outra pessoa nunca são ressuscitadas.
+                const removed = new Set([...(pl.removedPhotos || []), ...(prev.removedPhotos || [])]);
+                if (removed.size) pl.removedPhotos = Array.from(removed);
+                const existing = new Set((pl.photos || []).map(_photoKey).filter(Boolean));
+                const missing = prev.photos.filter(p => { const k = _photoKey(p); return k && !existing.has(k) && !removed.has(k); });
                 if (missing.length) pl.photos = [...(pl.photos || []), ...missing];
             });
             return newPallets;
+        }
+
+        // Fotos do pallet vindas da aba Mídias substituem as da aba Parceiros (como
+        // antes), mas as exclusões marcadas nos dois lados são somadas e respeitadas.
+        function _adoptPalletPhotos(target, src) {
+            const removed = new Set([...(target.removedPhotos || []), ...(src.removedPhotos || [])]);
+            if (removed.size) target.removedPhotos = Array.from(removed);
+            if (src.photos && src.photos.length > 0) target.photos = src.photos;
+            if (removed.size && Array.isArray(target.photos)) target.photos = target.photos.filter(p => !removed.has(_photoKey(p)));
         }
 
         async function _loadSectionData(codigo) {
@@ -5159,7 +5185,7 @@
                             savedPallets.forEach((sp, i) => {
                                 const target = (sp.id && palletsById.get(sp.id)) || palletsData[i];
                                 if (target) {
-                                    if (sp.photos && sp.photos.length > 0) target.photos = sp.photos;
+                                    _adoptPalletPhotos(target, sp);
                                     if (sp.temp !== undefined && sp.temp !== '') target.temp = sp.temp;
                                     if (sp.client !== undefined && sp.client !== '') target.client = sp.client;
                                 } else {
@@ -8632,7 +8658,15 @@
             }
         }
         function removePalletPhoto(idx, pidx) {
-            palletsData[idx].photos.splice(pidx, 1);
+            const [removed] = palletsData[idx].photos.splice(pidx, 1);
+            // Marca a exclusão: sem isso, o merge de fotos do banco traria a foto
+            // de volta (ele só remove fotos listadas em removedPhotos).
+            const rk = _photoKey(removed);
+            if (rk) {
+                const pl = palletsData[idx];
+                pl.removedPhotos = Array.isArray(pl.removedPhotos) ? pl.removedPhotos : [];
+                if (!pl.removedPhotos.includes(rk)) pl.removedPhotos.push(rk);
+            }
             renderPallets();
             updatePreview();
             if (currentUser) {
