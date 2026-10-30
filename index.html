@@ -10203,7 +10203,9 @@
 
                 // Um card por pallet: parceiros daquele pallet, caixas e unidades de cada um
                 const palletCards = validPallets.map(pl => {
-                    const merged = new Map();
+                    // Sem agrupar: cada bloco de parceiro vira uma linha, na mesma ordem do preenchimento
+                    // (o mesmo parceiro pode aparecer repetido com produtos/quantidades diferentes).
+                    const partners = [];
                     (pl.partnerGroups || []).forEach(g => {
                         const name = (g.name === 'Outro' ? (g.nameCustom || '') : (g.name || '')).trim();
                         if (!name) return;
@@ -10214,17 +10216,8 @@
                         const unitsQty = lots.reduce((s, l) => s + _lotUnits(l), 0);
                         const products = lots.map(l => (l.product === 'Outro' ? (l.productCustom || '') : (l.product || '')).trim()).filter(Boolean);
                         const dates = lots.map(l => l.harvestDate).filter(Boolean);
-                        const key = _normalizePartnerKey(name);
-                        if (merged.has(key)) {
-                            const e = merged.get(key);
-                            e.qty += qty; e.unitsQty += unitsQty; e.kgQty += kgQty;
-                            products.forEach(p => e.products.add(p));
-                            dates.forEach(d => e.dates.add(d));
-                        } else {
-                            merged.set(key, { name, qty, unitsQty, kgQty, products: new Set(products), dates: new Set(dates) });
-                        }
+                        partners.push({ name, qty, unitsQty, kgQty, products: new Set(products), dates: new Set(dates) });
                     });
-                    const partners = Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity:'base'}));
                     return {
                         label: (pl.label || '').trim() || 'Pallet',
                         client: (pl.client || '').trim(),
